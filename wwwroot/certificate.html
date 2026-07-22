@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Certificado de aprobación</title>
+<style>
+  :root{ --accent:#1e3a8a; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:Georgia,'Times New Roman',serif; color:#1f2937;
+        background:#e5e7eb; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+  /* Barra de acciones (no se imprime) */
+  .bar{ position:sticky; top:0; display:flex; gap:10px; align-items:center; justify-content:center;
+        padding:12px; background:#111827; color:#fff; font-family:system-ui,Segoe UI,sans-serif; }
+  .bar button{ font:inherit; padding:8px 16px; border:0; border-radius:8px; cursor:pointer; }
+  .bar .print{ background:var(--accent); color:#fff; font-weight:600; }
+  .bar .ghost{ background:#374151; color:#fff; }
+  .msg{ text-align:center; padding:60px 20px; font-family:system-ui,sans-serif; color:#374151; }
+
+  /* Hoja (apaisada) */
+  .sheet{ width:1000px; max-width:96vw; aspect-ratio:1.414/1; margin:24px auto; background:#fff;
+          box-shadow:0 10px 40px rgba(0,0,0,.2); position:relative; padding:44px;
+          display:flex; flex-direction:column; }
+  .frame{ position:absolute; inset:18px; border:3px solid var(--accent); }
+  .frame::after{ content:""; position:absolute; inset:7px; border:1px solid var(--accent); opacity:.5; }
+  .inner{ position:relative; flex:1 1 auto; display:flex; flex-direction:column; align-items:center;
+          text-align:center; padding:26px 40px 66px; }
+
+  .logo{ max-height:66px; max-width:230px; object-fit:contain; margin-bottom:6px; }
+  .issuer{ font-size:15px; letter-spacing:2px; text-transform:uppercase; color:#374151; }
+  .kicker{ margin-top:14px; font-size:13px; letter-spacing:5px; text-transform:uppercase; color:var(--accent); }
+  .h1{ font-size:40px; font-weight:700; letter-spacing:1px; color:var(--accent); margin:2px 0 6px; }
+  .lead{ font-size:15px; color:#4b5563; }
+  .name{ font-size:34px; margin:14px 0 8px; padding:0 20px 6px; border-bottom:2px solid #d1d5db;
+         font-style:italic; }
+  .course{ font-size:22px; font-weight:700; margin:6px 0; }
+  .statement{ font-size:14px; color:#4b5563; max-width:640px; margin:8px auto 0; line-height:1.5; }
+
+  .meta{ display:flex; gap:26px; justify-content:center; margin-top:14px; font-size:13px;
+         font-family:system-ui,sans-serif; color:#374151; }
+  .meta .lbl{ display:block; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#9ca3af; }
+  .meta b{ font-size:15px; }
+  .badge-exp{ color:#b45309; } .badge-ok{ color:#047857; }
+
+  .foot{ margin-top:auto; width:100%; display:flex; align-items:flex-end; justify-content:space-between; gap:30px; }
+  .sign{ text-align:center; min-width:220px; }
+  .sign .sigimg{ max-height:56px; max-width:200px; object-fit:contain; display:block; margin:0 auto -4px; }
+  .sign .line{ border-top:1.5px solid #6b7280; padding-top:6px; font-size:14px; }
+  .sign .role{ font-size:12px; color:#6b7280; font-family:system-ui,sans-serif; }
+  .seal{ width:96px; height:96px; border-radius:50%; border:3px double var(--accent); color:var(--accent);
+         display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+         font-family:system-ui,sans-serif; transform:rotate(-8deg); opacity:.9; }
+  .seal .s1{ font-size:10px; letter-spacing:2px; } .seal .s2{ font-size:20px; font-weight:700; }
+  .serial{ position:absolute; bottom:34px; left:0; right:0; text-align:center; font-size:11px;
+           letter-spacing:1px; color:#9ca3af; font-family:system-ui,monospace; line-height:1.5; }
+  .platform{ font-size:10px; letter-spacing:.5px; color:#b0b7c3; }
+  .pvbanner{ max-width:96vw; width:1000px; margin:14px auto -6px; padding:8px 14px; text-align:center;
+             background:#fef3c7; color:#92400e; border:1px solid #fbbf24; border-radius:8px;
+             font-family:system-ui,sans-serif; font-size:13px; font-weight:600; }
+
+  @page{ size:A4 landscape; margin:0; }
+  @media print{
+    html, body{ background:#fff; margin:0; }
+    .bar, .pvbanner{ display:none !important; }
+    .sheet{ box-shadow:none; margin:0; width:100%; max-width:none;
+            height:100vh; aspect-ratio:auto; overflow:hidden; page-break-after:avoid; }
+  }
+</style>
+</head>
+<body>
+  <div class="bar" id="bar" style="display:none">
+    <button class="print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+    <button class="ghost" onclick="window.close()">Cerrar</button>
+  </div>
+  <div id="root"><div class="msg">Cargando certificado…</div></div>
+
+<script>
+const qs = new URLSearchParams(location.search);
+const token = localStorage.getItem('tp_token');
+const fmt = iso => iso ? new Date(iso).toLocaleDateString('es', {day:'2-digit',month:'long',year:'numeric'}) : '';
+const esc = s => (s??'').toString().replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function load(){
+  if(qs.get('preview')){ return preview(); }
+  if(!token){ return fail('Inicia sesión primero en <a href="/">la página principal</a>.'); }
+  const attempt = qs.get('attempt'), serial = qs.get('serial');
+  const path = attempt ? '/attempts/'+attempt+'/certificate'
+             : serial  ? '/certificates/'+encodeURIComponent(serial)
+             : null;
+  if(!path){ return fail('Falta el parámetro <code>attempt</code> o <code>serial</code>.'); }
+  try{
+    const r = await fetch(path, { headers:{ 'Authorization':'Bearer '+token } });
+    if(!r.ok){ return fail(r.status===404 ? 'No se encontró el certificado.'
+                         : (await r.text()) || 'No se pudo cargar el certificado.'); }
+    render(await r.json());
+  }catch(e){ fail('Error de red al cargar el certificado.'); }
+}
+
+function fail(html){ document.getElementById('root').innerHTML = '<div class="msg">'+html+'</div>'; }
+
+function render(c, isPreview){
+  document.documentElement.style.setProperty('--accent', c.accentColor || '#1e3a8a');
+  document.title = 'Certificado · '+ (c.learnerName||'');
+
+  let validity = '';
+  if(c.showValidity){
+    if(c.validity === 'permanent') validity =
+      `<div><span class="lbl">Vigencia</span><b>Sin caducidad</b></div>`;
+    else validity =
+      `<div><span class="lbl">${c.validity==='expired'?'Venció':'Válido hasta'}</span>`+
+      `<b class="${c.validity==='expired'?'badge-exp':'badge-ok'}">${fmt(c.expiresAt)}</b></div>`;
+  }
+  const score = c.showScore
+    ? `<div><span class="lbl">Calificación</span><b>${c.scorePercent}%</b></div>` : '';
+
+  const logo = c.logoDataUrl ? `<img class="logo" src="${c.logoDataUrl}" alt="logo">` : '';
+  const statement = c.statement ? `<p class="statement">${esc(c.statement)}</p>` : '';
+  const sigImg = c.signatureDataUrl ? `<img class="sigimg" src="${c.signatureDataUrl}" alt="firma">` : '';
+  const sign = (c.signatoryName || c.signatoryTitle || c.signatureDataUrl)
+    ? `<div class="sign">${sigImg}<div class="line">${esc(c.signatoryName||'')}</div>`+
+      `<div class="role">${esc(c.signatoryTitle||'')}</div></div>`
+    : `<div class="sign"><div class="line">&nbsp;</div><div class="role">Firma autorizada</div></div>`;
+
+  document.getElementById('root').innerHTML = `
+    <div class="sheet">
+      <div class="frame"></div>
+      <div class="inner">
+        ${logo}
+        <div class="issuer">${esc(c.issuerName||'')}</div>
+        <div class="kicker">Certificado de aprobación</div>
+        <div class="h1">Constancia de cumplimiento</div>
+        <div class="lead">Se certifica que</div>
+        <div class="name">${esc(c.learnerName)}</div>
+        <div class="lead">ha completado y aprobado satisfactoriamente el adiestramiento</div>
+        <div class="course">${esc(c.trainingTitle)}</div>
+        ${statement}
+        <div class="meta">
+          <div><span class="lbl">Fecha de emisión</span><b>${fmt(c.issuedAt)}</b></div>
+          ${score}
+          ${validity}
+        </div>
+        <div class="foot">
+          ${sign}
+          <div class="seal"><span class="s1">APROBADO</span><span class="s2">✓</span>
+            <span class="s1">${c.passPercent}% mín.</span></div>
+        </div>
+      </div>
+      <div class="serial">Folio: ${esc(c.serial)} · Verificable con el emisor<br>
+        <span class="platform">Administrado a través de Aprendor</span></div>
+    </div>`;
+  if(isPreview){
+    const b = document.createElement('div');
+    b.className = 'pvbanner';
+    b.textContent = 'VISTA PREVIA — datos de ejemplo, no es un certificado válido';
+    document.getElementById('root').prepend(b);
+  }
+  document.getElementById('bar').style.display = 'flex';
+}
+
+function preview(){
+  let c = null;
+  try{ c = JSON.parse(localStorage.getItem('tp_cert_preview') || 'null'); }catch(e){}
+  if(!c){ return fail('No hay datos de vista previa. Vuelve a abrirla desde la configuración del certificado.'); }
+  render(c, true);
+}
+load();
+</script>
+</body>
+</html>

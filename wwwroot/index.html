@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aprendor</title>
+<style>
+  :root{--canvas1:#1e293b;--canvas2:#0f172a;--panel:#fff;--ink:#0f172a;--muted:#64748b;--line:#e7ebf2;
+    --brand:#4f46e5;--brand-d:#4338ca;--accent:#0ea5e9;--ok:#16a34a;--err:#dc2626;--soft:#f3f5f9;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:radial-gradient(1200px 600px at 70% -10%,#243049,#0f172a) , linear-gradient(180deg,var(--canvas1),var(--canvas2));min-height:100vh;}
+  .hidden{display:none !important;}
+  button{font:inherit;cursor:pointer;} input,select,textarea{font:inherit;}
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .login-card{background:var(--panel);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.4);width:100%;max-width:390px;padding:34px;}
+  .logo{display:block;flex:0 0 auto;}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:21px;margin-bottom:4px;letter-spacing:.2px;}
+  .brand .dot{width:26px;height:26px;border-radius:7px;background:var(--brand);display:inline-block;}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 22px;}
+  label{display:block;font-size:13px;font-weight:600;color:#334155;margin:14px 0 6px;}
+  .field{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;}
+  .field:focus{outline:2px solid var(--brand);border-color:transparent;}
+  .btn{padding:11px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(79,70,229,.28);}
+  .btn:hover{background:linear-gradient(135deg,#4f46e5,#4338ca);} .btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;}
+  .btn.full{width:100%;margin-top:18px;} .btn.sm{padding:7px 12px;font-size:13px;border-radius:8px;box-shadow:none;}
+  .btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--line);box-shadow:none;}
+  .btn.ghost:hover{background:var(--soft);}
+  .btn.danger{background:#fee2e2;color:#b91c1c;box-shadow:none;} .btn.danger:hover{background:#fecaca;}
+  .btn.ok{background:var(--ok);}
+  .msg{margin-top:12px;font-size:14px;min-height:1em;} .msg.err{color:var(--err);} .msg.ok{color:var(--ok);}
+  /* Topbar */
+  .topbar{background:#0b1220;color:#e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #1e293b;}
+  .topbar .left{display:flex;align-items:center;gap:11px;}
+  .brandname{font-weight:800;font-size:18px;color:#fff;letter-spacing:.2px;}
+  .topbar .right{display:flex;align-items:center;gap:12px;}
+  .topbar .who{font-size:13px;color:#94a3b8;} .topbar .who b{color:#fff;}
+  .profile-chip{display:flex;align-items:center;gap:9px;cursor:pointer;padding:5px 12px 5px 6px;border-radius:999px;border:1px solid #1e293b;background:#0e1830;transition:.15s;}
+  .profile-chip:hover{border-color:#3b4a6b;background:#141f3a;}
+  .avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;background:linear-gradient(135deg,#6366f1,#0ea5e9);flex:0 0 auto;}
+  .avatar.lg{width:56px;height:56px;font-size:21px;}
+  .profile-chip .nm{font-size:13px;color:#e2e8f0;font-weight:600;line-height:1.15;}
+  .profile-chip .rl{font-size:11px;color:#93a3bb;}
+  .container{max-width:1000px;margin:26px auto;padding:0 18px;}
+  /* Dashboard */
+  .dash-head{margin:6px 2px 16px;}
+  .dash-title{margin:0;font-size:25px;font-weight:800;color:#f8fafc;}
+  .dash-sub{margin:4px 0 0;font-size:14px;color:#94a3b8;}
+  .profile-card{display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,#141f3a,#0b1220);border:1px solid #1e293b;border-radius:16px;padding:16px 20px;margin-bottom:18px;}
+  .profile-card .pc-name{color:#f8fafc;font-weight:700;font-size:17px;}
+  .profile-card .pc-meta{color:#9fb0c9;font-size:13px;margin-top:2px;}
+  .profile-card .pc-actions{margin-left:auto;display:flex;gap:8px;}
+  .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-bottom:18px;}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px 16px;}
+  .stat .n{font-size:27px;font-weight:800;color:var(--ink);line-height:1;}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:7px;}
+  .stat.accent{background:linear-gradient(135deg,#eef2ff,#e0f2fe);border-color:#c7d2fe;}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:14px;}
+  .tile{cursor:pointer;border:1px solid var(--line);border-radius:16px;padding:18px;background:#fff;transition:.16s;box-shadow:0 1px 2px rgba(2,6,23,.06);}
+  .tile:hover{transform:translateY(-2px);border-color:var(--brand);box-shadow:0 12px 28px rgba(79,70,229,.16);}
+  .tile-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(135deg,#eef2ff,#e0f2fe);}
+  .tile .t{font-weight:700;margin-top:12px;display:flex;align-items:center;gap:8px;color:var(--ink);}
+  .tile .d{font-size:13px;color:var(--muted);margin-top:3px;}
+  .tile .badge{background:var(--brand);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 8px;}
+  .back-link{background:transparent;border:1px solid #334155;color:#cbd5e1;padding:7px 13px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:14px;}
+  .back-link:hover{background:#141f3a;border-color:#475569;}
+  /* Cards */
+  .card{background:var(--panel);border-radius:14px;box-shadow:0 6px 22px rgba(2,6,23,.10);padding:22px;margin-bottom:20px;}
+  .card h2{margin:0 0 4px;font-size:17px;} .card h3{margin:18px 0 8px;font-size:14px;color:#334155;}
+  .card .hint{color:var(--muted);font-size:13px;margin:0 0 16px;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;} .row>div{flex:1;min-width:150px;}
+  .list{margin-top:14px;border-top:1px solid var(--line);}
+  .item{display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid var(--line);font-size:14px;}
+  .item .tag{font-size:12px;color:var(--muted);background:var(--soft);padding:3px 9px;border-radius:99px;}
+  .item .sp{margin-left:auto;display:flex;gap:6px;}
+  .empty{color:var(--muted);font-size:14px;padding:14px 2px;}
+  .opt{display:flex;align-items:center;gap:8px;margin:6px 0;} .opt input[type=text]{flex:1;}
+  .qbox{background:var(--soft);border-radius:10px;padding:14px;margin:10px 0;}
+  .itform{margin-top:8px;}
+  .rtbar{display:flex;gap:6px;margin:6px 0;flex-wrap:wrap;}
+  .rtbar button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;}
+  .rtedit{min-height:70px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;}
+  .rtedit:focus{outline:2px solid var(--brand);}
+  /* Pantalla de contenido */
+  .screen{position:fixed;inset:0;background:#eef2f7;z-index:50;overflow:auto;}
+  .screen-bar{position:sticky;top:0;background:#0b1220;color:#e2e8f0;display:flex;align-items:center;gap:10px;padding:12px 18px;z-index:1;}
+  .screen-bar .tag{background:#1e293b;color:#cbd5e1;}
+  .screen-body{max-width:1000px;margin:18px auto;padding:0 18px;}
+  .screen-body .list{background:#fff;border-radius:12px;padding:4px 16px;border-top:none;box-shadow:0 8px 24px rgba(0,0,0,.08);}
+  .tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;}
+  .tab{flex:0 0 auto;padding:8px 14px;border:1px solid var(--line);background:#fff;border-radius:999px;color:#334155;font-weight:600;font-size:13px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tab.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+  /* Modal bloqueante */
+  .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:28px 16px;overflow:auto;}
+  .modal-box{background:#fff;border-radius:16px;max-width:660px;width:100%;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+  .modal-box h3{margin:0 0 12px;font-size:18px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;border-top:1px solid var(--line);padding-top:14px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginView" class="login-wrap">
+  <div class="login-card">
+    <div class="brand">
+      <svg class="logo" width="34" height="34" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="apLogo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
+        <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#apLogo)"/>
+        <path d="M9 19 L16 11 L23 19" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M11 22.5 L21 22.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".75"/>
+      </svg>
+      Aprendor
+    </div>
+    <p class="sub">Aprende. Cumple. Avanza. Inicia sesión para continuar.</p>
+    <label>Correo</label>
+    <input id="email" class="field" type="email" placeholder="admin@local" autocomplete="username" />
+    <label>Contraseña</label>
+    <input id="password" class="field" type="password" placeholder="••••••••" autocomplete="current-password" />
+    <button class="btn full" id="loginBtn">Entrar</button>
+    <p class="msg err" id="loginMsg"></p>
+  </div>
+</div>
+
+<!-- CAMBIO OBLIGATORIO DE CONTRASEÑA (tras reseteo del admin) -->
+<div id="forceChangeView" class="login-wrap hidden">
+  <div class="login-card">
+    <div class="brand">
+      <svg class="logo" width="34" height="34" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="apLogo3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
+        <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#apLogo3)"/>
+        <path d="M9 19 L16 11 L23 19" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M11 22.5 L21 22.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".75"/>
+      </svg>
+      Aprendor
+    </div>
+    <p class="sub">Tu contraseña fue reseteada. Crea una nueva para continuar.</p>
+    <label>Contraseña temporal</label>
+    <input id="fcCur" class="field" type="password" autocomplete="current-password" placeholder="La que te dieron" />
+    <label>Nueva contraseña</label>
+    <input id="fcNew" class="field" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres" />
+    <label>Confirmar nueva</label>
+    <input id="fcNew2" class="field" type="password" autocomplete="new-password" />
+    <button class="btn full" id="fcBtn">Guardar y continuar</button>
+    <p class="msg err" id="fcMsg"></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appView" class="hidden">
+  <div class="topbar">
+    <div class="left">
+      <svg class="logo" width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="apLogo2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
+        <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#apLogo2)"/>
+        <path d="M9 19 L16 11 L23 19" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M11 22.5 L21 22.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".75"/>
+      </svg>
+      <span class="brandname">Aprendor</span>
+    </div>
+    <div class="right">
+      <div class="profile-chip" id="profileChip" onclick="openProfile()" title="Ver perfil">
+        <div class="avatar" id="navAvatar">··</div>
+        <div>
+          <div class="nm" id="whoName">—</div>
+          <div class="rl" id="whoRole">—</div>
+        </div>
+      </div>
+      <button class="btn sm ghost" id="logoutBtn" style="color:#cbd5e1;border-color:#334155">Salir</button>
+    </div>
+  </div>
+  <div class="container">
+
+    <!-- ADMIN -->
+    <div id="adminView" class="hidden">
+      <div class="card">
+        <h2>Clientes (tenants)</h2>
+        <p class="hint">Cada cliente vive en su propia base de datos, con un Database= ÚNICO.</p>
+        <div class="row">
+          <div><label>Nombre</label><input id="tName" class="field" placeholder="Cliente A" /></div>
+          <div style="flex:2"><label>Connection string de su base</label>
+            <input id="tConn" class="field" placeholder="Server=localhost;Database=TP_ClienteA;Trusted_Connection=True;TrustServerCertificate=True;" /></div>
+          <button class="btn sm" id="createTenantBtn">Crear</button>
+        </div>
+        <p class="msg" id="tenantMsg"></p>
+        <div class="list" id="tenantList"></div>
+      </div>
+      <div class="card">
+        <h2>Usuarios</h2>
+        <div class="row">
+          <div><label>Correo</label><input id="uEmail" class="field" placeholder="autor@clientea.com" /></div>
+          <div><label>Nombre</label><input id="uName" class="field" placeholder="Autora" /></div>
+          <div><label>Contraseña</label><input id="uPass" class="field" type="text" placeholder="Pass123!" /></div>
+          <div><label>Rol</label><select id="uRole" class="field">
+            <option>Author</option><option>Moderator</option><option>Learner</option><option>Admin</option></select></div>
+          <div><label>Cliente</label><select id="uTenant" class="field"></select></div>
+          <button class="btn sm" id="createUserBtn">Crear</button>
+        </div>
+        <p class="msg" id="userMsg"></p>
+      </div>
+      <div class="card">
+        <h2>Usuarios existentes</h2>
+        <p class="hint">Cambia el rol, resetea la contraseña (obliga a cambiarla al entrar) o elimina.</p>
+        <div class="row" style="margin-bottom:6px">
+          <div style="max-width:260px"><select id="userFilter" class="field" onchange="loadUsers()"></select></div>
+          <button class="btn sm ghost" onclick="loadUsers()">Actualizar</button>
+        </div>
+        <div class="list" id="usersList"></div>
+      </div>
+    </div>
+
+    <!-- TENANT APP -->
+    <div id="tenantAppView" class="hidden">
+
+      <!-- DASHBOARD -->
+      <div id="dashGrid">
+        <div class="dash-head">
+          <h1 class="dash-title">Hola, <span id="dashName"></span> 👋</h1>
+          <p class="dash-sub">Este es tu panel. Elige una opción según tu rol.</p>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="stats" id="dashStats"></div>
+
+        <!-- Accesos -->
+        <div id="dashTiles" class="tiles"></div>
+      </div>
+
+      <!-- SECCIÓN: Adiestramientos (crear/editar/publicar) -->
+      <div class="section hidden" id="sec-manage">
+        <button class="back-link" onclick="showDash()">← Inicio</button>
+        <div class="card">
+          <h2>Categorías</h2>
+          <div class="row"><div><input id="cName" class="field" placeholder="Seguridad" /></div>
+            <button class="btn sm" id="addCatBtn">Añadir</button></div>
+          <div class="list" id="catList"></div>
+        </div>
+        <div class="card">
+          <h2>Adiestramientos</h2>
+          <p class="hint">Crea un adiestramiento, edita su contenido y publícalo.</p>
+          <div class="row">
+            <div><input id="trTitle" class="field" placeholder="Inducción de seguridad" /></div>
+            <div><input id="trDesc" class="field" placeholder="Descripción (opcional)" /></div>
+            <button class="btn sm" id="addTrBtn">Crear</button>
+          </div>
+          <div class="list" id="trList"></div>
+        </div>
+        <div class="card hidden" id="resultsCard">
+          <h2>Resultados — <span id="resultsTitle"></span></h2>
+          <div class="list" id="resultsList"></div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN: Tomar -->
+      <div class="section hidden" id="sec-take">
+        <button class="back-link" onclick="showDash()">← Inicio</button>
+        <div class="card">
+          <h2>Mis adiestramientos</h2>
+          <p class="hint">Te aparecen hasta que los completes con puntuación satisfactoria. Abren en una pestaña aparte, a pantalla completa.</p>
+          <div class="list" id="catalogList"></div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN: Historial -->
+      <div class="section hidden" id="sec-history">
+        <button class="back-link" onclick="showDash()">← Inicio</button>
+        <div class="card">
+          <h2>Mi historial</h2>
+          <div class="row" style="margin-bottom:6px"><button class="btn sm ghost" id="refreshHistBtn">Actualizar</button></div>
+          <div class="list" id="historyList"></div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN: Revisar (calificar / cancelaciones / resultados) -->
+      <div class="section hidden" id="sec-review">
+        <button class="back-link" onclick="showDash()">← Inicio</button>
+        <div class="card" id="gradingCard">
+          <h2>Evaluaciones pendientes</h2>
+          <p class="hint">Respuestas abiertas que esperan tu calificación.</p>
+          <div class="row" style="margin-bottom:6px"><button class="btn sm ghost" id="refreshGradeBtn">Actualizar</button></div>
+          <div class="list" id="gradingList"></div>
+        </div>
+        <div class="card" id="pendingCard">
+          <h2>Cancelaciones pendientes</h2>
+          <p class="hint">Solicitudes de cancelación de cursos en progreso. Apruébalas con un comentario.</p>
+          <div class="row" style="margin-bottom:6px"><button class="btn sm ghost" id="refreshPendBtn">Actualizar</button></div>
+          <div class="list" id="pendingList"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- PANTALLA DE CONTENIDO (se abre desde "Contenido") -->
+<div id="contentView" class="screen hidden">
+  <div class="screen-bar">
+    <button class="btn sm ghost" id="backFromContent" style="color:#cbd5e1;border-color:#334155">← Volver</button>
+    <div style="margin-left:4px"><b id="contentTitle"></b> <span class="tag" id="contentStatus"></span></div>
+    <span style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn sm" id="addItemTop">+ Añadir ítem</button>
+      <button class="btn sm ghost" id="previewBtn" style="color:#cbd5e1;border-color:#334155">Vista previa</button>
+      <button class="btn sm ok" id="publishBtn">Publicar</button>
+    </span>
+  </div>
+  <div class="screen-body">
+    <div class="tabs" id="contentTabs"></div>
+    <div class="list" id="contentItems"></div>
+    <p class="msg" id="contentMsg"></p>
+  </div>
+</div>
+
+<!-- PANTALLA DE VERSIONES Y ASIGNACIÓN -->
+<div id="assignView" class="screen hidden">
+  <div class="screen-bar">
+    <button class="btn sm ghost" id="backFromAssign" style="color:#cbd5e1;border-color:#334155">← Volver</button>
+    <div style="margin-left:4px"><b>Versiones y asignación</b></div>
+  </div>
+  <div class="screen-body">
+    <p class="hint" style="color:#475569">Arma el adiestramiento <b>una vez</b> con todo el contenido. Luego crea <b>sets</b> (versiones) donde solo eliges qué se enseña — todo viene marcado y desmarcas lo que no quieres. Al usuario siempre le aparece el mismo nombre del adiestramiento. Asigna qué set ve cada usuario o cohorte. Precedencia: <b>usuario › cohorte › set por defecto</b>.</p>
+
+    <div class="card" style="margin-bottom:16px">
+      <h2>Cohortes (grupos de usuarios)</h2>
+      <div class="row">
+        <div><input id="cohortName" class="field" placeholder="Departamento de Ventas" /></div>
+        <button class="btn sm" id="addCohortBtn">Crear cohorte</button>
+      </div>
+      <div class="list" id="cohortList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Sets y asignación por adiestramiento</h2>
+      <label>Adiestramiento</label>
+      <select id="setTraining" class="field" style="max-width:420px" onchange="loadSets()"></select>
+      <div id="setsArea" style="margin-top:14px"></div>
+    </div>
+    <p class="msg" id="assignMsg"></p>
+  </div>
+</div>
+
+<!-- MODAL DE EDICIÓN (bloqueante: solo se cierra con Guardar o Cancelar) -->
+<div id="itemModal" class="modal hidden">
+  <div class="modal-box">
+    <h3 id="modalTitle">Editar ítem</h3>
+    <label>Tipo de ítem</label>
+    <select id="itType" class="field" style="max-width:320px">
+      <option value="ModuleHeader">Encabezado de módulo</option>
+      <option value="Info">Pantalla de contenido (texto + medios)</option>
+      <option value="Single">Pregunta — una correcta</option>
+      <option value="Multi">Pregunta — varias correctas</option>
+      <option value="Matching">Pregunta — pareo (dropdowns)</option>
+      <option value="Open">Pregunta abierta (texto)</option>
+    </select>
+
+    <div id="form_ModuleHeader" class="itform">
+      <div class="row">
+        <div><label>Título del módulo</label><input id="mhTitle" class="field" placeholder="Módulo 1: Manejo de datos" /></div>
+        <div><label>Subtítulo (opcional)</label><input id="mhSub" class="field" placeholder="Lo que verás en este módulo…" /></div>
+      </div>
+    </div>
+
+    <div id="form_Info" class="itform hidden">
+      <label>Título de la pantalla (opcional)</label>
+      <input id="infoTitle" class="field" placeholder="Título" />
+      <label>Bloques de la pantalla</label>
+      <p class="hint">Añade textos e imágenes/audios/videos en el orden que quieras; reordénalos con ↑ ↓. El formato aplica al bloque donde tengas el cursor. Dos bloques seguidos en <b>Media columna</b> se muestran lado a lado.</p>
+      <div class="rtbar">
+        <button type="button" onclick="exec('bold')"><b>B</b></button>
+        <button type="button" onclick="exec('italic')"><i>I</i></button>
+        <button type="button" onclick="exec('underline')"><u>U</u></button>
+        <button type="button" onclick="execBlock('H2')">Título</button>
+        <button type="button" onclick="exec('insertUnorderedList')">• Lista</button>
+        <button type="button" onclick="exec('insertOrderedList')">1. Lista</button>
+        <button type="button" onclick="addLink()">🔗 Enlace</button>
+        <button type="button" style="border-left:4px solid #1d4ed8" title="Recuadro de información" onmousedown="event.preventDefault();insertCallout('info')">Info</button>
+        <button type="button" style="border-left:4px solid #059669" title="Recuadro de éxito" onmousedown="event.preventDefault();insertCallout('success')">Éxito</button>
+        <button type="button" style="border-left:4px solid #d97706" title="Recuadro de advertencia" onmousedown="event.preventDefault();insertCallout('warning')">Aviso</button>
+      </div>
+      <div id="blocks"></div>
+      <div class="row" style="margin-top:8px">
+        <button type="button" class="btn sm ghost" id="addTextBlockBtn">+ Texto</button>
+        <button type="button" class="btn sm ghost" id="addMediaBlockBtn">+ Imagen / audio / video / documento</button>
+        <input type="file" id="blockFile" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" style="display:none" />
+      </div>
+    </div>
+
+    <div id="form_Question" class="itform hidden">
+      <label>Pregunta</label>
+      <input id="qText" class="field" placeholder="¿Cuál es…?" />
+      <label>Imagen / audio / video (opcional)</label>
+      <input id="qFile" type="file" class="field" accept="image/*,audio/*,video/*" />
+      <label style="margin-top:10px">Opciones <span class="hint" id="qCorrectHint"></span></label>
+      <div id="optRows"></div>
+      <button type="button" class="btn sm ghost" id="addOptBtn">+ Añadir opción</button>
+      <div class="row" style="margin-top:8px">
+        <div style="max-width:140px"><label>Puntos</label><input id="qPoints" class="field" type="number" value="10" /></div>
+      </div>
+    </div>
+
+    <div id="form_Matching" class="itform hidden">
+      <label>Instrucción / pregunta</label>
+      <input id="mtQ" class="field" placeholder="Empareja cada término con su definición" />
+      <label>Imagen / audio / video (opcional)</label>
+      <input id="mtFile" type="file" class="field" accept="image/*,audio/*,video/*" />
+      <label style="margin-top:10px">Opciones del dropdown</label>
+      <p class="hint">Lo que aparecerá en cada menú desplegable. Mínimo 2.</p>
+      <div id="mtChoices"></div>
+      <button type="button" class="btn sm ghost" id="addChoiceBtn">+ Añadir opción</button>
+      <label style="margin-top:12px">Pares — palabra/frase y su opción correcta</label>
+      <div id="mtPrompts"></div>
+      <button type="button" class="btn sm ghost" id="addPromptBtn">+ Añadir par</button>
+      <div class="row" style="margin-top:8px">
+        <div style="max-width:140px"><label>Puntos</label><input id="mtPoints" class="field" type="number" value="10" /></div>
+      </div>
+    </div>
+
+    <div id="form_Open" class="itform hidden">
+      <label>Pregunta / consigna</label>
+      <input id="opQ" class="field" placeholder="Explica con tus palabras…" />
+      <label>Imagen / audio / video (opcional)</label>
+      <input id="opFile" type="file" class="field" accept="image/*,audio/*,video/*" />
+      <label class="opt optrow" style="margin-top:10px"><input type="checkbox" id="opGraded" onchange="toggleOpGraded()" /> Evaluada por el moderador (otorga puntos)</label>
+      <div class="row" id="opPointsRow" style="margin-top:8px;display:none">
+        <div style="max-width:140px"><label>Puntos máximos</label><input id="opPoints" class="field" type="number" value="10" /></div>
+      </div>
+    </div>
+
+    <label class="opt optrow" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px"><input type="checkbox" id="itActive" checked /> Ítem activo (si lo desactivas, no aparece al tomar el adiestramiento)</label>
+    <label class="opt optrow" id="samePageRow" style="margin-top:8px"><input type="checkbox" id="itSamePage" /> Mostrar en la misma pantalla que el ítem anterior (agrupar)</label>
+    <p class="msg" id="modalMsg"></p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="cancelEditBtn">Cancelar</button>
+      <button class="btn" id="addItemBtn">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Configuración del certificado (por curso) ===== -->
+<div id="certModal" class="modal hidden">
+  <div class="modal-box">
+    <h3>Certificado — <span id="certCourseTitle"></span></h3>
+    <p class="hint">La estructura del certificado es común a todos los cursos de cumplimiento; aquí solo defines los datos propios de este curso. El título del curso y la fecha se completan solos.</p>
+
+    <label class="opt optrow"><input type="checkbox" id="certEnabled" checked /> Emitir certificado al aprobar este curso</label>
+
+    <div class="row" style="margin-top:10px">
+      <div><label>Entidad emisora</label><input id="certIssuer" class="field" placeholder="(por defecto: nombre del cliente)" /></div>
+    </div>
+    <div class="row">
+      <div><label>Firmante</label><input id="certSignName" class="field" placeholder="Ej. María Pérez" /></div>
+      <div><label>Cargo del firmante</label><input id="certSignTitle" class="field" placeholder="Ej. Directora de Cumplimiento" /></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div><label>Firma escaneada (imagen, opcional)</label>
+        <input id="certSignFile" type="file" accept="image/*" class="field" style="padding:8px" />
+        <p class="hint" style="margin:4px 0 0">PNG con fondo transparente se ve mejor. Se muestra sobre la línea de firma.</p>
+        <div id="certSignPreview" style="margin-top:6px"></div>
+      </div>
+    </div>
+    <label style="margin-top:10px">Leyenda / texto legal (opcional)</label>
+    <textarea id="certStatement" class="field" rows="2" placeholder="Ej. En cumplimiento de la política interna y la normativa aplicable…"></textarea>
+
+    <div class="row" style="margin-top:10px">
+      <label class="opt optrow" style="flex:1"><input type="checkbox" id="certShowScore" checked /> Mostrar calificación (%)</label>
+      <label class="opt optrow" style="flex:1"><input type="checkbox" id="certShowValidity" checked /> Mostrar vigencia (según recurrencia)</label>
+    </div>
+    <div class="row">
+      <div><label>Color de acento</label><input id="certAccent" type="color" class="field" value="#1e3a8a" style="height:44px;padding:4px" /></div>
+      <div><label>Logo (imagen, opcional)</label>
+        <input id="certLogoFile" type="file" accept="image/*" class="field" style="padding:8px" />
+        <div id="certLogoPreview" style="margin-top:6px"></div>
+      </div>
+    </div>
+
+    <p class="msg" id="certMsg"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn ghost" onclick="el('certModal').classList.add('hidden')">Cancelar</button>
+      <button type="button" class="btn ghost" id="certPreviewBtn">👁️ Vista previa</button>
+      <button type="button" class="btn" id="certSaveBtn">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('tp_token') || null;
+let user = JSON.parse(localStorage.getItem('tp_user') || 'null');
+let editingTrainingId = null;
+let editingItemId = null;
+let editingQMedia = null;
+let draftVersionId = null;
+let draftItems = [];
+let optCount = 4;
+let infoBlocks = [];
+let matchChoices = [];
+let matchPrompts = [];
+const el = id => document.getElementById(id);
+
+async function api(path, method='GET', body=null){
+  const headers = { 'Content-Type':'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const res = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : null });
+  if (res.status === 401){ logout(); throw new Error('No autorizado'); }
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!res.ok) throw new Error((data && (data.title || data)) || ('Error ' + res.status));
+  return data;
+}
+
+// ----- Login -----
+el('loginBtn').onclick = doLogin;
+el('password').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+async function doLogin(){
+  const msg = el('loginMsg'); msg.textContent='';
+  try{
+    const r = await api('/auth/login','POST',{ email:el('email').value.trim(), password:el('password').value });
+    token = r.token; user = r.user;
+    localStorage.setItem('tp_token', token);
+    localStorage.setItem('tp_user', JSON.stringify(user));
+    if (user.mustChangePassword){ el('fcCur').value = el('password').value; showForceChange(); }
+    else showApp();
+  }catch(e){ msg.textContent = 'Correo o contraseña incorrectos.'; }
+}
+function logout(){ token=null; user=null; localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user');
+  el('profileModal').classList.add('hidden'); el('forceChangeView').classList.add('hidden');
+  el('appView').classList.add('hidden'); el('loginView').classList.remove('hidden'); }
+el('logoutBtn').onclick = logout;
+
+// ----- Cambio obligatorio de contraseña -----
+function showForceChange(){
+  el('loginView').classList.add('hidden');
+  el('appView').classList.add('hidden');
+  el('forceChangeView').classList.remove('hidden');
+}
+el('fcBtn').onclick = async () => {
+  const m = el('fcMsg'); m.textContent=''; m.className='msg err';
+  const cur=el('fcCur').value, n1=el('fcNew').value, n2=el('fcNew2').value;
+  if(n1.length<6){ m.textContent='La nueva debe tener al menos 6 caracteres.'; return; }
+  if(n1!==n2){ m.textContent='Las contraseñas no coinciden.'; return; }
+  try{
+    await api('/me/password','POST',{ currentPassword:cur, newPassword:n1 });
+    user.mustChangePassword = false; localStorage.setItem('tp_user', JSON.stringify(user));
+    el('forceChangeView').classList.add('hidden');
+    el('fcCur').value=el('fcNew').value=el('fcNew2').value='';
+    showApp();
+  }catch(e){ m.textContent = e.message; }
+};
+
+// ----- Cambio de contraseña desde el perfil -----
+function togglePwd(){ el('pwdForm').classList.toggle('hidden'); el('pwdMsg').textContent=''; }
+async function submitPwd(){
+  const m=el('pwdMsg'); m.className='msg'; m.textContent='';
+  const cur=el('pwdCur').value, n1=el('pwdNew').value, n2=el('pwdNew2').value;
+  if(n1.length<6){ m.textContent='La nueva debe tener al menos 6 caracteres.'; m.className='msg err'; return; }
+  if(n1!==n2){ m.textContent='Las contraseñas no coinciden.'; m.className='msg err'; return; }
+  try{
+    await api('/me/password','POST',{ currentPassword:cur, newPassword:n1 });
+    m.textContent='Contraseña actualizada.'; m.className='msg ok';
+    el('pwdCur').value=el('pwdNew').value=el('pwdNew2').value='';
+    setTimeout(()=>{ el('pwdForm').classList.add('hidden'); m.textContent=''; }, 1300);
+  }catch(e){ m.textContent=e.message; m.className='msg err'; }
+}
+
+function roleLabel(r){ return ({Admin:'Administrador',Author:'Autor',Moderator:'Moderador',Learner:'Aprendiz'})[r] || r; }
+function initials(s){ s=(s||'').trim(); if(!s) return '··'; const p=s.split(/\s+/); return ((p[0]||'')[0]||'').toUpperCase()+((p.length>1?p[p.length-1][0]:(p[0][1]||''))||'').toUpperCase(); }
+
+function showApp(){
+  el('loginView').classList.add('hidden');
+  el('appView').classList.remove('hidden');
+  const dispName = user.name || user.email;
+  el('whoName').textContent = dispName;
+  el('whoRole').textContent = roleLabel(user.role) + (user.tenantId ? '' : ' · plataforma');
+  el('navAvatar').textContent = initials(dispName);
+  const isAdmin = user.role === 'Admin' && !user.tenantId;
+  el('adminView').classList.toggle('hidden', !isAdmin);
+  el('tenantAppView').classList.toggle('hidden', isAdmin);
+  if (isAdmin){ loadTenants(); }
+  else {
+    el('dashName').textContent = dispName;
+    buildDashTiles();
+    loadDashStats();
+    showDash();
+  }
+}
+
+// ===== Perfil =====
+function openProfile(){
+  const dispName = user.name || user.email;
+  el('profAvatar').textContent = initials(dispName);
+  el('profName').textContent = dispName;
+  el('profRoleTop').textContent = roleLabel(user.role);
+  el('profEmail').textContent = user.email;
+  el('profRole').textContent = roleLabel(user.role) + (user.tenantId ? '' : ' (plataforma)');
+  el('profTenant').textContent = user.tenantId ? (tenantName || '—') : 'Plataforma';
+  el('profileModal').classList.remove('hidden');
+}
+function closeProfile(){ el('profileModal').classList.add('hidden'); }
+let tenantName = '';
+
+// ===== Dashboard y navegación por secciones =====
+const SECTIONS = ['sec-manage','sec-take','sec-history','sec-review'];
+function isCreator(){ return ['Admin','Author'].includes(user.role); }
+function isReviewer(){ return ['Admin','Author','Moderator'].includes(user.role); }
+
+function buildDashTiles(){
+  const tiles = [];
+  tiles.push({key:'take', icon:'📚', title:'Mis adiestramientos', desc:'Cursos asignados por tomar o completar', badge:'badge-take'});
+  if (isCreator()){
+    tiles.push({key:'manage', icon:'🗂', title:'Adiestramientos', desc:'Crear, editar contenido y publicar'});
+    tiles.push({key:'assign', icon:'⚙', title:'Sets y asignación', desc:'Versiones y quién ve qué'});
+  }
+  if (isReviewer()){
+    tiles.push({key:'review', icon:'✅', title:'Revisar', desc:'Calificar y aprobar cancelaciones', badge:'badge-review'});
+  }
+  tiles.push({key:'history', icon:'🕘', title:'Mi historial', desc:'Tus intentos y resultados'});
+  tiles.push({key:'profile', icon:'👤', title:'Mi perfil', desc:'Tus datos y contraseña'});
+
+  el('dashTiles').innerHTML = tiles.map(t=>`
+    <div class="tile" onclick="tileGo('${t.key}')">
+      <div class="tile-ic">${t.icon}</div>
+      <div class="t">${t.title}${t.badge?`<span id="${t.badge}" class="badge" style="display:none"></span>`:''}</div>
+      <div class="d">${t.desc}</div>
+    </div>`).join('');
+  refreshBadges();
+}
+
+function statCard(n, l, accent){ return `<div class="stat${accent?' accent':''}"><div class="n">${n}</div><div class="l">${l}</div></div>`; }
+
+async function loadDashStats(){
+  let cards = '';
+  try{
+    const cat = await api('/catalog');
+    const porTomar = cat.filter(c=>c.status==='not-started').length;
+    const enProgreso = cat.filter(c=>c.status==='in-progress'||c.status==='failed').length;
+    const porRenovar = cat.filter(c=>c.status==='renewal'||c.status==='expired').length;
+    const vigentes = cat.filter(c=>c.status==='current'||c.status==='done').length;
+    cards += statCard(porTomar, 'Por tomar', true)
+           + statCard(enProgreso, 'En progreso / por completar', false)
+           + statCard(porRenovar, 'Por renovar / vencidos', porRenovar>0)
+           + statCard(vigentes, 'Tomados y vigentes', false);
+  }catch(e){}
+  if (isCreator()){
+    try{
+      const s = await api('/authoring/stats');
+      cards += statCard(s.drafts, 'Borradores', false)
+             + statCard(s.published, 'Publicados', false)
+             + statCard(s.untouched, 'Publicados sin tomar aún', false);
+    }catch(e){}
+  }
+  el('dashStats').innerHTML = cards;
+}
+
+async function refreshBadges(){
+  try{
+    const cat = await api('/catalog');
+    const actionable = ['not-started','in-progress','failed','renewal','expired'];
+    const pend = cat.filter(c=>actionable.includes(c.status)).length;
+    const b = el('badge-take'); if (b && pend>0){ b.textContent = pend; b.style.display='inline-block'; }
+  }catch(e){}
+  if (isReviewer()){
+    try{
+      const g = await api('/grading/pending');
+      const b = el('badge-review'); if (b && g.length>0){ b.textContent = g.length; b.style.display='inline-block'; }
+    }catch(e){}
+  }
+}
+
+function tileGo(key){
+  if (key==='assign'){ openAssign(); return; }
+  if (key==='profile'){ openProfile(); return; }
+  showSection('sec-'+key);
+}
+function showDash(){
+  SECTIONS.forEach(s=>el(s).classList.add('hidden'));
+  el('dashGrid').classList.remove('hidden');
+  buildDashTiles();
+  loadDashStats();
+}
+function showSection(id){
+  el('dashGrid').classList.add('hidden');
+  SECTIONS.forEach(s=>el(s).classList.toggle('hidden', s!==id));
+  if (id==='sec-manage'){ loadCategories(); loadTrainings(); }
+  else if (id==='sec-take'){ loadCatalog(); }
+  else if (id==='sec-history'){ loadMyHistory(); }
+  else if (id==='sec-review'){ loadGrading(); loadPending(); }
+}
+
+// ===== Admin =====
+el('createTenantBtn').onclick = async () => {
+  const msg = el('tenantMsg'); msg.textContent=''; msg.className='msg';
+  try{
+    await api('/admin/tenants','POST',{ name:el('tName').value.trim(), connectionString:el('tConn').value.trim() });
+    msg.textContent='Cliente creado y su base de datos migrada.'; msg.className='msg ok';
+    el('tName').value=''; el('tConn').value=''; loadTenants();
+  }catch(e){ msg.textContent=e.message; msg.className='msg err'; }
+};
+let adminTenants = [];
+async function loadTenants(){
+  try{
+    const ts = await api('/admin/tenants');
+    adminTenants = ts;
+    el('tenantList').innerHTML = ts.length ? ts.map(t=>`<div class="item">${t.name} <span class="tag" style="${t.status==='active'?'background:#dcfce7;color:#166534':''}">${t.status}</span>
+      <span class="sp"><button class="btn sm ghost" onclick="toggleTenant('${t.id}','${t.status}')">${t.status==='active'?'Desactivar':'Activar'}</button></span></div>`).join('') : `<div class="empty">Aún no hay clientes.</div>`;
+    el('uTenant').innerHTML = ts.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+    el('userFilter').innerHTML = `<option value="">Todos los clientes</option>` + ts.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+    loadUsers();
+  }catch(e){}
+}
+async function toggleTenant(id, status){
+  const next = status==='active' ? 'inactive' : 'active';
+  try{ await api('/admin/tenants/'+id+'/status','POST',{status:next}); loadTenants(); }catch(e){ alert(e.message); }
+}
+function tenantNameById(id){ const t=adminTenants.find(x=>x.id===id); return t?t.name:'—'; }
+
+async function loadUsers(){
+  const f = el('userFilter').value;
+  try{
+    const us = await api('/admin/users' + (f?('?tenantId='+f):''));
+    el('usersList').innerHTML = us.length ? us.map(u=>{
+      const tn = u.tenantId ? tenantNameById(u.tenantId) : 'Plataforma';
+      const roles = ['Admin','Author','Moderator','Learner'];
+      const sel = `<select class="field" style="max-width:140px;padding:6px 8px" onchange="changeRole('${u.id}',this.value)">${roles.map(r=>`<option ${r===u.role?'selected':''}>${r}</option>`).join('')}</select>`;
+      const flag = u.mustChangePassword ? ' <span class="tag" style="background:#fef3c7;color:#92400e">cambio pendiente</span>' : '';
+      const me = (user && u.id===user.id);
+      return `<div class="item" style="flex-wrap:wrap">
+        <div><b>${u.name||'(sin nombre)'}</b>${flag}<br><span class="hint">${u.email} · ${tn}</span></div>
+        <span class="sp">${sel}
+          <button class="btn sm ghost" onclick="resetUserPwd('${u.id}','${(u.name||u.email).replace(/'/g,"")}')">Resetear contraseña</button>
+          ${me?'':`<button class="btn sm danger" onclick="deleteUser('${u.id}','${(u.name||u.email).replace(/'/g,"")}')">Eliminar</button>`}
+        </span>
+      </div>`;
+    }).join('') : `<div class="empty">No hay usuarios.</div>`;
+  }catch(e){}
+}
+async function changeRole(id, role){ try{ await api('/admin/users/'+id+'/role','POST',{role}); }catch(e){ alert(e.message); loadUsers(); } }
+async function resetUserPwd(id, name){
+  const temp = prompt('Contraseña temporal para '+name+' (mín. 6 caracteres). El usuario deberá cambiarla al entrar:', '');
+  if(temp===null) return;
+  if(temp.length<6){ alert('Mínimo 6 caracteres.'); return; }
+  try{ await api('/admin/users/'+id+'/reset-password','POST',{tempPassword:temp}); alert('Contraseña reseteada. Comunícale la temporal:\n\n'+temp); loadUsers(); }catch(e){ alert(e.message); }
+}
+async function deleteUser(id, name){ if(!confirm('¿Eliminar a '+name+'? Esta acción no se puede deshacer.')) return; try{ await api('/admin/users/'+id,'DELETE'); loadUsers(); }catch(e){ alert(e.message); } }
+el('createUserBtn').onclick = async () => {
+  const msg = el('userMsg'); msg.textContent=''; msg.className='msg';
+  const email = el('uEmail').value.trim(), name = el('uName').value.trim();
+  if(!email || !el('uPass').value){ msg.textContent='Correo y contraseña son requeridos.'; msg.className='msg err'; return; }
+  const sendInvite = confirm('¿Enviar una invitación por correo a '+(name||email)+'?\n\nIncluirá su usuario y la contraseña temporal, y se le pedirá cambiarla al entrar.');
+  try{
+    const r = await api('/admin/users','POST',{ email, name,
+      password:el('uPass').value, role:el('uRole').value, tenantId:el('uTenant').value || null, sendInvite });
+    msg.textContent = sendInvite
+      ? (r.invited ? 'Usuario creado e invitación enviada.' : 'Usuario creado. Nota: el correo no está configurado, así que la invitación no se envió.')
+      : 'Usuario creado.';
+    msg.className='msg ok';
+    el('uEmail').value=''; el('uName').value=''; el('uPass').value='';
+    loadUsers();
+  }catch(e){ msg.textContent=e.message; msg.className='msg err'; }
+};
+
+// ===== Categorías =====
+el('addCatBtn').onclick = async () => {
+  try{ await api('/categories','POST',{ name:el('cName').value.trim() }); el('cName').value=''; loadCategories(); }catch(e){}
+};
+async function loadCategories(){
+  try{ const c = await api('/categories');
+    el('catList').innerHTML = c.length ? c.map(x=>`<div class="item">${x.name}</div>`).join('') : `<div class="empty">Sin categorías.</div>`;
+  }catch(e){}
+}
+
+// ===== Adiestramientos =====
+el('addTrBtn').onclick = async () => {
+  try{ await api('/trainings','POST',{ title:el('trTitle').value.trim(), description:el('trDesc').value.trim()||null });
+    el('trTitle').value=''; el('trDesc').value=''; loadTrainings(); }catch(e){}
+};
+async function loadTrainings(){
+  try{
+    const trs = await api('/trainings');
+    el('trList').innerHTML = trs.length ? trs.map(t=>{
+      const rec = t.recurrenceMonths
+        ? `<span class="tag" style="background:#dbeafe;color:#1e40af">🔁 cada ${t.recurrenceMonths} mes(es) · reabre ${t.renewLeadDays}d antes</span>`
+        : `<span class="tag">una sola vez</span>`;
+      return `<div class="item" style="flex-wrap:wrap">${t.title} <span class="tag">${t.status}</span> ${rec}
+        <span class="sp">
+          <button class="btn sm ghost" onclick="setRecurrence('${t.id}','${t.title.replace(/'/g,"")}',${t.recurrenceMonths||'null'},${t.renewLeadDays})">Recurrencia</button>
+          <button class="btn sm ghost" onclick="openCertConfig('${t.id}','${t.title.replace(/'/g,"")}',${t.recurrenceMonths||'null'})">Certificado</button>
+          <button class="btn sm ghost" onclick="openContent('${t.id}','${t.title.replace(/'/g,"")}')">Contenido</button>
+          <button class="btn sm ghost" onclick="loadResults('${t.id}','${t.title.replace(/'/g,"")}')">Resultados</button>
+        </span></div>`;
+    }).join('') : `<div class="empty">Sin adiestramientos.</div>`;
+  }catch(e){}
+}
+async function setRecurrence(id, title, curMonths, curLead){
+  const mRaw = prompt('Recurrencia de "'+title+'":\n\n¿Cada cuántos MESES caduca? (vacío = una sola vez, sin caducidad)', curMonths==null?'':curMonths);
+  if (mRaw===null) return;
+  let months = null;
+  if (mRaw.trim()!==''){ months = parseInt(mRaw,10); if(isNaN(months)||months<1){ alert('Pon un número de meses (1 o más) o déjalo vacío.'); return; } }
+  let lead = curLead||30;
+  if (months!==null){
+    const lRaw = prompt('¿Cuántos DÍAS antes del vencimiento debe reabrir para renovar?', String(curLead||30));
+    if (lRaw===null) return;
+    lead = parseInt(lRaw,10); if(isNaN(lead)||lead<0) lead = 30;
+  }
+  try{ await api('/trainings/'+id+'/recurrence','POST',{recurrenceMonths:months, renewLeadDays:lead}); loadTrainings(); }
+  catch(e){ alert(e.message); }
+}
+
+// ----- Configuración del certificado por curso -----
+let certCourseId = null;
+let certCourseTitle = '';
+let certRecMonths = null;         // recurrencia del curso (para la vigencia de ejemplo)
+let certLogoData = null;          // data URL del logo cargado en esta sesión de edición
+let certSignData = null;          // data URL de la firma escaneada
+async function openCertConfig(id, title, recMonths){
+  certCourseId = id; certCourseTitle = title; certRecMonths = recMonths; certLogoData = null; certSignData = null;
+  el('certCourseTitle').textContent = title;
+  el('certMsg').textContent = '';
+  try{
+    const c = await api('/trainings/'+id+'/certificate-config');
+    el('certEnabled').checked      = c.enabled !== false;
+    el('certIssuer').value         = c.issuerName || '';
+    el('certSignName').value       = c.signatoryName || '';
+    el('certSignTitle').value      = c.signatoryTitle || '';
+    el('certStatement').value      = c.statement || '';
+    el('certShowScore').checked    = c.showScore !== false;
+    el('certShowValidity').checked = c.showValidity !== false;
+    el('certAccent').value         = c.accentColor || '#1e3a8a';
+    certLogoData = c.logoDataUrl || null;
+    certSignData = c.signatureDataUrl || null;
+    renderCertLogoPreview();
+    renderCertSignPreview();
+    el('certModal').classList.remove('hidden');
+  }catch(e){ alert(e.message); }
+}
+function renderCertLogoPreview(){
+  el('certLogoPreview').innerHTML = certLogoData
+    ? `<img src="${certLogoData}" style="max-height:48px;max-width:160px;border:1px solid var(--line);border-radius:6px;padding:2px">
+       <button type="button" class="btn sm ghost" onclick="certLogoData=null;renderCertLogoPreview()">Quitar</button>`
+    : '<span class="hint">Sin logo.</span>';
+}
+el('certLogoFile').onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  if(f.size > 1_000_000){ alert('El logo es demasiado grande (máx. ~1 MB).'); e.target.value=''; return; }
+  const rd = new FileReader();
+  rd.onload = () => { certLogoData = rd.result; renderCertLogoPreview(); };
+  rd.readAsDataURL(f);
+  e.target.value = '';
+};
+function renderCertSignPreview(){
+  el('certSignPreview').innerHTML = certSignData
+    ? `<img src="${certSignData}" style="max-height:44px;max-width:180px;border:1px solid var(--line);border-radius:6px;padding:2px;background:#fff">
+       <button type="button" class="btn sm ghost" onclick="certSignData=null;renderCertSignPreview()">Quitar</button>`
+    : '<span class="hint">Sin firma escaneada.</span>';
+}
+el('certSignFile').onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  if(f.size > 1_000_000){ alert('La firma es demasiado grande (máx. ~1 MB).'); e.target.value=''; return; }
+  const rd = new FileReader();
+  rd.onload = () => { certSignData = rd.result; renderCertSignPreview(); };
+  rd.readAsDataURL(f);
+  e.target.value = '';
+};
+function certFormBody(){
+  return {
+    enabled:        el('certEnabled').checked,
+    issuerName:     el('certIssuer').value.trim() || null,
+    signatoryName:  el('certSignName').value.trim() || null,
+    signatoryTitle: el('certSignTitle').value.trim() || null,
+    signatureDataUrl: certSignData || null,
+    statement:      el('certStatement').value.trim() || null,
+    showScore:      el('certShowScore').checked,
+    showValidity:   el('certShowValidity').checked,
+    accentColor:    el('certAccent').value || '#1e3a8a',
+    logoDataUrl:    certLogoData || null
+  };
+}
+el('certSaveBtn').onclick = async () => {
+  try{
+    await api('/trainings/'+certCourseId+'/certificate-config','PUT',certFormBody());
+    el('certModal').classList.add('hidden');
+  }catch(e){ el('certMsg').textContent = e.message; el('certMsg').className='msg err'; }
+};
+// Vista previa con datos de ejemplo (no requiere un intento real).
+el('certPreviewBtn').onclick = () => {
+  const cfg = certFormBody();
+  const now = new Date();
+  let validity = 'permanent', expiresAt = null;
+  if(certRecMonths){ validity = 'valid'; const e = new Date(now); e.setMonth(e.getMonth()+certRecMonths); expiresAt = e.toISOString(); }
+  const view = {
+    serial: 'CERT-'+now.getFullYear()+'-EJEMPLO',
+    learnerName: 'Nombre del Participante',
+    trainingTitle: certCourseTitle,
+    scorePercent: 95,
+    passPercent: 70,
+    issuedAt: now.toISOString(),
+    expiresAt, validity,
+    issuerName: cfg.issuerName || '«Nombre del cliente»',
+    signatoryName: cfg.signatoryName,
+    signatoryTitle: cfg.signatoryTitle,
+    signatureDataUrl: cfg.signatureDataUrl,
+    statement: cfg.statement,
+    logoDataUrl: cfg.logoDataUrl,
+    showScore: cfg.showScore,
+    showValidity: cfg.showValidity,
+    accentColor: cfg.accentColor
+  };
+  localStorage.setItem('tp_cert_preview', JSON.stringify(view));
+  window.open('/certificate.html?preview=1', '_blank', 'noopener');
+};
+
+// ----- Pantalla de contenido (tabs por módulo) -----
+let activeTab = 0;
+let contentGroups = [];
+
+async function openContent(id, title){
+  editingTrainingId = id;
+  el('contentTitle').textContent = title;
+  el('contentMsg').textContent = '';
+  el('itemModal').classList.add('hidden');
+  el('tenantAppView').classList.add('hidden');
+  el('contentView').classList.remove('hidden');
+  activeTab = 0;
+  await reloadContent();
+}
+async function reloadContent(){
+  try{
+    const d = await api('/trainings/'+editingTrainingId+'/draft');
+    draftVersionId = d.versionId;
+    draftItems = d.items || [];
+    el('contentStatus').textContent = `borrador · aprobado ${d.passPercent}%`;
+    buildTabs();
+  }catch(e){ el('contentMsg').textContent=e.message; el('contentMsg').className='msg err'; }
+}
+el('backFromContent').onclick = () => {
+  el('contentView').classList.add('hidden');
+  el('tenantAppView').classList.remove('hidden');
+  loadTrainings();
+};
+
+function tabShort(title){
+  if(!title) return 'Módulo';
+  const i = title.indexOf('—');
+  return (i>=0 ? title.slice(0,i) : title).trim() || 'Módulo';
+}
+function buildTabs(){
+  contentGroups = []; let cur=null;
+  for(const it of draftItems){
+    if(it.type==='ModuleHeader'){
+      let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
+      cur = { label: tabShort(p.title), full: p.title||'Módulo', items:[it] };
+      contentGroups.push(cur);
+    } else {
+      if(!cur){ cur = { label:'General', full:'General', items:[] }; contentGroups.push(cur); }
+      cur.items.push(it);
+    }
+  }
+  if(activeTab >= contentGroups.length) activeTab = 0;
+  renderTabs();
+}
+function renderTabs(){
+  el('contentTabs').innerHTML = contentGroups.map((g,i)=>
+    `<button class="tab ${i===activeTab?'active':''}" title="${(g.full||'').replace(/"/g,'&quot;')}" onclick="setTab(${i})">${g.label}</button>`
+  ).join('');
+  renderTabItems();
+}
+function setTab(i){ activeTab=i; renderTabs(); }
+function itemLabel(it){
+  let p={}; try{ p=JSON.parse(it.payloadJson); }catch{ return it.type; }
+  if(it.type==='ModuleHeader') return '📂 Módulo: '+(p.title||'');
+  if(it.type==='Info') return '📄 '+(p.title||'(pantalla de contenido)');
+  if(it.type==='MultipleChoice') return '❓ '+(p.question||'')+' ['+it.points+' pts]';
+  if(it.type==='MultiSelect') return '☑️ '+(p.question||'')+' ['+it.points+' pts · varias]';
+  if(it.type==='Matching') return '🧩 '+(p.question||'')+' ['+it.points+' pts · pareo]';
+  if(it.type==='OpenResponse') return '📝 '+(p.question||'')+(p.graded?(' ['+it.points+' pts · evalúa moderador]'):' [abierta · sin puntos]');
+  return it.type;
+}
+function renderTabItems(){
+  const g = contentGroups[activeTab];
+  const items = g ? g.items : [];
+  el('contentItems').innerHTML = items.length ? items.map(it=>{
+    const inactive = it.active===false;
+    let sp=false; try{ sp=!!JSON.parse(it.payloadJson).samePage; }catch{}
+    const grouped = sp ? '<span class="tag" style="background:#e0e7ff;color:#3730a3">↳ misma pantalla</span> ' : '';
+    const tag = inactive ? ' <span class="tag" style="background:#fee2e2;color:#b91c1c">inactivo</span>' : '';
+    const gidx = draftItems.findIndex(x=>x.id===it.id);
+    const up = gidx>0 ? `<button class="btn sm ghost" title="Subir" onclick="moveItem('${it.id}','up')">▲</button>` : '';
+    const down = (gidx>=0 && gidx<draftItems.length-1) ? `<button class="btn sm ghost" title="Bajar" onclick="moveItem('${it.id}','down')">▼</button>` : '';
+    const toggle = inactive
+      ? `<button class="btn sm ok" onclick="toggleActive('${it.id}',true)">Activar</button>`
+      : `<button class="btn sm ghost" onclick="toggleActive('${it.id}',false)">Desactivar</button>`;
+    return `<div class="item" style="${inactive?'opacity:.5':''}${sp?';border-left:3px solid #818cf8;padding-left:8px':''}">${grouped}${itemLabel(it)}${tag}<span class="sp">${up}${down} ${toggle} <button class="btn sm ghost" onclick="editItem('${it.id}')">Editar</button> <button class="btn sm danger" onclick="deleteItem('${it.id}')">Eliminar</button></span></div>`;
+  }).join('') : `<div class="empty">Sin ítems en esta sección.</div>`;
+}
+async function moveItem(itemId, dir){
+  try{
+    await api('/items/'+itemId+'/move','POST',{direction:dir});
+    await reloadContent();
+    const gi = contentGroups.findIndex(g=>g.items.some(x=>x.id===itemId));
+    if(gi>=0){ activeTab=gi; renderTabs(); }
+  }catch(e){ alert(e.message); }
+}
+async function toggleActive(itemId, active){
+  try{ await api('/items/'+itemId+'/active','POST',{active}); await reloadContent(); }
+  catch(e){ alert(e.message); }
+}
+
+// ----- Modal de edición -----
+function openModal(title){ el('modalTitle').textContent=title; el('modalMsg').textContent=''; el('itemModal').classList.remove('hidden'); }
+function closeModal(){ el('itemModal').classList.add('hidden'); resetItemForm(); }
+el('addItemTop').onclick = () => { resetItemForm(); el('itType').value='Info'; showItemForm(); openModal('Nuevo ítem'); };
+
+function showItemForm(){
+  const t = el('itType').value;
+  el('form_ModuleHeader').classList.toggle('hidden', t!=='ModuleHeader');
+  el('form_Info').classList.toggle('hidden', t!=='Info');
+  el('form_Question').classList.toggle('hidden', !(t==='Single'||t==='Multi'));
+  el('form_Matching').classList.toggle('hidden', t!=='Matching');
+  el('form_Open').classList.toggle('hidden', t!=='Open');
+  el('samePageRow').classList.toggle('hidden', t==='ModuleHeader'); // los módulos siempre abren pantalla
+  if (t==='Single'||t==='Multi'){
+    el('qCorrectHint').textContent = t==='Single' ? '(marca la correcta)' : '(marca todas las correctas)';
+    renderOptRows();
+  }
+  if (t==='Info') renderBlocks();
+  if (t==='Matching') renderMatchChoices();
+  if (t==='Open') toggleOpGraded();
+}
+function toggleOpGraded(){ el('opPointsRow').style.display = el('opGraded').checked ? 'flex' : 'none'; }
+el('itType').onchange = showItemForm;
+
+// ---- bloques de contenido ----
+function renderBlocks(){
+  const c = el('blocks');
+  c.innerHTML = infoBlocks.length ? infoBlocks.map((b,i)=>{
+    const span = b.span||'full';
+    const sel = `<select class="field" style="max-width:150px;display:inline-block;margin-right:6px" onchange="setSpan(${i}, this.value)">
+      <option value="full" ${span==='full'?'selected':''}>Ancho completo</option>
+      <option value="half" ${span==='half'?'selected':''}>Media columna</option></select>`;
+    const ctrls = `<span class="sp">${sel}
+      <button type="button" class="btn sm ghost" onclick="moveBlock(${i},-1)">↑</button>
+      <button type="button" class="btn sm ghost" onclick="moveBlock(${i},1)">↓</button>
+      <button type="button" class="btn sm danger" onclick="removeBlock(${i})">✕</button></span>`;
+    if(b.type==='text'){
+      return `<div class="qbox"><div class="item" style="border:none;padding:0 0 6px"><span class="hint">Texto</span>${ctrls}</div><div class="rtedit blockText" data-i="${i}" contenteditable="true">${b.html||''}</div></div>`;
+    }
+    const icon = b.kind==='image'?'🖼️':b.kind==='audio'?'🔊':b.kind==='video'?'🎬':'📎';
+    return `<div class="qbox"><div class="item" style="border:none;padding:0"><span>${icon} ${b.fileName||'archivo'}</span>${ctrls}</div></div>`;
+  }).join('') : `<div class="empty">Sin bloques. Añade texto o medios.</div>`;
+  [...document.querySelectorAll('.blockText')].forEach(d=>{
+    d.oninput = () => { infoBlocks[+d.dataset.i].html = d.innerHTML; };
+  });
+}
+function setSpan(i, v){ infoBlocks[i].span = v; renderBlocks(); }
+function moveBlock(i,dir){ const j=i+dir; if(j<0||j>=infoBlocks.length) return; const t=infoBlocks[i]; infoBlocks[i]=infoBlocks[j]; infoBlocks[j]=t; renderBlocks(); }
+function removeBlock(i){ infoBlocks.splice(i,1); renderBlocks(); }
+el('addTextBlockBtn').onclick = () => { infoBlocks.push({type:'text',html:''}); renderBlocks(); };
+el('addMediaBlockBtn').onclick = () => el('blockFile').click();
+el('blockFile').onchange = async () => {
+  const f = el('blockFile').files[0]; if(!f) return;
+  try{
+    const m = await uploadFile(f);
+    const kind = m.contentType.indexOf('image')===0?'image':m.contentType.indexOf('audio')===0?'audio':m.contentType.indexOf('video')===0?'video':'file';
+    infoBlocks.push({type:'media',mediaUrl:m.url,mediaType:m.contentType,fileName:f.name,kind});
+    el('blockFile').value=''; renderBlocks();
+  }catch(e){ qmsg(e.message); }
+};
+
+// ---- preguntas ----
+function renderOptRows(){
+  const isMulti = el('itType').value==='Multi';
+  const existing = [...document.querySelectorAll('#optRows .optText')].map(i=>i.value);
+  let html='';
+  for(let i=0;i<optCount;i++){
+    const mark = isMulti ? `<input type="checkbox" class="optMark" />` : `<input type="radio" name="optMark" class="optMark" />`;
+    const val = existing[i] ? existing[i].replace(/"/g,'&quot;') : '';
+    html += `<div class="opt optrow">${mark}<input type="text" class="field optText" placeholder="Opción ${String.fromCharCode(65+i)}" value="${val}" /></div>`;
+  }
+  el('optRows').innerHTML = html;
+}
+el('addOptBtn').onclick = () => { optCount++; renderOptRows(); };
+
+// ---- pareo (matching) ----
+function newId(prefix, arr){ let n=1; while(arr.some(x=>x.id===prefix+n)) n++; return prefix+n; }
+function renderMatchChoices(){
+  el('mtChoices').innerHTML = matchChoices.length ? matchChoices.map((ch,i)=>`
+    <div class="opt optrow"><input type="text" class="field" value="${(ch.text||'').replace(/"/g,'&quot;')}" oninput="setChoiceText(${i}, this.value)" placeholder="Opción ${i+1}" />
+      <button type="button" class="btn sm danger" onclick="removeChoice(${i})">✕</button></div>`).join('') : `<div class="empty">Sin opciones.</div>`;
+  renderMatchPrompts();
+}
+function renderMatchPrompts(){
+  el('mtPrompts').innerHTML = matchPrompts.length ? matchPrompts.map((pr,i)=>{
+    const opts = `<option value="">— correcta —</option>` + matchChoices.map(ch=>`<option value="${ch.id}" ${pr.correctChoiceId===ch.id?'selected':''}>${(ch.text||'(sin texto)')}</option>`).join('');
+    return `<div style="display:flex;gap:8px;align-items:center;margin:6px 0">
+      <input type="text" class="field" value="${(pr.text||'').replace(/"/g,'&quot;')}" oninput="setPromptText(${i}, this.value)" placeholder="Palabra o frase ${i+1}" />
+      <select class="field" style="max-width:200px" onchange="setPromptCorrect(${i}, this.value)">${opts}</select>
+      <button type="button" class="btn sm danger" onclick="removePrompt(${i})">✕</button></div>`;
+  }).join('') : `<div class="empty">Sin pares.</div>`;
+}
+function setChoiceText(i,v){ matchChoices[i].text=v; renderMatchPrompts(); }
+function setPromptText(i,v){ matchPrompts[i].text=v; }
+function setPromptCorrect(i,v){ matchPrompts[i].correctChoiceId=v; }
+function removeChoice(i){ const id=matchChoices[i].id; matchChoices.splice(i,1); matchPrompts.forEach(p=>{ if(p.correctChoiceId===id) p.correctChoiceId=''; }); renderMatchChoices(); }
+function removePrompt(i){ matchPrompts.splice(i,1); renderMatchPrompts(); }
+el('addChoiceBtn').onclick = () => { matchChoices.push({id:newId('c',matchChoices), text:''}); renderMatchChoices(); };
+el('addPromptBtn').onclick = () => { matchPrompts.push({id:newId('p',matchPrompts), text:'', correctChoiceId:''}); renderMatchPrompts(); };
+function gatherOptions(){
+  const rows=[...document.querySelectorAll('#optRows .optrow')];
+  const opts=[], correct=[]; let i=0;
+  for(const r of rows){
+    const text=r.querySelector('.optText').value.trim();
+    if(!text) continue;
+    const id=String.fromCharCode(97+i);
+    opts.push({id,text});
+    if(r.querySelector('.optMark').checked) correct.push(id);
+    i++;
+  }
+  return {opts,correct};
+}
+
+function exec(c){ document.execCommand(c,false,null); }
+function execBlock(tag){ document.execCommand('formatBlock',false,tag); }
+function addLink(){
+  const u = prompt('URL del enlace:','https://');
+  if(!u) return;
+  const sel = window.getSelection();
+  if(sel && !sel.isCollapsed){
+    document.execCommand('createLink', false, u);
+  } else {
+    document.execCommand('insertHTML', false, `<a href="${u}" title="${u}" target="_blank">${u}</a>`);
+  }
+  syncLinkTitles();
+}
+function syncLinkTitles(){
+  document.querySelectorAll('#blocks .blockText a').forEach(a=>{ a.title = a.getAttribute('href')||''; a.target='_blank'; });
+  const d = document.activeElement;
+  if(d && d.classList && d.classList.contains('blockText')) infoBlocks[+d.dataset.i].html = d.innerHTML;
+}
+
+// Recuadros con estilo (callouts) para los bloques de texto
+const CALLOUTS = {
+  info:    { bg:'#eff6ff', bar:'#1d4ed8', label:'Información' },
+  success: { bg:'#ecfdf5', bar:'#059669', label:'Éxito' },
+  warning: { bg:'#fffbeb', bar:'#d97706', label:'Advertencia' }
+};
+function insertCallout(kind){
+  const c = CALLOUTS[kind] || CALLOUTS.info;
+  const html = `<div style="background:${c.bg};border-left:3px solid ${c.bar};border-radius:6px;padding:10px 14px;margin:12px 0"><b>${c.label}</b><div>Escribe aquí…</div></div><p><br></p>`;
+  let d = document.activeElement;
+  if(d && d.classList && d.classList.contains('blockText')){
+    document.execCommand('insertHTML', false, html);   // en el cursor
+  } else {
+    const all = document.querySelectorAll('#blocks .blockText');
+    d = all[all.length-1];
+    if(!d){ alert('Primero añade un bloque de texto con “+ Texto”.'); return; }
+    d.innerHTML += html;                                // sin cursor: al final del último bloque
+  }
+  infoBlocks[+d.dataset.i].html = d.innerHTML;           // guarda el cambio
+}
+
+async function uploadFile(f){
+  const fd = new FormData(); fd.append('file', f);
+  const res = await fetch('/media',{ method:'POST', headers:{'Authorization':'Bearer '+token}, body:fd });
+  if(!res.ok) throw new Error('No se pudo subir el archivo.');
+  return await res.json();
+}
+async function maybeUpload(inputId){
+  const f = el(inputId).files[0];
+  if(!f) return null;
+  return await uploadFile(f);
+}
+function qmsg(m){ el('modalMsg').textContent=m; el('modalMsg').className='msg err'; }
+
+el('addItemBtn').onclick = async () => {
+  if(!editingTrainingId) return;
+  const wasAdd = !editingItemId;
+  const type = el('itType').value;
+  try{
+    let t, payload, points=0;
+    if(type==='ModuleHeader'){
+      if(!el('mhTitle').value.trim()){ qmsg('Pon el título del módulo.'); return; }
+      t='ModuleHeader'; payload={ title:el('mhTitle').value.trim(), subtitle:el('mhSub').value.trim() };
+    } else if(type==='Info'){
+      if(infoBlocks.length===0){ qmsg('Añade al menos un bloque (texto o medio).'); return; }
+      const blocks = infoBlocks.map(b => b.type==='text'
+        ? { type:'text', html:b.html||'', span:b.span||'full' }
+        : { type:'media', mediaUrl:b.mediaUrl, mediaType:b.mediaType, span:b.span||'full' });
+      t='Info'; payload={ title:el('infoTitle').value.trim(), blocks };
+    } else if(type==='Matching'){
+      const media = await maybeUpload('mtFile');
+      const q = el('mtQ').value.trim();
+      const choices = matchChoices.filter(c=>c.text.trim()).map(c=>({id:c.id,text:c.text.trim()}));
+      const prompts = matchPrompts.filter(p=>p.text.trim()).map(p=>({id:p.id,text:p.text.trim(),correctChoiceId:p.correctChoiceId}));
+      if(!q || choices.length<2 || prompts.length<1 || prompts.some(p=>!p.correctChoiceId)){ qmsg('Pon instrucción, 2+ opciones y cada par con su opción correcta.'); return; }
+      if(prompts.some(p=>!choices.find(c=>c.id===p.correctChoiceId))){ qmsg('Cada par debe apuntar a una opción válida.'); return; }
+      points = parseInt(el('mtPoints').value)||10;
+      t='Matching'; payload={ question:q, choices, prompts };
+      if(media){ payload.mediaUrl=media.url; payload.mediaType=media.contentType; }
+      else if(editingQMedia){ payload.mediaUrl=editingQMedia.url; payload.mediaType=editingQMedia.type; }
+    } else if(type==='Open'){
+      const media = await maybeUpload('opFile');
+      const q = el('opQ').value.trim();
+      if(!q){ qmsg('Pon la consigna de la pregunta.'); return; }
+      const graded = el('opGraded').checked;
+      points = graded ? (parseInt(el('opPoints').value)||10) : 0;
+      t='OpenResponse'; payload={ question:q, graded };
+      if(media){ payload.mediaUrl=media.url; payload.mediaType=media.contentType; }
+      else if(editingQMedia){ payload.mediaUrl=editingQMedia.url; payload.mediaType=editingQMedia.type; }
+    } else {
+      const media = await maybeUpload('qFile');
+      const g = gatherOptions();
+      if(!el('qText').value.trim() || g.opts.length<2 || g.correct.length<1){ qmsg('Pon pregunta, 2+ opciones y marca la(s) correcta(s).'); return; }
+      points = parseInt(el('qPoints').value)||10;
+      const base={ question:el('qText').value.trim(), options:g.opts };
+      if(media){ base.mediaUrl=media.url; base.mediaType=media.contentType; }
+      else if(editingQMedia){ base.mediaUrl=editingQMedia.url; base.mediaType=editingQMedia.type; }
+      if(type==='Single'){ t='MultipleChoice'; base.correctOptionId=g.correct[0]; }
+      else { t='MultiSelect'; base.correctOptionIds=g.correct; }
+      payload=base;
+    }
+    if(t!=='ModuleHeader' && el('itSamePage').checked) payload.samePage = true;
+    let lastCreatedId = null;
+    if(editingItemId){
+      await api('/items/'+editingItemId,'PUT',{ type:t, payloadJson:JSON.stringify(payload), points, required:true, active: el('itActive').checked });
+    } else {
+      const g = contentGroups[activeTab];
+      const afterItemId = (g && g.items.length) ? g.items[g.items.length-1].id : null;
+      const created = await api('/trainings/'+editingTrainingId+'/items','POST',{ type:t, payloadJson:JSON.stringify(payload), points, required:true, active: el('itActive').checked, afterItemId });
+      lastCreatedId = created && created.id;
+    }
+    closeModal();
+    await reloadContent();
+    if(wasAdd && lastCreatedId){
+      const gi = contentGroups.findIndex(grp=>grp.items.some(x=>x.id===lastCreatedId));
+      if(gi>=0){ activeTab=gi; renderTabs(); }
+    }
+  }catch(e){ qmsg(e.message); }
+};
+
+function editItem(id){
+  const it = (draftItems||[]).find(x=>x.id===id);
+  if(!it) return;
+  editingItemId = id; editingQMedia = null;
+  el('itActive').checked = it.active!==false;
+  let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
+  el('itSamePage').checked = !!p.samePage;
+  el('itType').value = it.type==='MultipleChoice'?'Single':it.type==='MultiSelect'?'Multi':it.type==='OpenResponse'?'Open':it.type;
+  showItemForm();
+  if(it.type==='ModuleHeader'){
+    el('mhTitle').value=p.title||''; el('mhSub').value=p.subtitle||'';
+  } else if(it.type==='Info'){
+    el('infoTitle').value=p.title||'';
+    infoBlocks = (p.blocks||[]).map(b=>{
+      if(b.type==='text') return { type:'text', html:b.html||'', span:b.span||'full' };
+      const mt=b.mediaType||'';
+      const kind = mt.indexOf('image')===0?'image':mt.indexOf('audio')===0?'audio':mt.indexOf('video')===0?'video':'file';
+      return { type:'media', mediaUrl:b.mediaUrl, mediaType:b.mediaType, kind, fileName:'(archivo)', span:b.span||'full' };
+    });
+    renderBlocks();
+  } else if(it.type==='Matching'){
+    el('mtQ').value=p.question||'';
+    if(p.mediaUrl) editingQMedia = { url:p.mediaUrl, type:p.mediaType };
+    matchChoices = (p.choices||[]).map(c=>({id:c.id,text:c.text}));
+    matchPrompts = (p.prompts||[]).map(pr=>({id:pr.id,text:pr.text,correctChoiceId:pr.correctChoiceId}));
+    el('mtPoints').value = it.points||10;
+    renderMatchChoices();
+  } else if(it.type==='OpenResponse'){
+    el('opQ').value=p.question||'';
+    if(p.mediaUrl) editingQMedia = { url:p.mediaUrl, type:p.mediaType };
+    el('opGraded').checked=!!p.graded;
+    el('opPoints').value=it.points||10;
+    toggleOpGraded();
+  } else {
+    el('qText').value=p.question||'';
+    if(p.mediaUrl) editingQMedia = { url:p.mediaUrl, type:p.mediaType };
+    const opts=p.options||[];
+    optCount=Math.max(opts.length,2);
+    renderOptRows();
+    const rows=[...document.querySelectorAll('#optRows .optrow')];
+    const correct = it.type==='MultiSelect' ? (p.correctOptionIds||[]) : (p.correctOptionId?[p.correctOptionId]:[]);
+    opts.forEach((o,i)=>{ if(rows[i]){ rows[i].querySelector('.optText').value=o.text; if(correct.includes(o.id)) rows[i].querySelector('.optMark').checked=true; } });
+    el('qPoints').value=it.points||10;
+  }
+  openModal('Editar ítem');
+}
+function cancelEdit(){ closeModal(); }
+el('cancelEditBtn').onclick = cancelEdit;
+el('previewBtn').onclick = () => {
+  if(!draftVersionId) return;
+  window.open('player.html?preview='+encodeURIComponent(draftVersionId)+'&t='+encodeURIComponent(el('contentTitle').textContent)+'&_='+Date.now(), '_blank');
+};
+
+function resetItemForm(){
+  editingItemId=null; editingQMedia=null;
+  el('mhTitle').value=''; el('mhSub').value='';
+  el('infoTitle').value=''; el('blockFile').value=''; infoBlocks=[]; renderBlocks();
+  el('qText').value=''; el('qFile').value=''; el('qPoints').value='10';
+  optCount=4; renderOptRows();
+  el('mtQ').value=''; el('mtFile').value=''; el('mtPoints').value='10';
+  matchChoices=[]; matchPrompts=[]; renderMatchChoices();
+  el('opQ').value=''; el('opFile').value=''; el('opGraded').checked=false; el('opPoints').value='10'; toggleOpGraded();
+  el('itActive').checked=true;
+  el('itSamePage').checked=false;
+}
+
+async function deleteItem(itemId){
+  if(!confirm('¿Eliminar este ítem?')) return;
+  try{ await api('/items/'+itemId,'DELETE'); await reloadContent(); }catch(e){ alert(e.message); }
+}
+el('publishBtn').onclick = async () => {
+  if(!editingTrainingId) return;
+  try{ await api('/trainings/'+editingTrainingId+'/publish','POST');
+    el('contentStatus').textContent = 'publicado';
+    el('contentMsg').textContent='¡Publicado! Ya aparece en el catálogo.'; el('contentMsg').className='msg ok';
+    loadTrainings(); loadCatalog();
+  }catch(e){ el('contentMsg').textContent=e.message; el('contentMsg').className='msg err'; }
+};
+
+// ===== Versiones (sets) y asignación =====
+let asgUsers=[], asgCohorts=[], asgTrainings=[];
+let curTraining=null, curSets=[], curItems=[], curAssign=[], curPublished=false;
+
+el('backFromAssign').onclick = () => { el('assignView').classList.add('hidden'); el('tenantAppView').classList.remove('hidden'); showDash(); };
+function amsg(m){ el('assignMsg').textContent=m||''; el('assignMsg').className='msg err'; }
+
+async function openAssign(){
+  el('tenantAppView').classList.add('hidden');
+  el('assignView').classList.remove('hidden');
+  amsg('');
+  try{
+    asgUsers = await api('/tenant-users');
+    asgCohorts = await api('/user-groups');
+    asgTrainings = await api('/trainings');
+    renderCohorts();
+    el('setTraining').innerHTML = `<option value="">— elige un adiestramiento —</option>`+
+      asgTrainings.map(t=>`<option value="${t.id}">${t.title} (${t.status})</option>`).join('');
+    el('setsArea').innerHTML = '';
+    curTraining=null;
+  }catch(e){ amsg(e.message); }
+}
+function userLabel(uid){ const u=asgUsers.find(x=>x.id===uid); return u?(u.name||u.email):'(usuario)'; }
+function cohortLabel(cid){ const c=asgCohorts.find(x=>x.id===cid); return c?c.name:'(cohorte)'; }
+function setLabel(sid){ const s=curSets.find(x=>x.id===sid); return s?s.name:'(set)'; }
+
+// --- Cohortes ---
+el('addCohortBtn').onclick = async () => {
+  const name=el('cohortName').value.trim(); if(!name) return;
+  try{ await api('/user-groups','POST',{name}); el('cohortName').value=''; asgCohorts=await api('/user-groups'); renderCohorts(); }catch(e){ amsg(e.message); }
+};
+function renderCohorts(){
+  el('cohortList').innerHTML = asgCohorts.length ? asgCohorts.map(c=>`
+    <div class="item" style="flex-wrap:wrap">
+      <b>${c.name}</b> <span class="tag">${c.memberIds.length} miembro(s)</span>
+      <span class="sp">
+        <button class="btn sm ghost" onclick="toggleCohortMembers('${c.id}')">Miembros</button>
+        <button class="btn sm danger" onclick="deleteCohort('${c.id}')">Eliminar</button>
+      </span>
+      <div id="mem_${c.id}" class="hidden" style="flex-basis:100%;margin-top:8px;padding:10px;background:var(--soft);border-radius:8px">
+        ${asgUsers.length ? asgUsers.map(u=>`<label class="opt"><input type="checkbox" ${c.memberIds.includes(u.id)?'checked':''} onchange="toggleMember('${c.id}','${u.id}',this.checked)"> ${u.name||u.email} <span class="hint">${u.role}</span></label>`).join('') : '<span class="hint">No hay usuarios en este cliente.</span>'}
+      </div>
+    </div>`).join('') : `<div class="empty">Sin cohortes.</div>`;
+}
+function toggleCohortMembers(id){ el('mem_'+id).classList.toggle('hidden'); }
+async function deleteCohort(id){ if(!confirm('¿Eliminar la cohorte? Se quitan sus asignaciones.')) return; try{ await api('/user-groups/'+id,'DELETE'); asgCohorts=await api('/user-groups'); renderCohorts(); if(curTraining) loadSets(); }catch(e){ alert(e.message); } }
+async function toggleMember(cohortId, userId, on){
+  try{
+    if(on) await api('/user-groups/'+cohortId+'/members','POST',{userId});
+    else await api('/user-groups/'+cohortId+'/members/'+userId,'DELETE');
+    const c=asgCohorts.find(x=>x.id===cohortId);
+    if(c){ if(on){ if(!c.memberIds.includes(userId)) c.memberIds.push(userId); } else { c.memberIds=c.memberIds.filter(x=>x!==userId); } }
+    renderCohorts(); el('mem_'+cohortId).classList.remove('hidden');
+  }catch(e){ alert(e.message); }
+}
+
+// --- Sets de un adiestramiento ---
+async function loadSets(){
+  curTraining = el('setTraining').value || null;
+  if(!curTraining){ el('setsArea').innerHTML=''; return; }
+  try{
+    const d = await api('/trainings/'+curTraining+'/sets');
+    curPublished = d.published; curItems = d.items; curSets = d.sets;
+    curAssign = await api('/trainings/'+curTraining+'/assignments');
+    renderSets();
+  }catch(e){ amsg(e.message); }
+}
+function itemShort(it){
+  let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
+  if(it.type==='ModuleHeader') return '📂 '+(p.title||'módulo');
+  if(it.type==='Info') return '📄 '+(p.title||'pantalla');
+  if(it.type==='MultipleChoice'||it.type==='MultiSelect') return '❓ '+(p.question||'');
+  if(it.type==='Matching') return '🧩 '+(p.question||'');
+  if(it.type==='OpenResponse') return '📝 '+(p.question||'');
+  return it.type;
+}
+function renderSets(){
+  if(!curItems.length){
+    el('setsArea').innerHTML = `<div class="empty">Este adiestramiento aún no tiene contenido${curPublished?'':' publicado'}. Publícalo para poder armar sets sobre su contenido.</div>
+      <div style="margin-top:10px"><button class="btn sm" onclick="createSet()">+ Crear set</button></div>`;
+    if(curSets.length) el('setsArea').innerHTML += renderSetsList();
+    return;
+  }
+  el('setsArea').innerHTML = `
+    ${curPublished?'':'<p class="hint" style="color:#b45309">Mostrando el borrador (no hay versión publicada). Publica el adiestramiento para que los sets apliquen a lo que toman los usuarios.</p>'}
+    <div style="margin-bottom:10px"><button class="btn sm" onclick="createSet()">+ Crear set</button></div>
+    ${renderSetsList()}
+    ${renderAssignBlock()}`;
+}
+function renderSetsList(){
+  if(!curSets.length) return `<div class="empty">Sin sets. Crea al menos uno.</div>`;
+  return curSets.map(s=>{
+    const rows = curItems.map(it=>{
+      const inc = !s.excluded.includes(it.stableKey);
+      return `<label class="opt" style="${inc?'':'opacity:.5'}"><input type="checkbox" ${inc?'checked':''} onchange="toggleSetItem('${s.id}','${it.stableKey}',this.checked)"> ${itemShort(it)}</label>`;
+    }).join('');
+    const incCount = curItems.length - s.excluded.length;
+    return `<div class="card" style="box-shadow:none;border:1px solid var(--line);margin-bottom:12px">
+      <div class="item" style="border:none">
+        <b style="font-size:15px">${s.name}</b> ${s.isDefault?'<span class="tag" style="background:#dcfce7;color:#166534">por defecto</span>':''}
+        <span class="tag">${incCount}/${curItems.length} incluidos</span>
+        <span class="sp">
+          ${s.isDefault?'':`<button class="btn sm ghost" onclick="makeDefault('${s.id}')">Hacer default</button>`}
+          <button class="btn sm ghost" onclick="renameSet('${s.id}','${s.name.replace(/'/g,"")}')">Renombrar</button>
+          <button class="btn sm danger" onclick="deleteSet('${s.id}')">Eliminar</button>
+        </span>
+      </div>
+      <p class="hint">Desmarca lo que NO quieras mostrar en este set.</p>
+      <div style="max-height:240px;overflow:auto;border-top:1px solid var(--line);padding-top:8px">${rows}</div>
+    </div>`;
+  }).join('');
+}
+function renderAssignBlock(){
+  if(!curSets.length) return '';
+  const userOpts = asgUsers.map(u=>`<option value="${u.id}">${u.name||u.email}</option>`).join('');
+  const setOpts = curSets.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  const rows = curAssign.length ? curAssign.map(a=>`<div class="item"><span>${a.targetType==='user'?'👤 '+userLabel(a.targetId):'👥 '+cohortLabel(a.targetId)} → <b>${setLabel(a.setId)}</b></span><span class="sp"><button class="btn sm danger" onclick="deleteAssignment('${a.id}')">Quitar</button></span></div>`).join('') : `<div class="empty">Sin asignaciones. Todos ven el set por defecto.</div>`;
+  return `<div class="card" style="box-shadow:none;border:1px solid var(--line)">
+    <h3 style="margin-top:0">Asignaciones (usuario o cohorte → set)</h3>
+    <div class="row" style="margin:6px 0 10px">
+      <div style="max-width:150px"><select class="field" id="aType" onchange="renderTargetOpts()"><option value="user">Usuario</option><option value="group">Cohorte</option></select></div>
+      <div><select class="field" id="aTarget">${userOpts}</select></div>
+      <div><select class="field" id="aSet">${setOpts}</select></div>
+      <button class="btn sm" onclick="addAssignment()">Asignar</button>
+    </div>
+    <div class="list">${rows}</div>
+  </div>`;
+}
+function renderTargetOpts(){
+  const type=el('aType').value;
+  el('aTarget').innerHTML = type==='user'
+    ? asgUsers.map(u=>`<option value="${u.id}">${u.name||u.email}</option>`).join('')
+    : asgCohorts.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+async function createSet(){
+  const name = prompt('Nombre del set (ej. "Set básico"):', 'Set '+(curSets.length+1));
+  if(name===null) return;
+  try{ await api('/trainings/'+curTraining+'/sets','POST',{name}); await loadSets(); }catch(e){ amsg(e.message); }
+}
+async function renameSet(id, cur){
+  const name = prompt('Nuevo nombre:', cur);
+  if(name===null||!name.trim()) return;
+  try{ await api('/sets/'+id+'/rename','POST',{name}); await loadSets(); }catch(e){ amsg(e.message); }
+}
+async function makeDefault(id){ try{ await api('/sets/'+id+'/default','POST'); await loadSets(); }catch(e){ amsg(e.message); } }
+async function deleteSet(id){ if(!confirm('¿Eliminar este set?')) return; try{ await api('/sets/'+id,'DELETE'); await loadSets(); }catch(e){ amsg(e.message); } }
+async function toggleSetItem(setId, stableKey, included){
+  try{ await api('/sets/'+setId+'/item','POST',{stableKey, included});
+    const s=curSets.find(x=>x.id===setId);
+    if(s){ if(included){ s.excluded=s.excluded.filter(k=>k!==stableKey); } else { if(!s.excluded.includes(stableKey)) s.excluded.push(stableKey); } }
+    renderSets();
+  }catch(e){ amsg(e.message); }
+}
+async function addAssignment(){
+  const targetType=el('aType').value, targetId=el('aTarget').value, setId=el('aSet').value;
+  if(!targetId||!setId) return;
+  try{ await api('/trainings/'+curTraining+'/assignments','POST',{setId, targetType, targetId}); curAssign=await api('/trainings/'+curTraining+'/assignments'); renderSets(); }catch(e){ amsg(e.message); }
+}
+async function deleteAssignment(id){ try{ await api('/assignments/'+id,'DELETE'); curAssign=await api('/trainings/'+curTraining+'/assignments'); renderSets(); }catch(e){ amsg(e.message); } }
+
+// ===== Catálogo: abre el reproductor en pestaña nueva =====
+function fmtDate(s){ try{ return new Date(s).toLocaleDateString('es-PR',{year:'numeric',month:'short',day:'numeric'}); }catch{ return ''; } }
+async function loadCatalog(){
+  try{
+    const cat = (await api('/catalog')).filter(c=>c.status!=='current' && c.status!=='done'); // vigentes no se listan aquí
+    el('catalogList').innerHTML = cat.length ? cat.map(c=>{
+      const st = ({
+        'not-started':       {tag:'No comenzado', cls:'',                                     btn:'Tomar ▸',     go:true},
+        'in-progress':       {tag:'En progreso',  cls:'background:#fef3c7;color:#92400e',      btn:'Continuar ▸', go:true},
+        'failed':            {tag:'No aprobado',  cls:'background:#fee2e2;color:#991b1b',      btn:'Reintentar ▸',go:true},
+        'renewal':           {tag:'Por renovar'+(c.expiresAt?' · vence '+fmtDate(c.expiresAt):''), cls:'background:#dbeafe;color:#1e40af', btn:'Renovar ▸', go:true},
+        'expired':           {tag:'Vencido'+(c.expiresAt?' · venció '+fmtDate(c.expiresAt):''),     cls:'background:#fee2e2;color:#991b1b', btn:'Renovar ▸', go:true},
+        'pending-grading':   {tag:'En revisión',  cls:'background:#e0e7ff;color:#3730a3',      btn:'En revisión', go:false},
+        'pending-cancellation':{tag:'Cancelación pendiente', cls:'background:#f1f5f9;color:#475569', btn:'Pendiente', go:false}
+      })[c.status] || {tag:'', cls:'', btn:'Tomar ▸', go:true};
+      const btn = st.go
+        ? `<button class="btn sm" onclick="openPlayer('${c.versionId}','${c.title.replace(/'/g,"")}','${c.setId||''}')">${st.btn}</button>`
+        : `<button class="btn sm ghost" disabled style="opacity:.6">${st.btn}</button>`;
+      return `<div class="item">${c.title} <span class="tag" style="${st.cls}">${st.tag}</span><span class="sp">${btn}</span></div>`;
+    }).join('') : `<div class="empty">No tienes adiestramientos pendientes. 🎉</div>`;
+  }catch(e){}
+}
+function openPlayer(versionId, title, setId){
+  window.open('player.html?v='+encodeURIComponent(versionId)+'&t='+encodeURIComponent(title)+(setId?('&set='+encodeURIComponent(setId)):'')+'&_='+Date.now(), '_blank');
+}
+function openReview(attemptId, title){
+  window.open('player.html?review='+encodeURIComponent(attemptId)+'&t='+encodeURIComponent(title)+'&_='+Date.now(), '_blank');
+}
+
+// ===== Historial / resultados =====
+function fmt(d){ return d ? new Date(d).toLocaleString() : '—'; }
+function fmtTime(s){ s=Math.max(0,Math.round(s||0)); const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60; if(h>0)return h+'h '+m+'m'; if(m>0)return m+'m '+sec+'s'; return sec+'s'; }
+el('refreshHistBtn').onclick = loadMyHistory;
+async function loadMyHistory(){
+  try{
+    const h = await api('/me/attempts');
+    el('historyList').innerHTML = h.length ? h.map(a=>{
+      let right='', actions='', note='';
+      if(a.status==='completed'){ right=(a.passed?'✅':'❌')+' '+a.score+' pts'; actions=`<button class="btn sm ghost" onclick="openReview('${a.id}','${a.title.replace(/'/g,"")}')">Revisar</button>`; }
+      else if(a.status==='pending-grading'){ right='pendiente de evaluación'; actions=`<button class="btn sm ghost" onclick="openReview('${a.id}','${a.title.replace(/'/g,"")}')">Revisar</button>`; }
+      else if(a.status==='in-progress'){ right='en progreso'; actions=`<button class="btn sm ghost" onclick="requestCancel('${a.id}')">Solicitar cancelación</button>`; }
+      else if(a.status==='cancellation-requested'){ right='cancelación solicitada'; if(a.cancelRequestComment) note=` · “${a.cancelRequestComment}”`; }
+      else if(a.status==='cancelled'){ right='cancelado'; if(a.cancelApprovalComment) note=` · aprobó: “${a.cancelApprovalComment}”`; }
+      else right=a.status;
+      const t = (a.activeSeconds>0) ? ` · ⏱️ ${fmtTime(a.activeSeconds)}` : '';
+      return `<div class="item">${a.title} <span class="tag">${a.status}</span>
+        <span class="sp">${right}${note} · ${fmt(a.completedAt||a.startedAt)}${t} ${actions}</span></div>`;
+    }).join('') : `<div class="empty">Aún no has tomado adiestramientos.</div>`;
+  }catch(e){}
+}
+
+// ===== Cancelaciones =====
+async function requestCancel(id){
+  const c = prompt('¿Por qué quieres cancelar este curso? (obligatorio)', '');
+  if(c===null) return;
+  if(!c.trim()){ alert('El comentario es obligatorio.'); return; }
+  try{ await api('/attempts/'+id+'/request-cancel','POST',{ comment:c.trim() }); loadMyHistory(); loadCatalog(); }
+  catch(e){ alert(e.message); }
+}
+el('refreshPendBtn').onclick = loadPending;
+async function loadPending(){
+  try{
+    const rows = await api('/cancellations/pending');
+    el('pendingList').innerHTML = rows.length ? rows.map(p=>`
+      <div class="item">${p.learnerName||'(learner)'} — ${p.title}
+        <div class="hint" style="margin:2px 0">Motivo: “${(p.cancelRequestComment||'')}”</div>
+        <span class="sp"><button class="btn sm" onclick="approveCancel('${p.id}')">Aprobar cancelación</button></span></div>`).join('')
+      : `<div class="empty">No hay solicitudes pendientes.</div>`;
+  }catch(e){}
+}
+async function approveCancel(id){
+  const c = prompt('Comentario de aprobación (obligatorio)', '');
+  if(c===null) return;
+  if(!c.trim()){ alert('El comentario es obligatorio.'); return; }
+  try{ await api('/attempts/'+id+'/approve-cancel','POST',{ comment:c.trim() }); loadPending(); }
+  catch(e){ alert(e.message); }
+}
+
+// ===== Evaluación de respuestas abiertas =====
+el('refreshGradeBtn').onclick = loadGrading;
+async function loadGrading(){
+  try{
+    const rows = await api('/grading/pending');
+    const safe = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    el('gradingList').innerHTML = rows.length ? rows.map(g=>{
+      let q='', txt='';
+      try{ q=(JSON.parse(g.payloadJson).question)||''; }catch{}
+      try{ txt=(JSON.parse(g.answerJson).text)||''; }catch{}
+      return `<div class="item" style="flex-direction:column;align-items:stretch">
+        <div><b>${safe(g.learnerName)||'(learner)'}</b> — ${safe(g.title)}</div>
+        <div class="hint" style="margin:4px 0">${safe(q)}</div>
+        <div style="white-space:pre-wrap;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:8px;margin:4px 0">${safe(txt)||'(sin texto)'}</div>
+        <div class="row" style="margin-top:4px;align-items:flex-end">
+          <div style="max-width:140px"><label>Puntos (máx ${g.maxPoints})</label><input class="field gradePts" type="number" min="0" max="${g.maxPoints}" value="0" /></div>
+          <div style="flex:1"><label>Comentario (opcional)</label><input class="field gradeCmt" type="text" placeholder="Retroalimentación…" /></div>
+          <button class="btn sm" onclick="gradeOpen(this,'${g.attemptId}','${g.itemId}')">Calificar</button>
+        </div></div>`;
+    }).join('') : `<div class="empty">No hay respuestas por evaluar.</div>`;
+  }catch(e){}
+}
+async function gradeOpen(btn, attemptId, itemId){
+  const box = btn.closest('.item');
+  const pts = parseInt(box.querySelector('.gradePts').value)||0;
+  const cmt = box.querySelector('.gradeCmt').value;
+  try{ await api('/attempts/'+attemptId+'/grade','POST',{ itemId, points:pts, comment:cmt }); loadGrading(); }
+  catch(e){ alert(e.message); }
+}
+async function loadResults(id, title){
+  el('resultsCard').classList.remove('hidden');
+  el('resultsTitle').textContent = title;
+  try{
+    const rows = await api('/trainings/'+id+'/attempts');
+    el('resultsList').innerHTML = rows.length ? rows.map(a=>`
+      <div class="item">${a.learnerName||'(anónimo)'} <span class="tag">${a.status}</span>
+        <span class="sp">${a.status==='completed' ? (a.passed?'✅':'❌')+' '+a.score+' pts' : '—'} · ${fmt(a.completedAt||a.startedAt)}${a.activeSeconds>0?` · ⏱️ ${fmtTime(a.activeSeconds)}`:''}</span></div>`).join('')
+      : `<div class="empty">Nadie lo ha tomado todavía.</div>`;
+    el('resultsCard').scrollIntoView({behavior:'smooth'});
+  }catch(e){ el('resultsList').innerHTML = `<div class="empty">${e.message}</div>`; }
+}
+
+el('blocks').addEventListener('click', e => {
+  const a = e.target.closest ? e.target.closest('a') : null;
+  if (a && (e.ctrlKey || e.metaKey)) { e.preventDefault(); window.open(a.href, '_blank'); }
+});
+
+showItemForm();
+if (token && user){ if (user.mustChangePassword) showForceChange(); else showApp(); }
+</script>
+
+<!-- MODAL DE PERFIL -->
+<div id="profileModal" class="modal hidden">
+  <div class="modal-box" style="max-width:440px">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div class="avatar lg" id="profAvatar">··</div>
+      <div>
+        <div style="font-weight:800;font-size:18px" id="profName">—</div>
+        <div style="color:var(--muted);font-size:13px" id="profRoleTop">—</div>
+      </div>
+    </div>
+    <div class="list" style="margin-top:18px">
+      <div class="item"><span style="color:var(--muted)">Correo</span><span class="sp" id="profEmail"></span></div>
+      <div class="item"><span style="color:var(--muted)">Rol</span><span class="sp" id="profRole"></span></div>
+      <div class="item"><span style="color:var(--muted)">Cliente</span><span class="sp" id="profTenant"></span></div>
+    </div>
+    <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
+      <button class="btn sm ghost" id="togglePwdBtn" onclick="togglePwd()">🔑 Cambiar contraseña</button>
+      <div id="pwdForm" class="hidden" style="margin-top:12px">
+        <label>Contraseña actual</label>
+        <input id="pwdCur" class="field" type="password" autocomplete="current-password" />
+        <label>Nueva contraseña</label>
+        <input id="pwdNew" class="field" type="password" autocomplete="new-password" />
+        <label>Confirmar nueva</label>
+        <input id="pwdNew2" class="field" type="password" autocomplete="new-password" />
+        <button class="btn sm" style="margin-top:12px" onclick="submitPwd()">Guardar contraseña</button>
+        <p class="msg" id="pwdMsg"></p>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn sm danger" onclick="logout()">Cerrar sesión</button>
+      <button class="btn sm" onclick="closeProfile()">Listo</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

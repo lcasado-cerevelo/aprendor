@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Adiestramiento</title>
+<style>
+  :root{--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--brand:#2563eb;--brand-d:#1d4ed8;--ok:#16a34a;--err:#dc2626;--soft:#f1f5f9;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:#f8fafc;min-height:100vh;display:flex;flex-direction:column;}
+  header{background:#0b1220;color:#e2e8f0;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;}
+  header .t{font-weight:800;} header .p{font-size:13px;color:#94a3b8;}
+  header .mod{font-size:12px;color:#93c5fd;font-weight:600;margin-top:2px;}
+  .progress{height:4px;background:#1e293b;} .progress>div{height:100%;background:var(--brand);transition:width .2s;}
+  main{flex:1;display:flex;justify-content:center;padding:30px 18px;}
+  .stage{width:100%;max-width:760px;}
+  .screen{background:#fff;border:1px solid var(--line);border-radius:16px;padding:30px;box-shadow:0 10px 30px rgba(0,0,0,.06);min-height:300px;}
+  .screen img,.screen video{max-width:100%;border-radius:10px;margin:12px auto;display:block;}
+  .screen audio{width:100%;margin:12px 0;}
+  .row2{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:12px 0;}
+  .row2>div{flex:1 1 220px;min-width:220px;}
+  .row2 img,.row2 video{margin:0 auto;display:block;}
+  .matchrow{display:flex;gap:12px;align-items:center;margin:8px 0;}
+  .matchrow .mp{flex:1;font-weight:600;}
+  .matchrow select{flex:1;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:15px;}
+  .opentext{width:100%;min-height:130px;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;resize:vertical;}
+  .opentext-ro{white-space:pre-wrap;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0;}
+  .screen h1{font-size:28px;} .screen h2{font-size:20px;}
+  .module{text-align:center;padding:60px 10px;}
+  .module .tag{display:inline-block;background:var(--soft);color:var(--muted);padding:4px 12px;border-radius:99px;font-size:13px;}
+  .opt{display:flex;align-items:center;gap:10px;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:8px 0;cursor:pointer;}
+  .opt.correct{background:#dcfce7;border-color:#86efac;} .opt.wrong{background:#fee2e2;border-color:#fca5a5;}
+  .opt .mk{margin-left:auto;font-size:12px;color:var(--muted);}
+  .sumrow{display:flex;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);font-size:14px;}
+  .sumrow .st{margin-left:auto;}
+  .nav{display:flex;gap:10px;max-width:760px;margin:18px auto 40px;width:100%;padding:0 18px;}
+  .btn{padding:12px 18px;border:none;border-radius:10px;background:var(--brand);color:#fff;font-weight:700;cursor:pointer;}
+  .btn:hover{background:var(--brand-d);} .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn.ghost{background:#fff;color:var(--brand);border:1px solid var(--line);} .btn.ok{background:var(--ok);}
+  .res{margin-top:18px;padding:18px;border-radius:12px;font-weight:700;font-size:18px;text-align:center;}
+  .res.pass{background:#dcfce7;color:#166534;} .res.fail{background:#fee2e2;color:#991b1b;}
+  .center{max-width:760px;margin:60px auto;padding:0 18px;text-align:center;color:var(--muted);}
+  a{color:var(--brand);}
+  .hintbox{background:#fef9c3;border:1px solid #fde68a;color:#854d0e;border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px;}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <span class="t" id="title">Adiestramiento</span>
+    <div class="mod" id="moduleLabel"></div>
+  </div>
+  <span class="p" id="progressText"></span>
+</header>
+<div class="progress"><div id="progressBar" style="width:0%"></div></div>
+<main><div class="stage"><div class="screen" id="screen"></div></div></main>
+<div class="nav" id="nav" style="display:none">
+  <button class="btn ghost" id="prevBtn">◂ Anterior</button>
+  <button class="btn" id="nextBtn" style="margin-left:auto">Siguiente ▸</button>
+  <button class="btn ok hidden" id="finishBtn" style="margin-left:auto">Finalizar</button>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const versionId = params.get('v');
+const setId     = params.get('set');
+const reviewId  = params.get('review');
+const previewId = params.get('preview');
+const title = params.get('t') || 'Adiestramiento';
+const token = localStorage.getItem('tp_token');
+const el = id => document.getElementById(id);
+let T = null;            // { items, idx, answers, attemptId, review, score, passed, respMap }
+
+async function api(path, method='GET', body=null){
+  const headers = { 'Content-Type':'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : null });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!res.ok) throw new Error((data && (data.title || data)) || ('Error ' + res.status));
+  return data;
+}
+function mediaSrc(url){ return url + (url.includes('?')?'&':'?') + 'access_token=' + encodeURIComponent(token); }
+function mediaEl(url,type){
+  if(!url) return '';
+  const s=mediaSrc(url);
+  if(type&&type.indexOf('image')===0) return `<img src="${s}" />`;
+  if(type&&type.indexOf('audio')===0) return `<audio controls src="${s}"></audio>`;
+  if(type&&type.indexOf('video')===0) return `<video controls src="${s}"></video>`;
+  return `<a href="${s}" target="_blank">📎 Abrir documento</a>`;
+}
+function blockHtml(b){
+  if(b.type==='text') return `<div>${b.html||''}</div>`;
+  if(b.type==='media') return mediaEl(b.mediaUrl,b.mediaType);
+  return '';
+}
+function renderInfo(p){
+  let h = p.title ? `<h2>${p.title}</h2>` : '';
+  if(Array.isArray(p.blocks)){
+    const bl=p.blocks; let i=0;
+    while(i<bl.length){
+      const b=bl[i];
+      if(b.span==='half' && i+1<bl.length && bl[i+1].span==='half'){
+        h += `<div class="row2"><div>${blockHtml(b)}</div><div>${blockHtml(bl[i+1])}</div></div>`;
+        i+=2;
+      } else { h += blockHtml(b); i++; }
+    }
+  } else { h += mediaEl(p.mediaUrl,p.mediaType) + `<div>${p.bodyHtml||''}</div>`; }
+  return h;
+}
+function isQuestion(it){ return it.type==='MultipleChoice' || it.type==='MultiSelect' || it.type==='Matching' || it.type==='OpenResponse'; }
+function isAnswered(it){
+  const ans=T.answers[it.id]; if(!ans) return false;
+  if(it.type==='Matching'){
+    let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
+    const prompts=p.prompts||[]; const m=ans.matches||{};
+    return prompts.length>0 && prompts.every(pr=>m[pr.id]);
+  }
+  if(it.type==='OpenResponse'){ return !!(ans.text && ans.text.trim()); }
+  return true;
+}
+function guard(){ if(!token){ el('screen').innerHTML=`<div class="center">Inicia sesión primero en <a href="/">la página principal</a>.</div>`; return false; } return true; }
+
+// ---------- Tiempo activo (latidos) ----------
+function fmtTime(s){
+  s=Math.max(0,Math.round(s||0));
+  const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
+  if(h>0) return h+'h '+m+'m';
+  if(m>0) return m+'m '+sec+'s';
+  return sec+'s';
+}
+let hbTimer=null, hbBound=false;
+function sendHeartbeat(){
+  if(!T || !T.attemptId || T.preview || T.review) return;
+  api('/attempts/'+T.attemptId+'/heartbeat','POST').catch(()=>{});
+}
+function startHeartbeat(){
+  if(!T || T.preview || T.review) return;
+  sendHeartbeat(); // baseline al entrar (un hueco previo grande se descarta solo)
+  hbTimer = setInterval(()=>{ if(document.visibilityState==='visible') sendHeartbeat(); }, 20000);
+  // dispara en ambos sentidos: al ocultar acredita el tramo visible; al volver mide la salida
+  if(!hbBound){ document.addEventListener('visibilitychange', sendHeartbeat); hbBound=true; }
+}
+function stopHeartbeat(){ if(hbTimer){ clearInterval(hbTimer); hbTimer=null; } }
+
+// ---------- TAKE ----------
+async function startTake(){
+  if(!guard()) return;
+  if(!versionId){ el('screen').innerHTML=`<div class="center">Falta el adiestramiento.</div>`; return; }
+  el('title').textContent = title;
+  try{
+    const s = await api('/versions/'+versionId+'/attempts'+(setId?('?setId='+encodeURIComponent(setId)):''),'POST');
+    if(s.pendingCancellation){
+      el('screen').innerHTML=`<div class="center">Tienes una <b>cancelación pendiente de aprobación</b> para este curso. No puedes continuar hasta que un revisor la apruebe.</div>`;
+      return;
+    }
+    const useSet = s.setId || setId;
+    const items = await api('/versions/'+versionId+'/take'+(useSet?('?setId='+encodeURIComponent(useSet)):''));
+    if(!items.length){ el('screen').innerHTML=`<div class="center">Este adiestramiento no tiene contenido.</div>`; return; }
+    const answers = {};
+    (s.responses||[]).forEach(r=>{
+      try{ const a=JSON.parse(r.answerJson);
+        if(a.selectedOptionId!==undefined) answers[r.itemId]={type:'single',selectedOptionId:a.selectedOptionId};
+        else if(Array.isArray(a.selectedOptionIds)) answers[r.itemId]={type:'multi',selectedOptionIds:a.selectedOptionIds};
+        else if(a.matches) answers[r.itemId]={type:'match',matches:a.matches};
+        else if(typeof a.text==='string') answers[r.itemId]={type:'open',text:a.text};
+      }catch{}
+    });
+    T = { attemptId:s.attemptId, items, pages:buildPages(items), idx:0, answers, review:false };
+    el('nav').style.display='flex';
+    renderStep();
+    startHeartbeat();
+  }catch(e){ el('screen').innerHTML=`<div class="center">${e.message}</div>`; }
+}
+
+function questionCount(){ return T.items.filter(isQuestion).length; }
+function answeredCount(){ return T.items.filter(it=>isQuestion(it)&&isAnswered(it)).length; }
+// Solo las preguntas marcadas como requeridas bloquean el botón Finalizar.
+function isRequiredQ(it){ return isQuestion(it) && it.required!==false; }
+function pendingRequired(){ return T.items.filter(it=>isRequiredQ(it)&&!isAnswered(it)).length; }
+function canFinish(){ if(T.preview) return true; return pendingRequired()===0; }
+
+// ---- Páginas: ítems consecutivos marcados "samePage" comparten una sola pantalla ----
+function buildPages(items){
+  const pages=[]; let curMod='';
+  for(const it of items){
+    let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
+    if(it.type==='ModuleHeader') curMod = p.title||'';
+    const sp = !!p.samePage;
+    if(sp && it.type!=='ModuleHeader' && pages.length>0) pages[pages.length-1].items.push(it);
+    else pages.push({ items:[it], module:curMod });
+  }
+  return pages;
+}
+function setModuleHeader(){ el('moduleLabel').textContent = (T.pages && T.idx < T.pages.length) ? (T.pages[T.idx].module||'') : ''; }
+
+function renderStep(){
+  const N=T.pages.length;
+  if(T.idx < N){
+    el('screen').innerHTML = T.pages[T.idx].items.map((it,i)=>{
+      const sep = i>0 ? 'border-top:1px solid #e2e8f0;margin-top:18px;padding-top:18px' : '';
+      return `<div style="${sep}">${itemHtml(it)}</div>`;
+    }).join('');
+  } else renderSummary();
+  setModuleHeader();
+  const total=N+1;
+  el('progressText').textContent = `Página ${T.idx+1} de ${total}`;
+  el('progressBar').style.width = Math.round((T.idx+1)/total*100)+'%';
+  el('prevBtn').disabled = T.idx===0;
+  const last = T.idx===N;
+  el('nextBtn').classList.toggle('hidden', last);
+  if(last){
+    el('finishBtn').classList.remove('hidden');
+    el('finishBtn').textContent = T.preview ? 'Cerrar (vista previa)' : 'Finalizar';
+    el('finishBtn').disabled = !canFinish();
+  } else { el('finishBtn').classList.add('hidden'); }
+  window.scrollTo(0,0);
+}
+
+function itemHtml(it){
+  let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
+  if(it.type==='ModuleHeader'){
+    return `<div class="module"><span class="tag">Módulo</span><h1 style="margin:14px 0 8px">${p.title||''}</h1><p style="color:#475569">${p.subtitle||''}</p></div>`;
+  } else if(it.type==='Info'){
+    return renderInfo(p);
+  } else if(it.type==='MultipleChoice'){
+    const sel=(T.answers[it.id]||{}).selectedOptionId; const nm='w_'+it.id;
+    return `<b>${p.question||''}</b>${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">`+
+      (p.options||[]).map(o=>`<label class="opt"><input type="radio" name="${nm}" value="${o.id}" ${sel===o.id?'checked':''}/> ${o.text}</label>`).join('')+`</div>`;
+  } else if(it.type==='MultiSelect'){
+    const sel=((T.answers[it.id]||{}).selectedOptionIds)||[]; const nm='w_'+it.id;
+    return `<b>${p.question||''}</b> <span style="color:#64748b;font-size:13px">(varias correctas)</span>${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">`+
+      (p.options||[]).map(o=>`<label class="opt"><input type="checkbox" name="${nm}" value="${o.id}" ${sel.indexOf(o.id)>=0?'checked':''}/> ${o.text}</label>`).join('')+`</div>`;
+  } else if(it.type==='Matching'){
+    const saved=((T.answers[it.id]||{}).matches)||{};
+    const choices=p.choices||[];
+    const rows=(p.prompts||[]).map(pr=>`
+      <div class="matchrow"><div class="mp">${pr.text}</div>
+        <select class="match" data-item="${it.id}" data-pid="${pr.id}">
+          <option value="">— elige —</option>
+          ${choices.map(c=>`<option value="${c.id}" ${saved[pr.id]===c.id?'selected':''}>${c.text}</option>`).join('')}
+        </select></div>`).join('');
+    return `<b>${p.question||''}</b> <span style="color:#64748b;font-size:13px">(empareja cada uno)</span>${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">${rows}</div>`;
+  } else if(it.type==='OpenResponse'){
+    const saved=((T.answers[it.id]||{}).text)||'';
+    const note = p.graded ? ' <span style="color:#64748b;font-size:13px">(la evaluará el moderador)</span>' : ' <span style="color:#64748b;font-size:13px">(respuesta abierta)</span>';
+    return `<b>${p.question||''}</b>${note}${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px"><textarea id="open_${it.id}" class="opentext" placeholder="Escribe tu respuesta…">${saved.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea></div>`;
+  }
+  return '';
+}
+
+function summaryRows(){
+  return T.items.map(it=>{
+    let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
+    if(it.type==='ModuleHeader') return `<div class="sumrow">📂 Módulo: ${p.title||''}</div>`;
+    if(it.type==='Info') return `<div class="sumrow">📄 ${p.title||'Contenido'}</div>`;
+    const answered = !T.review && isAnswered(it);
+    const mk = T.review ? '' : `<span class="st">${answered?'✓ contestada':'✗ sin contestar'}</span>`;
+    return `<div class="sumrow">❓ ${p.question||'Pregunta'} ${mk}</div>`;
+  }).join('');
+}
+
+function renderSummary(){
+  let html=`<h2>Resumen del adiestramiento</h2><div style="margin-top:6px">${summaryRows()}</div>`;
+  if(T.review){
+    const pct=T.totalPts?Math.round(T.score*100/T.totalPts):100;
+    html+=`<div class="res ${T.passed?'pass':'fail'}">${T.passed?'✅ Aprobado':'❌ No aprobado'} — ${T.score} pts (${pct}%)</div>
+      <div style="color:#64748b;font-size:13px;margin-top:8px;text-align:center">⏱️ Tiempo en el curso: ${fmtTime(T.activeSeconds)}</div>
+      <div class="center"><button class="btn ghost" onclick="window.close()">Cerrar pestaña</button></div>`;
+  } else if(T.preview){
+    html+=`<div class="hintbox">Vista previa — así verá el learner el curso. No se registra ningún intento.</div>`;
+  } else {
+    if(pendingRequired()>0) html+=`<div class="hintbox">Te faltan preguntas obligatorias por contestar. Usa “Anterior” para volver y completarlas; el botón Finalizar se activará cuando todas estén contestadas.</div>`;
+  }
+  el('screen').innerHTML=html;
+}
+
+async function persistCurrent(){
+  const page = (T.pages && T.idx<T.pages.length) ? T.pages[T.idx].items : [];
+  for(const it of page){
+    if(it.type==='MultipleChoice'){
+      const v=(document.querySelector('input[name="w_'+it.id+'"]:checked')||{}).value;
+      if(v){ T.answers[it.id]={type:'single',selectedOptionId:v};
+        if(!T.preview) await api('/attempts/'+T.attemptId+'/answer','POST',{ itemId:it.id, answerJson:JSON.stringify({selectedOptionId:v}) }); }
+    } else if(it.type==='MultiSelect'){
+      const vs=[...document.querySelectorAll('input[name="w_'+it.id+'"]:checked')].map(x=>x.value);
+      if(vs.length){ T.answers[it.id]={type:'multi',selectedOptionIds:vs};
+        if(!T.preview) await api('/attempts/'+T.attemptId+'/answer','POST',{ itemId:it.id, answerJson:JSON.stringify({selectedOptionIds:vs}) }); }
+    } else if(it.type==='Matching'){
+      const m={}; document.querySelectorAll('select.match[data-item="'+it.id+'"]').forEach(s=>{ if(s.value) m[s.dataset.pid]=s.value; });
+      T.answers[it.id]={type:'match',matches:m};
+      if(!T.preview && Object.keys(m).length) await api('/attempts/'+T.attemptId+'/answer','POST',{ itemId:it.id, answerJson:JSON.stringify({matches:m}) });
+    } else if(it.type==='OpenResponse'){
+      const v=(document.getElementById('open_'+it.id)||{}).value||'';
+      T.answers[it.id]={type:'open',text:v};
+      if(!T.preview && v.trim()) await api('/attempts/'+T.attemptId+'/answer','POST',{ itemId:it.id, answerJson:JSON.stringify({text:v}) });
+    }
+  }
+}
+
+el('prevBtn').onclick = async () => { if(!T.review) await persistCurrent(); if(T.idx>0){ T.idx--; renderStep(); } };
+el('nextBtn').onclick = async () => { if(!T.review) await persistCurrent(); if(T.idx<T.pages.length){ T.idx++; renderStep(); } };
+el('finishBtn').onclick = async () => {
+  if(T.preview){ window.close(); return; }
+  if(!canFinish()) return;
+  stopHeartbeat();
+  try{
+    const r=await api('/attempts/'+T.attemptId+'/complete','POST');
+    const tiempo = `<div style="color:#64748b;font-size:13px;margin-top:8px">⏱️ Tiempo en el curso: ${fmtTime(r.activeSeconds)}</div>`;
+    if(r.pendingGrading || r.status==='pending-grading'){
+      el('screen').innerHTML=`<div class="res" style="background:#fef9c3;color:#854d0e">📝 Respuestas enviadas<br>Tienes preguntas abiertas pendientes de evaluación del moderador. Tu resultado final aparecerá cuando las califiquen.</div>${tiempo}
+        <div class="center"><button class="btn ghost" onclick="window.close()">Cerrar pestaña</button></div>`;
+    } else {
+      const pct=r.total?Math.round(r.score*100/r.total):100;
+      const cert = (r.passed && r.certificateSerial)
+        ? `<a class="btn" style="text-decoration:none" href="/certificate.html?attempt=${T.attemptId}" target="_blank" rel="noopener">📜 Descargar certificado</a>`
+        : '';
+      el('screen').innerHTML=`<div class="res ${r.passed?'pass':'fail'}">${r.passed?'✅ Aprobado':'❌ No aprobado'}<br>${r.score} / ${r.total} puntos (${pct}%)</div>${tiempo}
+        <div class="center" style="gap:10px;display:flex;justify-content:center;flex-wrap:wrap">${cert}<button class="btn ghost" onclick="window.close()">Cerrar pestaña</button></div>`;
+    }
+    el('nav').style.display='none'; el('progressBar').style.width='100%';
+  }catch(e){ alert(e.message); }
+};
+
+// ---------- REVIEW (read-only) ----------
+async function startReview(){
+  if(!guard()) return;
+  el('title').textContent = title + ' · revisión';
+  try{
+    const d = await api('/attempts/'+reviewId+'/review');
+    const respMap={}; (d.responses||[]).forEach(r=>respMap[r.itemId]=r);
+    let totalPts=0; (d.items||[]).forEach(i=>totalPts+=i.points||0);
+    T = { items:d.items, pages:buildPages(d.items), idx:0, review:true, score:d.score, passed:d.passed, respMap, totalPts, answers:respMap, activeSeconds:d.activeSeconds };
+    el('nav').style.display='flex';
+    el('finishBtn').classList.add('hidden');
+    renderStepReview();
+  }catch(e){ el('screen').innerHTML=`<div class="center">${e.message}</div>`; }
+}
+function renderStepReview(){
+  const N=T.pages.length;
+  if(T.idx<N){
+    el('screen').innerHTML = T.pages[T.idx].items.map((it,i)=>{
+      const sep = i>0 ? 'border-top:1px solid #e2e8f0;margin-top:18px;padding-top:18px' : '';
+      return `<div style="${sep}">${itemReviewHtml(it)}</div>`;
+    }).join('');
+  } else renderSummary();
+  setModuleHeader();
+  const total=N+1;
+  el('progressText').textContent=`Página ${T.idx+1} de ${total}`;
+  el('progressBar').style.width=Math.round((T.idx+1)/total*100)+'%';
+  el('prevBtn').disabled=T.idx===0;
+  el('nextBtn').classList.toggle('hidden', T.idx===N);
+  window.scrollTo(0,0);
+}
+function itemReviewHtml(it){
+  let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
+  if(it.type==='ModuleHeader'){ return `<div class="module"><span class="tag">Módulo</span><h1 style="margin:14px 0 8px">${p.title||''}</h1><p style="color:#475569">${p.subtitle||''}</p></div>`; }
+  if(it.type==='Info'){ return renderInfo(p); }
+  const resp=T.respMap[it.id]; let ans={}; try{ ans=resp?JSON.parse(resp.answerJson):{}; }catch{}
+  if(it.type==='Matching'){
+    const m=ans.matches||{};
+    const choiceText=id=>{ const c=(p.choices||[]).find(x=>x.id===id); return c?c.text:'—'; };
+    const rows=(p.prompts||[]).map(pr=>{
+      const sel=m[pr.id]; const corr=pr.correctChoiceId; const ok=sel&&sel===corr;
+      const detail = ok ? `${choiceText(sel)} ✔` : `${sel?choiceText(sel):'(sin responder)'} · correcta: ${choiceText(corr)}`;
+      return `<div class="matchrow"><div class="mp">${pr.text}</div><div class="opt ${ok?'correct':'wrong'}" style="flex:1">${detail}</div></div>`;
+    }).join('');
+    const verdict = resp && resp.isCorrect ? '✅' : (resp ? '❌' : '—');
+    return `<b>${p.question||''}</b> <span style="color:#64748b">${verdict}</span>${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">${rows}</div>`;
+  }
+  if(it.type==='OpenResponse'){
+    const txt=(ans.text||'(sin respuesta)');
+    let box='';
+    if(p.graded){
+      if(resp && resp.needsGrading) box=`<div class="hintbox">Pendiente de evaluación del moderador.</div>`;
+      else box=`<div class="opt correct">Puntos otorgados: ${resp?resp.pointsAwarded:0}${(resp&&resp.graderComment)?` · ${resp.graderComment}`:''}</div>`;
+    }
+    return `<b>${p.question||''}</b>${mediaEl(p.mediaUrl,p.mediaType)}<div class="opentext-ro">${txt.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>${box}`;
+  }
+  const correctIds = it.type==='MultiSelect' ? (p.correctOptionIds||[]) : (p.correctOptionId?[p.correctOptionId]:[]);
+  const selIds = it.type==='MultiSelect' ? (ans.selectedOptionIds||[]) : (ans.selectedOptionId?[ans.selectedOptionId]:[]);
+  const opts=(p.options||[]).map(o=>{
+    const isCorrect=correctIds.indexOf(o.id)>=0;
+    const isSel=selIds.indexOf(o.id)>=0;
+    let cls='opt'; if(isCorrect) cls+=' correct'; else if(isSel) cls+=' wrong';
+    let mk=''; if(isCorrect) mk='✔ correcta'; if(isSel) mk += (mk?' · ':'')+'tu respuesta';
+    return `<div class="${cls}">${o.text}<span class="mk">${mk}</span></div>`;
+  }).join('');
+  const verdict = resp && resp.isCorrect ? '✅' : (resp ? '❌' : '—');
+  return `<b>${p.question||''}</b> <span style="color:#64748b">${verdict}</span>${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">${opts}</div>`;
+}
+
+// ---------- PREVIEW (author, no attempt) ----------
+async function startPreview(){
+  if(!guard()) return;
+  if(!previewId){ el('screen').innerHTML=`<div class="center">Falta la versión.</div>`; return; }
+  el('title').textContent = title + ' · vista previa';
+  try{
+    const items = await api('/versions/'+previewId+'/preview');
+    if(!items.length){ el('screen').innerHTML=`<div class="center">Este adiestramiento no tiene contenido todavía.</div>`; return; }
+    T = { items, pages:buildPages(items), idx:0, answers:{}, review:false, preview:true };
+    el('nav').style.display='flex';
+    renderStep();
+  }catch(e){ el('screen').innerHTML=`<div class="center">${e.message}</div>`; }
+}
+
+// ---------- boot ----------
+if(reviewId){
+  el('prevBtn').onclick = () => { if(T.idx>0){ T.idx--; renderStepReview(); } };
+  el('nextBtn').onclick = () => { if(T.idx<T.pages.length){ T.idx++; renderStepReview(); } };
+  startReview();
+} else if(previewId){
+  startPreview();
+} else {
+  startTake();
+}
+</script>
+</body>
+</html>

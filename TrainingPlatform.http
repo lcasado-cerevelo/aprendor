@@ -1,0 +1,96 @@
+### Treasure / TrainingPlatform — API requests (run from Visual Studio 2022)
+### Pon aquí el puerto que te mostró la consola ("Now listening on ...").
+@base = https://localhost:52044
+
+###############################################
+# 1) Login como admin de plataforma
+#    (credenciales de appsettings.json -> Bootstrap)
+###############################################
+# @name login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@local",
+  "password": "ChangeMe123!"
+}
+
+### Toma el token de la respuesta de arriba.
+### Si tu VS resuelve la referencia, esto basta:
+@token = {{login.response.body.$.token}}
+### Si no la resuelve, copia el token a mano y pégalo aquí:
+# @token = PEGA_EL_TOKEN_AQUI
+
+
+###############################################
+# 2) Crear el tenant  ->  ESTO CREA Y MIGRA SU BASE DE DATOS
+#    Ajusta el Database= al nombre que quieras para el cliente.
+###############################################
+POST {{base}}/admin/tenants
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Cliente A",
+  "connectionString": "Server=localhost;Database=TP_ClienteA;Trusted_Connection=True;TrustServerCertificate=True;"
+}
+
+### La respuesta trae { "id": "<GUID>", "name": "Cliente A" }.
+### Copia ese GUID y pégalo abajo como tenantId.
+@tenantId = PEGA_EL_GUID_DEL_TENANT_AQUI
+
+
+###############################################
+# 3) Crear un usuario dentro de ese tenant
+###############################################
+POST {{base}}/admin/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "autor@clientea.com",
+  "name": "Autora",
+  "password": "Pass123!",
+  "role": "Author",
+  "tenantId": "{{tenantId}}"
+}
+
+
+###############################################
+# 4) Login como ese usuario del tenant
+###############################################
+# @name tlogin
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "autor@clientea.com",
+  "password": "Pass123!"
+}
+
+@ttoken = {{tlogin.response.body.$.token}}
+
+
+###############################################
+# 5) Probar que opera contra SU base (la del tenant)
+###############################################
+POST {{base}}/categories
+Authorization: Bearer {{ttoken}}
+Content-Type: application/json
+
+{ "name": "Seguridad" }
+
+###
+GET {{base}}/categories
+Authorization: Bearer {{ttoken}}
+
+###
+POST {{base}}/trainings
+Authorization: Bearer {{ttoken}}
+Content-Type: application/json
+
+{ "title": "Inducción de seguridad", "description": "Adiestramiento inicial" }
+
+###
+GET {{base}}/trainings
+Authorization: Bearer {{ttoken}}
