@@ -118,6 +118,82 @@
     <input id="password" class="field" type="password" placeholder="••••••••" autocomplete="current-password" />
     <button class="btn full" id="loginBtn">Entrar</button>
     <p class="msg err" id="loginMsg"></p>
+    <p class="sub" style="margin:10px 0 0;text-align:center">
+      <a href="#" id="forgotLink" style="color:#4f46e5;text-decoration:none">¿Olvidaste tu contraseña?</a>
+    </p>
+  </div>
+</div>
+
+<!-- Segundo factor: se muestra después de validar la contraseña -->
+<div id="twoFaView" class="login-wrap hidden">
+  <div class="login-card">
+    <div class="brand">
+      <svg class="logo" width="34" height="34" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="apLogo6" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
+        <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#apLogo6)"/>
+        <path d="M9 19 L16 11 L23 19" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M11 22.5 L21 22.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".75"/>
+      </svg>
+      Aprendor
+    </div>
+    <p class="sub" id="tfSub">Escribe el código de verificación.</p>
+    <label>Código de 6 dígitos</label>
+    <input id="tfCode" class="field" type="text" inputmode="numeric" autocomplete="one-time-code"
+           maxlength="6" placeholder="000000" style="letter-spacing:6px;text-align:center;font-size:20px" />
+    <button class="btn full" id="tfBtn">Verificar</button>
+    <p class="msg" id="tfMsg"></p>
+    <p class="sub" style="margin:10px 0 0;text-align:center">
+      <a href="#" id="tfResend" style="color:#4f46e5;text-decoration:none;display:none">Reenviar código</a>
+      <a href="#" id="tfCancel" style="color:#64748b;text-decoration:none;margin-left:12px">Cancelar</a>
+    </p>
+  </div>
+</div>
+
+<!-- Pedir el enlace de recuperación -->
+<div id="forgotView" class="login-wrap hidden">
+  <div class="login-card">
+    <div class="brand">
+      <svg class="logo" width="34" height="34" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="apLogo4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
+        <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#apLogo4)"/>
+        <path d="M9 19 L16 11 L23 19" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M11 22.5 L21 22.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".75"/>
+      </svg>
+      Aprendor
+    </div>
+    <p class="sub">Escribe tu correo y te enviamos un enlace para crear una contraseña nueva.</p>
+    <label>Correo</label>
+    <input id="fgEmail" class="field" type="email" autocomplete="username" placeholder="tucorreo@dominio.com" />
+    <button class="btn full" id="fgBtn">Enviar enlace</button>
+    <p class="msg" id="fgMsg"></p>
+    <p class="sub" style="margin:10px 0 0;text-align:center">
+      <a href="#" id="fgBackLink" style="color:#4f46e5;text-decoration:none">Volver al inicio de sesión</a>
+    </p>
+  </div>
+</div>
+
+<!-- Crear la contraseña nueva (se llega con el enlace del correo: ?reset=TOKEN) -->
+<div id="resetView" class="login-wrap hidden">
+  <div class="login-card">
+    <div class="brand">
+      <svg class="logo" width="34" height="34" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="apLogo5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
+        <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#apLogo5)"/>
+        <path d="M9 19 L16 11 L23 19" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M11 22.5 L21 22.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".75"/>
+      </svg>
+      Aprendor
+    </div>
+    <p class="sub">Crea tu contraseña nueva.</p>
+    <label>Nueva contraseña</label>
+    <input id="rsNew" class="field" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres" />
+    <label>Confirmar nueva</label>
+    <input id="rsNew2" class="field" type="password" autocomplete="new-password" placeholder="Repítela" />
+    <button class="btn full" id="rsBtn">Guardar contraseña</button>
+    <p class="msg" id="rsMsg"></p>
+    <p class="sub" style="margin:10px 0 0;text-align:center">
+      <a href="#" id="rsBackLink" style="color:#4f46e5;text-decoration:none">Volver al inicio de sesión</a>
+    </p>
   </div>
 </div>
 
@@ -509,21 +585,122 @@ async function api(path, method='GET', body=null){
 // ----- Login -----
 el('loginBtn').onclick = doLogin;
 el('password').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+let retoActual = null;   // { challengeId, mode } mientras se resuelve el segundo factor
+
 async function doLogin(){
-  const msg = el('loginMsg'); msg.textContent='';
+  const msg = el('loginMsg'); msg.textContent=''; msg.className='msg err';
   try{
     const r = await api('/auth/login','POST',{ email:el('email').value.trim(), password:el('password').value });
-    token = r.token; user = r.user;
-    localStorage.setItem('tp_token', token);
-    localStorage.setItem('tp_user', JSON.stringify(user));
-    if (user.mustChangePassword){ el('fcCur').value = el('password').value; showForceChange(); }
-    else showApp();
+    if (r.requires2fa){ pedirSegundoFactor(r); return; }
+    entrarConSesion(r);
   }catch(e){ msg.textContent = 'Correo o contraseña incorrectos.'; }
 }
-function logout(){ token=null; user=null; localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user');
+
+function entrarConSesion(r){
+  token = r.token; user = r.user;
+  localStorage.setItem('tp_token', token);
+  localStorage.setItem('tp_user', JSON.stringify(user));
+  if (user.mustChangePassword){ el('fcCur').value = el('password').value; showForceChange(); }
+  else showApp();
+}
+
+// ----- Segundo factor en el login -----
+function pedirSegundoFactor(r){
+  retoActual = { challengeId: r.challengeId, mode: r.mode };
+  el('tfSub').textContent = r.mode === 'totp'
+    ? 'Abre tu app autenticadora y escribe el código que muestra para Aprendor.'
+    : 'Te enviamos un código a tu correo. Escríbelo aquí.';
+  el('tfResend').style.display = r.mode === 'email' ? 'inline' : 'none';
+  el('tfCode').value = ''; el('tfMsg').textContent = '';
+  mostrarSolo('twoFaView');
+  el('tfCode').focus();
+}
+async function verificarSegundoFactor(){
+  const m = el('tfMsg'); m.className='msg err'; m.textContent='';
+  const code = el('tfCode').value.trim();
+  if(code.length !== 6){ m.textContent = 'El código son 6 dígitos.'; return; }
+  el('tfBtn').disabled = true;
+  try{
+    const r = await api('/auth/2fa/verify','POST',{ challengeId: retoActual.challengeId, code });
+    retoActual = null;
+    entrarConSesion(r);
+  }catch(e){ m.textContent = e.message; }
+  finally{ el('tfBtn').disabled = false; }
+}
+el('tfBtn').onclick = verificarSegundoFactor;
+el('tfCode').addEventListener('keydown', e => { if(e.key==='Enter') verificarSegundoFactor(); });
+el('tfResend').onclick = async e => {
+  e.preventDefault();
+  const m = el('tfMsg'); m.className='msg'; m.textContent='';
+  try{
+    const r = await api('/auth/2fa/resend','POST',{ challengeId: retoActual.challengeId });
+    if(r.challengeId) retoActual.challengeId = r.challengeId;
+    m.className='msg ok'; m.textContent = r.message || 'Código reenviado.';
+  }catch(err){ m.className='msg err'; m.textContent = err.message; }
+};
+el('tfCancel').onclick = e => { e.preventDefault(); retoActual = null; el('password').value=''; mostrarSolo('loginView'); };
+function logout(){ token=null; user=null; retoActual=null;
+  localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user');
   el('profileModal').classList.add('hidden'); el('forceChangeView').classList.add('hidden');
+  el('twoFaView').classList.add('hidden');
   el('appView').classList.add('hidden'); el('loginView').classList.remove('hidden'); }
 el('logoutBtn').onclick = logout;
+
+// ----- Recuperar contraseña desde el login -----
+// El servidor contesta lo mismo exista o no el correo, así que la pantalla también.
+function mostrarSolo(vista){
+  ['loginView','twoFaView','forgotView','resetView','forceChangeView','appView'].forEach(v => {
+    const n = el(v); if(n) n.classList.toggle('hidden', v !== vista);
+  });
+}
+el('forgotLink').onclick = e => {
+  e.preventDefault();
+  el('fgEmail').value = el('email').value.trim();
+  el('fgMsg').textContent = '';
+  mostrarSolo('forgotView');
+  el('fgEmail').focus();
+};
+el('fgBackLink').onclick = e => { e.preventDefault(); mostrarSolo('loginView'); };
+el('rsBackLink').onclick = e => { e.preventDefault(); limpiarUrlReset(); mostrarSolo('loginView'); };
+
+async function pedirEnlace(){
+  const m = el('fgMsg'); m.className = 'msg'; m.textContent = '';
+  const correo = el('fgEmail').value.trim();
+  if(!correo){ m.className = 'msg err'; m.textContent = 'Escribe tu correo.'; return; }
+  el('fgBtn').disabled = true;
+  try{
+    const r = await api('/auth/forgot-password','POST',{ email: correo });
+    m.className = 'msg ok';
+    m.textContent = r.message || 'Si el correo está registrado, te enviamos un enlace.';
+  }catch(e){
+    m.className = 'msg err'; m.textContent = 'No se pudo procesar la solicitud. Intenta de nuevo.';
+  }finally{ el('fgBtn').disabled = false; }
+}
+el('fgBtn').onclick = pedirEnlace;
+el('fgEmail').addEventListener('keydown', e => { if(e.key==='Enter') pedirEnlace(); });
+
+function tokenDeLaUrl(){ return new URLSearchParams(location.search).get('reset'); }
+function limpiarUrlReset(){ history.replaceState(null, '', location.pathname); }
+
+async function guardarNuevaClave(){
+  const m = el('rsMsg'); m.className = 'msg err'; m.textContent = '';
+  const n1 = el('rsNew').value, n2 = el('rsNew2').value;
+  if(n1.length < 8){ m.textContent = 'La nueva debe tener al menos 8 caracteres.'; return; }
+  if(n1 !== n2){ m.textContent = 'Las contraseñas no coinciden.'; return; }
+  el('rsBtn').disabled = true;
+  try{
+    await api('/auth/reset-password','POST',{ token: tokenDeLaUrl(), newPassword: n1 });
+    el('rsNew').value = el('rsNew2').value = '';
+    limpiarUrlReset();
+    mostrarSolo('loginView');
+    const lm = el('loginMsg'); lm.className = 'msg ok';
+    lm.textContent = 'Contraseña actualizada. Ya puedes entrar.';
+  }catch(e){
+    m.textContent = e.message;
+  }finally{ el('rsBtn').disabled = false; }
+}
+el('rsBtn').onclick = guardarNuevaClave;
+el('rsNew2').addEventListener('keydown', e => { if(e.key==='Enter') guardarNuevaClave(); });
 
 // ----- Cambio obligatorio de contraseña -----
 function showForceChange(){
@@ -592,8 +769,70 @@ function openProfile(){
   el('profRole').textContent = roleLabel(user.role) + (user.tenantId ? '' : ' (plataforma)');
   el('profTenant').textContent = user.tenantId ? (tenantName || '—') : 'Plataforma';
   el('profileModal').classList.remove('hidden');
+  cargarEstado2FA();
 }
 function closeProfile(){ el('profileModal').classList.add('hidden'); }
+
+// ===== Verificación en dos pasos (alta desde el perfil) =====
+let tfaPendiente = null;   // { mode, challengeId? } mientras se confirma
+
+async function cargarEstado2FA(){
+  tfaCancelar();
+  const et = el('tfaEstado'), m = el('tfaMsg'); m.textContent='';
+  try{
+    const s = await api('/me/2fa');
+    const activo = s.confirmed && s.mode !== 'none';
+    et.textContent = activo ? (s.mode === 'totp' ? 'activa · app autenticadora' : 'activa · código por correo') : 'desactivada';
+    et.style.background = activo ? '#dcfce7' : '#f1f5f9';
+    et.style.color = activo ? '#166534' : '#475569';
+    el('tfaOn').classList.toggle('hidden', !activo);
+    el('tfaOff').classList.toggle('hidden', activo);
+  }catch(e){ et.textContent = '—'; }
+}
+function tfaCancelar(){
+  tfaPendiente = null;
+  el('tfaTotpBox').classList.add('hidden');
+  el('tfaConfirmBox').classList.add('hidden');
+  el('tfaCode').value = '';
+}
+async function tfaSetup(modo){
+  const m = el('tfaMsg'); m.className='msg'; m.textContent='';
+  try{
+    const r = await api('/me/2fa/setup','POST',{ mode: modo });
+    tfaPendiente = { mode: modo, challengeId: r.challengeId };
+    if(modo === 'totp'){
+      el('tfaSecret').textContent = r.secret;
+      el('tfaCuenta').textContent = user.email;
+      el('tfaTotpBox').classList.remove('hidden');
+    } else {
+      m.className='msg ok'; m.textContent = 'Te enviamos un código a ' + user.email + '.';
+    }
+    el('tfaConfirmBox').classList.remove('hidden');
+    el('tfaCode').focus();
+  }catch(e){ m.className='msg err'; m.textContent = e.message; }
+}
+async function tfaConfirm(){
+  const m = el('tfaMsg'); m.className='msg err'; m.textContent='';
+  if(!tfaPendiente){ m.textContent = 'Empieza escogiendo un método.'; return; }
+  const code = el('tfaCode').value.trim();
+  if(code.length !== 6){ m.textContent = 'El código son 6 dígitos.'; return; }
+  try{
+    await api('/me/2fa/confirm','POST',{ mode: tfaPendiente.mode, code, challengeId: tfaPendiente.challengeId || null });
+    m.className='msg ok'; m.textContent = 'Verificación en dos pasos activada.';
+    await cargarEstado2FA();
+    el('tfaMsg').className='msg ok'; el('tfaMsg').textContent = 'Verificación en dos pasos activada.';
+  }catch(e){ m.textContent = e.message; }
+}
+async function tfaDisable(){
+  const m = el('tfaMsg'); m.className='msg err'; m.textContent='';
+  const clave = prompt('Para desactivar la verificación en dos pasos, escribe tu contraseña actual:');
+  if(clave === null) return;
+  try{
+    await api('/me/2fa/disable','POST',{ currentPassword: clave });
+    await cargarEstado2FA();
+    el('tfaMsg').className='msg'; el('tfaMsg').textContent = 'Verificación en dos pasos desactivada.';
+  }catch(e){ m.textContent = e.message; }
+}
 let tenantName = '';
 
 // ===== Dashboard y navegación por secciones =====
@@ -778,15 +1017,48 @@ async function loadTrainings(){
       const rec = t.recurrenceMonths
         ? `<span class="tag" style="background:#dbeafe;color:#1e40af">🔁 cada ${t.recurrenceMonths} mes(es) · reabre ${t.renewLeadDays}d antes</span>`
         : `<span class="tag">una sola vez</span>`;
-      return `<div class="item" style="flex-wrap:wrap">${t.title} <span class="tag">${t.status}</span> ${rec}
+      const arch = t.status === 'archived';
+      const est = arch
+        ? `<span class="tag" style="background:#fef3c7;color:#92400e">📦 archivado</span>`
+        : `<span class="tag">${t.status}</span>`;
+      const acciones = arch
+        ? `<button class="btn sm ghost" onclick="unarchiveTraining('${t.id}','${t.title.replace(/'/g,"")}')">Restaurar</button>`
+        : `<button class="btn sm ghost" onclick="setRecurrence('${t.id}','${t.title.replace(/'/g,"")}',${t.recurrenceMonths||'null'},${t.renewLeadDays})">Recurrencia</button>
+           <button class="btn sm ghost" onclick="openCertConfig('${t.id}','${t.title.replace(/'/g,"")}',${t.recurrenceMonths||'null'})">Certificado</button>
+           <button class="btn sm ghost" onclick="openContent('${t.id}','${t.title.replace(/'/g,"")}')">Contenido</button>
+           <button class="btn sm ghost" onclick="loadResults('${t.id}','${t.title.replace(/'/g,"")}')">Resultados</button>
+           <button class="btn sm ghost" onclick="archiveTraining('${t.id}','${t.title.replace(/'/g,"")}')">Archivar</button>`;
+      return `<div class="item" style="flex-wrap:wrap${arch?';opacity:.65':''}">${t.title} ${est} ${rec}
         <span class="sp">
-          <button class="btn sm ghost" onclick="setRecurrence('${t.id}','${t.title.replace(/'/g,"")}',${t.recurrenceMonths||'null'},${t.renewLeadDays})">Recurrencia</button>
-          <button class="btn sm ghost" onclick="openCertConfig('${t.id}','${t.title.replace(/'/g,"")}',${t.recurrenceMonths||'null'})">Certificado</button>
-          <button class="btn sm ghost" onclick="openContent('${t.id}','${t.title.replace(/'/g,"")}')">Contenido</button>
-          <button class="btn sm ghost" onclick="loadResults('${t.id}','${t.title.replace(/'/g,"")}')">Resultados</button>
+          <button class="btn sm ghost" onclick="renameTraining('${t.id}','${t.title.replace(/'/g,"")}')">Renombrar</button>
+          ${acciones}
         </span></div>`;
     }).join('') : `<div class="empty">Sin adiestramientos.</div>`;
   }catch(e){}
+}
+async function renameTraining(id, title){
+  const nuevo = prompt('Nuevo nombre del adiestramiento:', title);
+  if(nuevo===null) return;
+  if(nuevo.trim().length<3){ alert('El título debe tener al menos 3 caracteres.'); return; }
+  const desc = prompt('Descripción (deja vacío para quitarla):', '');
+  if(desc===null) return;
+  try{ await api('/trainings/'+id,'PUT',{ title:nuevo.trim(), description:desc.trim()||null }); loadTrainings(); }
+  catch(e){ alert(e.message); }
+}
+// Archivar = sacarlo del catálogo sin borrar nada. Doble verificación: confirmación
+// explícita y, además, escribir el título exacto (el servidor también lo valida).
+async function archiveTraining(id, title){
+  if(!confirm('¿Archivar "'+title+'"?\n\nDeja de aparecerle a los learners y no se podrán empezar intentos nuevos.\nNo se borra nada: contenido, intentos y certificados quedan intactos, y lo puedes restaurar cuando quieras.')) return;
+  const escrito = prompt('Para confirmar, escribe el nombre exacto del adiestramiento:\n\n'+title, '');
+  if(escrito===null) return;
+  if(escrito.trim().toLowerCase() !== title.trim().toLowerCase()){ alert('El nombre no coincide. No se archivó nada.'); return; }
+  try{ await api('/trainings/'+id+'/archive','POST',{ confirmTitle:escrito.trim() }); loadTrainings(); }
+  catch(e){ alert(e.message); }
+}
+async function unarchiveTraining(id, title){
+  if(!confirm('¿Restaurar "'+title+'"?\n\nVuelve a quedar disponible: publicado si tenía una versión publicada, o en borrador si no.')) return;
+  try{ await api('/trainings/'+id+'/unarchive','POST'); loadTrainings(); }
+  catch(e){ alert(e.message); }
 }
 async function setRecurrence(id, title, curMonths, curLead){
   const mRaw = prompt('Recurrencia de "'+title+'":\n\n¿Cada cuántos MESES caduca? (vacío = una sola vez, sin caducidad)', curMonths==null?'':curMonths);
@@ -1599,7 +1871,13 @@ el('blocks').addEventListener('click', e => {
 });
 
 showItemForm();
-if (token && user){ if (user.mustChangePassword) showForceChange(); else showApp(); }
+// Si se llega con el enlace del correo (?reset=TOKEN), lo primero es fijar la contraseña.
+if (tokenDeLaUrl()){
+  mostrarSolo('resetView');
+  el('rsNew').focus();
+} else if (token && user){
+  if (user.mustChangePassword) showForceChange(); else showApp();
+}
 </script>
 
 <!-- MODAL DE PERFIL -->
@@ -1628,6 +1906,39 @@ if (token && user){ if (user.mustChangePassword) showForceChange(); else showApp
         <input id="pwdNew2" class="field" type="password" autocomplete="new-password" />
         <button class="btn sm" style="margin-top:12px" onclick="submitPwd()">Guardar contraseña</button>
         <p class="msg" id="pwdMsg"></p>
+      </div>
+
+      <div style="margin-top:16px;border-top:1px solid #e2e8f0;padding-top:14px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <b style="font-size:14px">🔐 Verificación en dos pasos</b>
+          <span id="tfaEstado" class="tag">cargando…</span>
+        </div>
+        <p class="sub" style="margin:6px 0 10px">Además de la contraseña, al entrar se pide un código temporal.</p>
+
+        <div id="tfaOff">
+          <button class="btn sm ghost" onclick="tfaSetup('totp')">📱 Usar app autenticadora</button>
+          <button class="btn sm ghost" onclick="tfaSetup('email')">✉️ Recibir código por correo</button>
+        </div>
+
+        <div id="tfaTotpBox" class="hidden" style="margin-top:12px">
+          <p class="sub" style="margin:0 0 6px">Agrega esta clave en Google Authenticator, Authy, 1Password o Microsoft Authenticator (opción "introducir clave de configuración"):</p>
+          <div id="tfaSecret" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;
+               font-family:ui-monospace,Consolas,monospace;font-size:15px;letter-spacing:2px;word-break:break-all"></div>
+          <p class="sub" style="margin:8px 0 4px">Cuenta: <b id="tfaCuenta"></b> · Emisor: <b>Aprendor</b></p>
+        </div>
+
+        <div id="tfaConfirmBox" class="hidden" style="margin-top:12px">
+          <label>Escribe el código para confirmar</label>
+          <input id="tfaCode" class="field" type="text" inputmode="numeric" maxlength="6" placeholder="000000"
+                 style="letter-spacing:5px;text-align:center" />
+          <button class="btn sm" style="margin-top:10px" onclick="tfaConfirm()">Confirmar y activar</button>
+          <button class="btn sm ghost" style="margin-top:10px" onclick="tfaCancelar()">Cancelar</button>
+        </div>
+
+        <div id="tfaOn" class="hidden">
+          <button class="btn sm ghost danger" onclick="tfaDisable()">Desactivar</button>
+        </div>
+        <p class="msg" id="tfaMsg"></p>
       </div>
     </div>
     <div class="modal-actions">

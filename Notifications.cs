@@ -66,6 +66,7 @@ public static class CatalogLogic
         var published = await (from v in db.TrainingVersions
                                where v.Status == "published"
                                join t in db.Trainings on v.TrainingId equals t.Id
+                               where t.Status != "archived"   // archivado = fuera del catálogo, sin borrar nada
                                select new { trainingId = t.Id, t.Title, t.RecurrenceMonths, t.RenewLeadDays, versionId = v.Id, v.VersionNumber })
                               .ToListAsync();
 
@@ -177,6 +178,32 @@ public static class EmailTemplates
             $"<div style=\"margin:5px 0\"><span style=\"color:#64748b\">Contraseña temporal:</span> <b>{Enc(tempPassword)}</b></div></div>" +
             "<p>Por seguridad, la primera vez que inicies sesión te pediremos crear tu propia contraseña.</p>" +
             btn;
+        return Wrap.Replace("{BODY}", body);
+    }
+
+    public static string PasswordReset(string name, string link, int minutos)
+    {
+        string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        var body =
+            $"<p>Hola {Enc(name)},</p>" +
+            "<p>Recibimos una solicitud para restablecer la contraseña de tu cuenta de <b>Aprendor</b>. " +
+            "Pulsa el botón para crear una nueva:</p>" +
+            $"<p style=\"margin:22px 0 4px\"><a href=\"{Enc(link)}\" style=\"display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:700\">Restablecer contraseña</a></p>" +
+            $"<p style=\"color:#64748b;font-size:13px\">El enlace vence en {minutos} minutos y solo se puede usar una vez.</p>" +
+            "<p style=\"color:#64748b;font-size:13px\">Si no fuiste tú, ignora este mensaje: tu contraseña actual sigue funcionando.</p>";
+        return Wrap.Replace("{BODY}", body);
+    }
+
+    public static string TwoFactorCode(string name, string code, int minutos)
+    {
+        string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        var body =
+            $"<p>Hola {Enc(name)},</p>" +
+            "<p>Tu código de verificación para entrar a <b>Aprendor</b> es:</p>" +
+            "<div style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:14px 0;" +
+            $"text-align:center;font-size:30px;font-weight:700;letter-spacing:7px;color:#0f172a\">{Enc(code)}</div>" +
+            $"<p style=\"color:#64748b;font-size:13px\">Vence en {minutos} minutos y solo se puede usar una vez.</p>" +
+            "<p style=\"color:#64748b;font-size:13px\">Si no fuiste tú quien intentó entrar, cambia tu contraseña.</p>";
         return Wrap.Replace("{BODY}", body);
     }
 

@@ -150,6 +150,59 @@ public static class Phase2Endpoints
             return Results.Ok(new { version.Id, version.VersionNumber, version.PublishedAt });
         }).RequireAuthorization();
 
+        // ---------------- Renombrar, archivar y restaurar ----------------
+
+        // Renombrar / editar la descripción. El título del certificado se congela al emitirse
+        // (Certificate.TrainingTitle), así que renombrar no altera los ya emitidos.
+        app.MapPut("/trainings/{id:guid}", async (Guid id, UpdateTrainingRequest req, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            var t = await db.Trainings.FindAsync(id);
+            if (t is null) return Results.NotFound();
+
+            var title = (req.Title ?? "").Trim();
+            if (title.Length < 3) return Results.BadRequest("El título debe tener al menos 3 caracteres.");
+            t.Title = title;
+            t.Description = string.IsNullOrWhiteSpace(req.Description) ? null : req.Description.Trim();
+            await db.SaveChangesAsync();
+            return Results.Ok(new { t.Id, t.Title, t.Description, t.Status });
+        }).RequireAuthorization();
+
+        // Archivar: lo saca del catálogo del learner sin borrar nada (contenido, intentos,
+        // certificados e historial quedan intactos). Doble verificación: hay que escribir el
+        // título exacto, y el servidor lo valida — no basta con el confirm del navegador.
+        app.MapPost("/trainings/{id:guid}/archive", async (Guid id, ConfirmTitleRequest req, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            var t = await db.Trainings.FindAsync(id);
+            if (t is null) return Results.NotFound();
+            if (t.Status == "archived") return Results.Ok(new { t.Id, t.Status, alreadyArchived = true });
+
+            if (!string.Equals((req.ConfirmTitle ?? "").Trim(), t.Title, StringComparison.OrdinalIgnoreCase))
+                return Results.BadRequest("El título escrito no coincide con el del adiestramiento. No se archivó nada.");
+
+            t.Status = "archived";
+            await db.SaveChangesAsync();
+            return Results.Ok(new { t.Id, t.Status });
+        }).RequireAuthorization();
+
+        // Restaurar: vuelve a "published" si tiene alguna versión publicada; si no, a borrador.
+        app.MapPost("/trainings/{id:guid}/unarchive", async (Guid id, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            var t = await db.Trainings.FindAsync(id);
+            if (t is null) return Results.NotFound();
+            if (t.Status != "archived") return Results.Ok(new { t.Id, t.Status });
+
+            var tienePublicada = await db.TrainingVersions.AnyAsync(v => v.TrainingId == id && v.Status == "published");
+            t.Status = tienePublicada ? "published" : "draft";
+            await db.SaveChangesAsync();
+            return Results.Ok(new { t.Id, t.Status });
+        }).RequireAuthorization();
+
         // ---------------- Taking (self-paced, registered learner) ----------------
         app.MapGet("/catalog", async (ITenantContext tc, IServiceProvider sp) =>
         {
@@ -216,6 +269,15 @@ public static class Phase2Endpoints
             var attempt = active;
             if (attempt is null)
             {
+                // Un curso archivado no admite intentos NUEVOS; quien ya lo tenía empezado
+                // (active != null) puede terminarlo.
+                var estado = await (from v in db.TrainingVersions
+                                    where v.Id == versionId
+                                    join t in db.Trainings on v.TrainingId equals t.Id
+                                    select t.Status).FirstOrDefaultAsync();
+                if (estado == "archived")
+                    return Results.BadRequest("Este adiestramiento está archivado y ya no se puede tomar.");
+
                 attempt = new Attempt
                 {
                     TrainingVersionId = versionId,
@@ -891,6 +953,8 @@ public static class Phase2Endpoints
 }
 
 public record AddItemRequest(string Type, string PayloadJson, int Points, bool Required, bool? Active = true, Guid? AfterItemId = null);
+public record UpdateTrainingRequest(string Title, string? Description);
+public record ConfirmTitleRequest(string ConfirmTitle);
 public record ActiveRequest(bool Active);
 public record MoveRequest(string Direction);
 public record NameRequest(string Name);

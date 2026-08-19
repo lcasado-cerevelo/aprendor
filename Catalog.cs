@@ -25,6 +25,38 @@ public class AppUser
     public Guid? TenantId { get; set; }            // null = platform admin (no tenant)
     public bool MustChangePassword { get; set; }   // true tras un reseteo del admin
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Verificación en dos pasos. "none" = solo contraseña.
+    public string TwoFactorMode { get; set; } = "none";   // none | email | totp
+    public string? TotpSecret { get; set; }               // base32, solo para el modo totp
+    public DateTime? TwoFactorConfirmedAt { get; set; }   // null = configurado pero sin confirmar
+}
+
+// Reto de segundo factor: se crea al validar la contraseña y se consume con el código.
+// Del código por correo solo se guarda el hash.
+public class TwoFactorChallenge
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public string Mode { get; set; } = "email";      // email | totp
+    public string Purpose { get; set; } = "login";   // login | enroll
+    public string? CodeHash { get; set; }            // solo en modo email
+    public int Attempts { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? UsedAt { get; set; }
+}
+
+// Token de recuperación de contraseña pedido desde el login.
+// Se guarda solo el HASH del token: si alguien lee la tabla no puede usarlo.
+public class PasswordResetToken
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public string TokenHash { get; set; } = "";      // SHA-256 del token enviado por correo
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? UsedAt { get; set; }            // no nulo = ya se consumió
 }
 
 public class CatalogAuditLog
@@ -43,6 +75,8 @@ public class CatalogDbContext : DbContext
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<CatalogAuditLog> AuditLogs => Set<CatalogAuditLog>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<TwoFactorChallenge> TwoFactorChallenges => Set<TwoFactorChallenge>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -51,8 +85,14 @@ public class CatalogDbContext : DbContext
         b.Entity<AppUser>().ToTable("User");
         b.Entity<CatalogAuditLog>().ToTable("AuditLog");
 
+        b.Entity<PasswordResetToken>().ToTable("PasswordResetToken");
+
         b.Entity<AppUser>().HasIndex(u => u.Email).IsUnique();
         b.Entity<Tenant>().HasIndex(t => t.Name).IsUnique();
+        b.Entity<PasswordResetToken>().HasIndex(t => t.TokenHash);
+        b.Entity<PasswordResetToken>().HasIndex(t => t.UserId);
+        b.Entity<TwoFactorChallenge>().ToTable("TwoFactorChallenge");
+        b.Entity<TwoFactorChallenge>().HasIndex(c => c.UserId);
     }
 }
 
