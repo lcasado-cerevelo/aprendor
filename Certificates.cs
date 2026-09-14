@@ -4,6 +4,8 @@ using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using TrainingPlatform.Catalog;
 using TrainingPlatform.Multitenancy;
+using TrainingPlatform.Notifications;
+using TrainingPlatform.Certificates;
 using TrainingPlatform.TenantData;
 
 namespace TrainingPlatform;
@@ -31,6 +33,11 @@ public class CertificateConfig
     // Firma.
     public string? SignatoryName { get; set; }
     public string? SignatoryTitle { get; set; }
+
+    // A quién se le manda el certificado además del propio learner: normalmente
+    // quien lo archiva en el expediente del empleado. Uno o varios correos
+    // separados por coma. No tiene que ser quien firma.
+    public string? RecipientEmails { get; set; }
 
     // Firma manuscrita/escaneada embebida como data URL (base64), opcional.
     // Se muestra sobre la línea de firma. Se congela en el snapshot como el logo.
@@ -178,6 +185,69 @@ public static class CertificateEndpoints
 
     private static bool CanAuthor(string? role) => role is "Admin" or "Author" or "Moderator";
 
+    // Manda el certificado en PDF al learner y a quien esté configurado como
+    // destinatario del curso (quien lo archiva en el expediente). Nunca tumba el
+    // flujo de completar un curso: si el correo falla, se traga el error.
+    public static async Task MailAsync(CatalogDbContext catalog, IEmailSender email,
+        Certificate cert, Guid? tenantId, string? appUrl)
+    {
+        var cfg = CertificateConfig.Parse(cert.ConfigSnapshotJson);
+        if (!cfg.Enabled) return;
+
+        var emisor = await IssuerNameAsync(catalog, tenantId);
+        if (string.IsNullOrWhiteSpace(cfg.IssuerName) is false) emisor = cfg.IssuerName!;
+
+        byte[] pdf;
+        try
+        {
+            pdf = CertificatePdf.Render(emisor, cert.LearnerName, cert.TrainingTitle, cert.Serial,
+                cert.IssuedAt, cert.ExpiresAt, cert.ScorePercent, cert.PassPercent,
+                cfg.ShowScore, cfg.ShowValidity, cfg.Statement,
+                cfg.SignatoryName, cfg.SignatoryTitle, cfg.AccentColor);
+        }
+        catch { return; }
+
+        var nombreArchivo = $"Certificado-{Limpiar(cert.TrainingTitle)}-{Limpiar(cert.LearnerName)}-{cert.Serial}.pdf";
+        var adjunto = new[] { new EmailAttachment(nombreArchivo, pdf, "application/pdf") };
+
+        // 1) el propio learner
+        var learner = cert.UserId is Guid uid
+            ? await catalog.Users.Where(u => u.Id == uid).Select(u => new { u.Email, u.Name }).FirstOrDefaultAsync()
+            : null;
+        if (learner is not null && !string.IsNullOrWhiteSpace(learner.Email))
+        {
+            try
+            {
+                await email.SendAsync(learner.Email, learner.Name,
+                    $"Tu certificado: {cert.TrainingTitle}",
+                    EmailTemplates.CertificateIssued(cert.LearnerName, cert.TrainingTitle, cert.Serial,
+                        cert.IssuedAt, cert.ExpiresAt, paraArchivo: false, appUrl), adjunto);
+            }
+            catch { }
+        }
+
+        // 2) quien archiva el certificado (puede ser más de uno, separados por coma)
+        foreach (var destino in (cfg.RecipientEmails ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (!destino.Contains('@')) continue;
+            try
+            {
+                await email.SendAsync(destino, "",
+                    $"Certificado de {cert.LearnerName}: {cert.TrainingTitle}",
+                    EmailTemplates.CertificateIssued(cert.LearnerName, cert.TrainingTitle, cert.Serial,
+                        cert.IssuedAt, cert.ExpiresAt, paraArchivo: true, appUrl), adjunto);
+            }
+            catch { }
+        }
+    }
+
+    private static string Limpiar(string? s)
+    {
+        var limpio = new string((s ?? "").Where(c => char.IsLetterOrDigit(c) || c is ' ' or '-').ToArray()).Trim();
+        limpio = limpio.Replace(' ', '-');
+        return limpio.Length > 40 ? limpio[..40].TrimEnd('-') : (limpio.Length == 0 ? "documento" : limpio);
+    }
+
     public static void MapCertificates(this WebApplication app)
     {
         // ---- Config por curso: leer (autor) ----
@@ -203,6 +273,7 @@ public static class CertificateEndpoints
             req.SignatoryName = Trim(req.SignatoryName);
             req.SignatoryTitle = Trim(req.SignatoryTitle);
             req.Statement = Trim(req.Statement);
+            req.RecipientEmails = Trim(req.RecipientEmails);
             if (!string.IsNullOrEmpty(req.LogoDataUrl))
             {
                 if (!req.LogoDataUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
@@ -240,6 +311,27 @@ public static class CertificateEndpoints
             var cfg = CertificateConfig.Parse(cert.ConfigSnapshotJson);
             var issuer = await IssuerNameAsync(catalog, tc.TenantId);
             return Results.Ok(CertificateService.ToView(cert, cfg, issuer));
+        }).RequireAuthorization();
+
+        // ---- El certificado en PDF: lo baja su dueño, un autor o un moderador ----
+        app.MapGet("/certificates/{serial}/pdf", async (string serial, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            var cert = await db.Certificates.FirstOrDefaultAsync(c => c.Serial == serial);
+            if (cert is null) return Results.NotFound();
+            if (cert.UserId != tc.UserId && !CanAuthor(tc.Role)) return Results.Forbid();
+
+            var cfg = CertificateConfig.Parse(cert.ConfigSnapshotJson);
+            if (!cfg.Enabled) return Results.BadRequest("Este curso no emite certificado.");
+            var emisor = string.IsNullOrWhiteSpace(cfg.IssuerName)
+                ? await IssuerNameAsync(catalog, tc.TenantId) : cfg.IssuerName!;
+
+            var pdf = CertificatePdf.Render(emisor, cert.LearnerName, cert.TrainingTitle, cert.Serial,
+                cert.IssuedAt, cert.ExpiresAt, cert.ScorePercent, cert.PassPercent,
+                cfg.ShowScore, cfg.ShowValidity, cfg.Statement,
+                cfg.SignatoryName, cfg.SignatoryTitle, cfg.AccentColor);
+
+            return Results.File(pdf, "application/pdf", $"Certificado-{cert.Serial}.pdf");
         }).RequireAuthorization();
 
         // ---- Verificación por folio (usuario autenticado del cliente) ----

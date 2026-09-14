@@ -1,0 +1,353 @@
+{
+  "training": {
+    "title": "Cumplimiento con la Ley HIPAA",
+    "description": "Adiestramiento de cumplimiento con la Ley HIPAA para el personal que maneja, transporta o entrega medicamentos, equipos o materiales de salud: qué es información de salud protegida (PHI), cómo protegerla en el día a día y cómo reportar un posible incidente.",
+    "category": "Cumplimiento",
+    "recurrenceMonths": 12,
+    "renewLeadDays": 30,
+    "certificate": {
+      "enabled": true,
+      "issuerName": "Advance Logistics",
+      "signatoryName": "Recursos Humanos",
+      "signatoryTitle": "Advance Logistics",
+      "statement": "Certifica haber completado el adiestramiento de cumplimiento con la Ley de Portabilidad y Responsabilidad del Seguro Médico (HIPAA), 45 CFR Partes 160 y 164.",
+      "showScore": true,
+      "showValidity": true,
+      "accentColor": "#1d4ed8"
+    }
+  },
+  "items": [
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Cumplimiento con la Ley HIPAA",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<svg viewBox=\"0 0 64 64\" width=\"84\" height=\"84\" fill=\"none\" stroke=\"#1d4ed8\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:block;margin:0 auto 14px\"><path d=\"M32 6l20 8v14c0 13-8.5 22-20 26C20.5 50 12 41 12 28V14z\"/><path d=\"M32 22v16M24 30h16\"/></svg>\n       <p style=\"text-align:center;font-size:15px;color:#475569\">Qué es la información de salud protegida, por qué\n       HIPAA le aplica a la empresa y cómo protegerla al manejar documentos, sistemas y entregas.</p>\n       <div style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin:16px auto 0;max-width:440px;color:#334155;font-size:14px\"><div style=\"margin:4px 0\">📦 <b>5 módulos</b></div><div style=\"margin:4px 0\">⏱ Duración estimada: <b>20 min</b></div><div style=\"margin:4px 0\">📝 Selección múltiple (60 puntos)</div><div style=\"margin:4px 0\">✅ Aprobación: <b>70%</b></div></div>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Instrucciones",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Bienvenido(a) al adiestramiento virtual sobre Cumplimiento con la Ley HIPAA. Para completar\n       satisfactoriamente este adiestramiento:</p>\n       <div style=\"margin:14px 0\">\n     \n       <div style=\"display:flex;gap:12px;align-items:flex-start;margin:10px 0\">\n         <span style=\"flex:none;width:26px;height:26px;border-radius:50%;background:#2563eb;color:#fff;\n                      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700\">1</span>\n         <span style=\"padding-top:3px\">Lea detenidamente todo el contenido presentado en cada sección.</span>\n       </div>\n       <div style=\"display:flex;gap:12px;align-items:flex-start;margin:10px 0\">\n         <span style=\"flex:none;width:26px;height:26px;border-radius:50%;background:#2563eb;color:#fff;\n                      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700\">2</span>\n         <span style=\"padding-top:3px\">Procure comprender la información, incluyendo los conceptos, ejemplos, responsabilidades y procedimientos discutidos.</span>\n       </div>\n       <div style=\"display:flex;gap:12px;align-items:flex-start;margin:10px 0\">\n         <span style=\"flex:none;width:26px;height:26px;border-radius:50%;background:#2563eb;color:#fff;\n                      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700\">3</span>\n         <span style=\"padding-top:3px\">Una vez haya completado la presentación, responda las preguntas de evaluación al final del adiestramiento.</span>\n       </div>\n       <div style=\"display:flex;gap:12px;align-items:flex-start;margin:10px 0\">\n         <span style=\"flex:none;width:26px;height:26px;border-radius:50%;background:#2563eb;color:#fff;\n                      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700\">4</span>\n         <span style=\"padding-top:3px\">Seleccione la respuesta correcta de acuerdo con el contenido presentado.</span>\n       </div>\n   </div>\n       <p><b>Importante:</b> la evaluación está diseñada para validar la comprensión del contenido presentado.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Objetivo",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Se persigue proveer los principios fundamentales de la Ley HIPAA, relacionados con la privacidad y\n       seguridad de la información de salud protegida, para proteger la confidencialidad de la información de\n       los pacientes durante el manejo, transporte y entrega de medicamentos, equipos médicos o materiales de\n       salud.</p>\n       <p>Debido a la naturaleza de las operaciones del negocio, todos los empleados pueden estar expuestos de\n       manera directa o indirecta a información de salud protegida. A tales efectos, este adiestramiento\n       permitirá:</p>\n       <div style=\"margin:12px 0\">\n     \n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#2563eb1a;color:#2563eb;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>Reconocer qué información se considera protegida bajo HIPAA.</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#2563eb1a;color:#2563eb;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>Comprender sus responsabilidades en la protección de la información de los pacientes.</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#2563eb1a;color:#2563eb;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>Manejar adecuadamente los documentos, órdenes y entregas.</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#2563eb1a;color:#2563eb;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>Evitar situaciones que puedan representar una violación de privacidad o seguridad.</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#2563eb1a;color:#2563eb;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>Conocer cómo reportar oportunamente una posible violación de HIPAA.</span>\n       </div>\n   </div>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "¿Qué es HIPAA?",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<figure style=\"margin:16px 0\">\n     <img src=\"https://images.unsplash.com/photo-1758691462814-485c3672e447?fm=jpg&q=60&w=1200&auto=format&fit=crop\" alt=\"Un profesional de salud documentando información en un expediente médico\" loading=\"lazy\"\n          style=\"width:100%;max-height:320px;object-fit:cover;border-radius:12px;display:block\">\n     <figcaption style=\"font-size:11px;color:#94a3b8;margin-top:4px;text-align:right\">Foto: Vitaly Gariev / Unsplash</figcaption>\n   </figure>\n       <p>HIPAA significa <i>Health Insurance Portability and Accountability Act</i>.</p>\n       <p>Es una ley federal que establece protecciones para la información de salud de los pacientes y\n       establece requisitos relacionados con su uso y divulgación.</p>\n       <p>Para los empleados que trabajan en la distribución y entrega de productos médicos, la protección de la\n       información es particularmente importante porque pueden tener acceso a información relacionada con\n       pacientes, órdenes médicas, proveedores de salud, entre otra.</p>\n       <blockquote style=\"margin:16px 0;padding:14px 18px;border-left:4px solid #2563eb;\n               background:#2563eb0d;border-radius:0 10px 10px 0;font-size:16px;font-style:italic;color:#1e293b\">\n     La información de salud debe manejarse únicamente cuando sea necesario para realizar las funciones autorizadas del trabajo.\n   </blockquote>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Qué es información de salud protegida",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>La información de salud protegida (PHI) incluye, entre otros:</p>\n       <div style=\"display:flex;flex-wrap:wrap;gap:8px;margin:12px 0\">\n     <span style=\"background:#2563eb1a;color:#2563eb;padding:5px 12px;border-radius:999px;\n                                 font-size:13px;font-weight:600\">Nombre del paciente</span><span style=\"background:#2563eb1a;color:#2563eb;padding:5px 12px;border-radius:999px;\n                                 font-size:13px;font-weight:600\">Dirección</span><span style=\"background:#2563eb1a;color:#2563eb;padding:5px 12px;border-radius:999px;\n                                 font-size:13px;font-weight:600\">Teléfono</span><span style=\"background:#2563eb1a;color:#2563eb;padding:5px 12px;border-radius:999px;\n                                 font-size:13px;font-weight:600\">Fecha de nacimiento</span><span style=\"background:#2563eb1a;color:#2563eb;padding:5px 12px;border-radius:999px;\n                                 font-size:13px;font-weight:600\">Diagnóstico o condición</span><span style=\"background:#2563eb1a;color:#2563eb;padding:5px 12px;border-radius:999px;\n                                 font-size:13px;font-weight:600\">Medicamentos</span><span style=\"background:#2563eb1a;color:#2563eb;padding:5px 12px;border-radius:999px;\n                                 font-size:13px;font-weight:600\">Órdenes médicas</span><span style=\"background:#2563eb1a;color:#2563eb;padding:5px 12px;border-radius:999px;\n                                 font-size:13px;font-weight:600\">Información de seguros</span><span style=\"background:#2563eb1a;color:#2563eb;padding:5px 12px;border-radius:999px;\n                                 font-size:13px;font-weight:600\">Número de identificación</span><span style=\"background:#2563eb1a;color:#2563eb;padding:5px 12px;border-radius:999px;\n                                 font-size:13px;font-weight:600\">Tratamientos</span>\n   </div>\n       <div style=\"background:#fef2f2;border-left:4px solid #dc2626;padding:12px 16px;border-radius:8px;margin:14px 0\">Un empleado no necesita conocer detalles adicionales sobre el diagnóstico o\n       tratamiento del paciente si esa información no es necesaria para realizar su trabajo. <b>No se debe\n       acceder a información simplemente por curiosidad.</b></div>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Ejemplos de información protegida en la industria de distribución",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ul>\n         <li>Tener acceso a una factura con información de medicamentos o equipo médico</li>\n         <li>Preparar una entrega a un paciente</li>\n         <li>Leer una etiqueta de envío con el nombre del paciente</li>\n         <li>Entregar equipos o materiales médicos</li>\n         <li>Manejar documentos de entrega</li>\n         <li>Contestar llamadas relacionadas con una orden de paciente</li>\n       </ul>\n       <div style=\"background:#eff6ff;border-left:4px solid #2563eb;padding:12px 16px;border-radius:8px;margin:14px 0\">Si la información permite relacionar a una persona con su salud, tratamiento,\n       servicios o productos médicos, debe manejarse con cuidado.</div>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Confidencialidad durante las entregas",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Las entregas requieren especial atención. El empleado debe:</p>\n       <div style=\"margin:12px 0\">\n     \n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#16a34a1a;color:#16a34a;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>Confirmar que está entregando el producto al destinatario correcto</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#16a34a1a;color:#16a34a;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>No decir información médica frente a terceros</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#16a34a1a;color:#16a34a;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>Mantener documentos y órdenes protegidos</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#16a34a1a;color:#16a34a;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>No dejar documentos visibles dentro del vehículo</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#16a34a1a;color:#16a34a;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>No discutir información del paciente con personas no autorizadas</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#16a34a1a;color:#16a34a;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>Evitar conversaciones sobre pacientes en lugares públicos</span>\n       </div>\n   </div>\n       <div style=\"background:#fef2f2;border-left:4px solid #dc2626;padding:12px 16px;border-radius:8px;margin:14px 0\"><b>No se puede</b> realizar la entrega en la residencia o local de vecinos, ni\n       tomar fotografías de documentos de pacientes utilizando teléfonos personales.</div>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Uso de computadoras y sistemas",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Los sistemas de información también contienen información protegida. Los empleados deben:</p>\n       <div style=\"margin:14px 0\">\n     \n       <div style=\"display:flex;gap:12px;align-items:flex-start;margin:10px 0\">\n         <span style=\"flex:none;width:26px;height:26px;border-radius:50%;background:#2563eb;color:#fff;\n                      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700\">1</span>\n         <span style=\"padding-top:3px\">Utilizar su propio usuario y contraseña — queda prohibido compartir dichas credenciales.</span>\n       </div>\n       <div style=\"display:flex;gap:12px;align-items:flex-start;margin:10px 0\">\n         <span style=\"flex:none;width:26px;height:26px;border-radius:50%;background:#2563eb;color:#fff;\n                      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700\">2</span>\n         <span style=\"padding-top:3px\">Cerrar sesión cuando no esté utilizando el sistema o vaya a abandonar su área de trabajo.</span>\n       </div>\n       <div style=\"display:flex;gap:12px;align-items:flex-start;margin:10px 0\">\n         <span style=\"flex:none;width:26px;height:26px;border-radius:50%;background:#2563eb;color:#fff;\n                      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700\">3</span>\n         <span style=\"padding-top:3px\">No dejar computadoras desbloqueadas.</span>\n       </div>\n       <div style=\"display:flex;gap:12px;align-items:flex-start;margin:10px 0\">\n         <span style=\"flex:none;width:26px;height:26px;border-radius:50%;background:#2563eb;color:#fff;\n                      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700\">4</span>\n         <span style=\"padding-top:3px\">No descargar información de pacientes a dispositivos personales.</span>\n       </div>\n   </div>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Redes sociales y fotos",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Está prohibido publicar o compartir información de pacientes, incluyendo:</p>\n       <div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:14px\">\n         <div style=\"background:#1e6fd9;color:#fff;padding:14px 16px;border-radius:10px;font-size:15px;line-height:1.45\">📷 Fotos y capturas de pantalla</div>\n         <div style=\"background:#1e6fd9;color:#fff;padding:14px 16px;border-radius:10px;font-size:15px;line-height:1.45\">🏷️ Nombres y direcciones</div>\n         <div style=\"background:#1e6fd9;color:#fff;padding:14px 16px;border-radius:10px;font-size:15px;line-height:1.45\">💊 Órdenes médicas y productos asociados a un paciente</div>\n         <div style=\"background:#1e6fd9;color:#fff;padding:14px 16px;border-radius:10px;font-size:15px;line-height:1.45\">💬 Conversaciones relacionadas con pacientes</div>\n       </div>\n       <div style=\"background:#fef2f2;border-left:4px solid #dc2626;padding:12px 16px;border-radius:8px;margin:14px 0\">Incluso si no se menciona el nombre del paciente, una combinación de detalles\n       podría permitir identificarlo.</div>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "¿Qué es una divulgación no autorizada?",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Una divulgación no autorizada ocurre cuando información protegida se utiliza o se comparte sin\n       autorización. Ejemplos:</p>\n       <div style=\"margin:12px 0\">\n     \n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#dc26261a;color:#dc2626;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">!</span>\n         <span>Entregar documentos del paciente a la persona equivocada</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#dc26261a;color:#dc2626;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">!</span>\n         <span>Hablar sobre el diagnóstico de un paciente frente a terceros</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#dc26261a;color:#dc2626;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">!</span>\n         <span>Enviar información a un número de teléfono incorrecto</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#dc26261a;color:#dc2626;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">!</span>\n         <span>Compartir información con un familiar que no está autorizado</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#dc26261a;color:#dc2626;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">!</span>\n         <span>Publicar una fotografía de una orden médica</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#dc26261a;color:#dc2626;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">!</span>\n         <span>Dejar documentos con información protegida en un lugar donde otras personas puedan verlos</span>\n       </div>\n   </div>\n       <p style=\"color:#64748b;font-size:14px\">Una divulgación puede ocurrir intencionalmente o por accidente.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "¿Qué hacer ante un incidente?",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Si cree que ocurrió una posible violación de privacidad:</p>\n       <div style=\"margin:14px 0\">\n     \n       <div style=\"display:flex;gap:12px;align-items:flex-start;margin:10px 0\">\n         <span style=\"flex:none;width:26px;height:26px;border-radius:50%;background:#dc2626;color:#fff;\n                      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700\">1</span>\n         <span style=\"padding-top:3px\">No lo oculte — informe la situación inmediatamente a la Administradora.</span>\n       </div>\n       <div style=\"display:flex;gap:12px;align-items:flex-start;margin:10px 0\">\n         <span style=\"flex:none;width:26px;height:26px;border-radius:50%;background:#dc2626;color:#fff;\n                      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700\">2</span>\n         <span style=\"padding-top:3px\">Notifique al supervisor o a la persona designada por la empresa.</span>\n       </div>\n       <div style=\"display:flex;gap:12px;align-items:flex-start;margin:10px 0\">\n         <span style=\"flex:none;width:26px;height:26px;border-radius:50%;background:#dc2626;color:#fff;\n                      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700\">3</span>\n         <span style=\"padding-top:3px\">Provea todos los detalles que tenga disponibles.</span>\n       </div>\n       <div style=\"display:flex;gap:12px;align-items:flex-start;margin:10px 0\">\n         <span style=\"flex:none;width:26px;height:26px;border-radius:50%;background:#dc2626;color:#fff;\n                      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700\">4</span>\n         <span style=\"padding-top:3px\">No investigue o corrija el incidente por su cuenta.</span>\n       </div>\n   </div>\n       <div style=\"background:#eff6ff;border-left:4px solid #2563eb;padding:12px 16px;border-radius:8px;margin:14px 0\"><b>Importante:</b> reportar rápidamente un posible incidente permite que la\n       empresa evalúe la situación.</div>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Responsabilidad del empleado",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Cada empleado tiene una responsabilidad en la protección de la información de salud:</p>\n       <div style=\"margin:12px 0\">\n     \n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#16a34a1a;color:#16a34a;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>Utilizar correctamente la información</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#16a34a1a;color:#16a34a;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>Seguir las políticas y procedimientos de la empresa</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#16a34a1a;color:#16a34a;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>Proteger documentos y sistemas</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#16a34a1a;color:#16a34a;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>Evitar divulgaciones innecesarias</span>\n       </div>\n       <div style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0\">\n         <span style=\"flex:none;width:22px;height:22px;border-radius:50%;background:#16a34a1a;color:#16a34a;\n                      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700\">✓</span>\n         <span>Reportar inmediatamente posibles incidentes</span>\n       </div>\n   </div>\n       <div style=\"background:#f0fdf4;border-left:4px solid #16a34a;padding:12px 16px;border-radius:8px;margin:14px 0\">La privacidad del paciente es responsabilidad de todos.</div>\n       <div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:14px 0\">\n     \n       <div style=\"background:#2563eb12;border:1px solid #2563eb33;border-radius:10px;padding:12px;text-align:center\">\n         <div style=\"font-size:22px;font-weight:800;color:#2563eb\">45 CFR</div>\n         <div style=\"font-size:12px;color:#475569;margin-top:2px\">Partes 160 y 164</div>\n       </div>\n       <div style=\"background:#2563eb12;border:1px solid #2563eb33;border-radius:10px;padding:12px;text-align:center\">\n         <div style=\"font-size:22px;font-weight:800;color:#2563eb\">60 días</div>\n         <div style=\"font-size:12px;color:#475569;margin-top:2px\">plazo máximo para notificar una brecha grande a HHS</div>\n       </div>\n       <div style=\"background:#2563eb12;border:1px solid #2563eb33;border-radius:10px;padding:12px;text-align:center\">\n         <div style=\"font-size:22px;font-weight:800;color:#2563eb\">70%</div>\n         <div style=\"font-size:12px;color:#475569;margin-top:2px\">para aprobar este curso</div>\n       </div>\n   </div>\n       <div style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin:14px 0\">\n     <div style=\"font-weight:700;margin-bottom:6px\">🔗 Recursos adicionales</div>\n     <ul style=\"margin:0;padding-left:20px\">\n       <li style=\"margin:4px 0\"><a href=\"https://www.hhs.gov/hipaa/for-professionals/training/index.html\" target=\"_blank\" rel=\"noopener\">HHS — Guías y adiestramiento sobre HIPAA (en inglés)</a></li><li style=\"margin:4px 0\"><a href=\"https://www.youtube.com/shorts/2hYefuexVCA\" target=\"_blank\" rel=\"noopener\">¿Qué es la Ley HIPAA? Protección de la privacidad en la salud — video, opcional</a></li>\n     </ul>\n   </div>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "ModuleHeader",
+      "points": 0,
+      "payload": {
+        "title": "Evaluación",
+        "subtitle": "Selecciona la respuesta correcta de acuerdo con el contenido presentado."
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 10,
+      "payload": {
+        "question": "¿Cuál de las siguientes opciones describe mejor la información protegida de salud (PHI)?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Información personal relacionada únicamente con seguros médicos"
+          },
+          {
+            "id": "b",
+            "text": "Información relacionada con la salud, el tratamiento o los servicios médicos de una persona"
+          },
+          {
+            "id": "c",
+            "text": "Información pública sobre hospitales y clínicas"
+          },
+          {
+            "id": "d",
+            "text": "Información general sobre productos médicos"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 10,
+      "payload": {
+        "question": "¿Cuál de los siguientes puede considerarse información protegida de salud?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Nombre y dirección de un paciente"
+          },
+          {
+            "id": "b",
+            "text": "Información sobre su diagnóstico"
+          },
+          {
+            "id": "c",
+            "text": "Información relacionada con medicamentos o productos médicos"
+          },
+          {
+            "id": "d",
+            "text": "Todas las anteriores"
+          }
+        ],
+        "correctOptionId": "d"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 10,
+      "payload": {
+        "question": "Un empleado recibe una orden médica que contiene información del paciente. ¿Cuál es la forma correcta de manejarla?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Dejarla visible en el vehículo durante la entrega"
+          },
+          {
+            "id": "b",
+            "text": "Compartirla con otros empleados por curiosidad"
+          },
+          {
+            "id": "c",
+            "text": "Mantenerla protegida y utilizarla únicamente para realizar la función autorizada"
+          },
+          {
+            "id": "d",
+            "text": "Tomarle una fotografía con el teléfono personal"
+          }
+        ],
+        "correctOptionId": "c"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 10,
+      "payload": {
+        "question": "¿Cuál de las siguientes situaciones puede representar una divulgación no autorizada?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Entregar un paquete al destinatario correcto"
+          },
+          {
+            "id": "b",
+            "text": "Dejar documentos con información de pacientes visibles dentro de un vehículo"
+          },
+          {
+            "id": "c",
+            "text": "Guardar correctamente documentos según el procedimiento de la empresa"
+          },
+          {
+            "id": "d",
+            "text": "Verificar la dirección antes de realizar una entrega"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 10,
+      "payload": {
+        "question": "¿Cuál de las siguientes prácticas es apropiada?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Compartir la contraseña con un compañero de confianza"
+          },
+          {
+            "id": "b",
+            "text": "Tomar fotografías de órdenes médicas con el teléfono personal"
+          },
+          {
+            "id": "c",
+            "text": "Dejar una computadora desbloqueada mientras se está en el periodo de almuerzo"
+          },
+          {
+            "id": "d",
+            "text": "Reportar inmediatamente una situación de exposición de información protegida"
+          }
+        ],
+        "correctOptionId": "d"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 10,
+      "payload": {
+        "question": "Un empleado toma una foto de una orden médica para enviársela a un compañero mediante su teléfono personal. ¿Es esto apropiado?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Sí, si el compañero también trabaja en la empresa"
+          },
+          {
+            "id": "b",
+            "text": "Sí, siempre que la foto se elimine después"
+          },
+          {
+            "id": "c",
+            "text": "No, porque no se deben utilizar teléfonos personales para tomar o compartir información protegida fuera de los métodos autorizados por la empresa"
+          },
+          {
+            "id": "d",
+            "text": "Sí, si no aparece el nombre completo del paciente"
+          }
+        ],
+        "correctOptionId": "c"
+      }
+    }
+  ]
+}

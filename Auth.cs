@@ -35,7 +35,7 @@ public static class PasswordHasher
 // la base solo queda su SHA-256, igual que con una contraseña.
 public static class ResetTokens
 {
-    public const int VigenciaMinutos = 60;
+    public const int VigenciaMinutos = 10;
 
     public static (string token, string hash) Create()
     {
@@ -137,20 +137,23 @@ public class JwtTokenService
     private readonly IConfiguration _cfg;
     public JwtTokenService(IConfiguration cfg) => _cfg = cfg;
 
-    public string Create(AppUser u)
+    // tenantId/role permiten emitir el token para una compañía distinta a la
+    // principal, cuando el usuario pertenece a varias y cambia de una a otra.
+    public string Create(AppUser u, Guid? tenantId = null, string? role = null)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_cfg["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+        var compañia = tenantId ?? u.TenantId;
         var claims = new List<Claim>
         {
             new("sub", u.Id.ToString()),
             new("email", u.Email),
             new("name", u.Name),
-            new("role", u.Role),
+            new("role", string.IsNullOrWhiteSpace(role) ? u.Role : role!),
         };
-        if (u.TenantId.HasValue)
-            claims.Add(new Claim("tenant_id", u.TenantId.Value.ToString()));
+        if (compañia.HasValue)
+            claims.Add(new Claim("tenant_id", compañia.Value.ToString()));
 
         var token = new JwtSecurityToken(
             issuer: _cfg["Jwt:Issuer"],

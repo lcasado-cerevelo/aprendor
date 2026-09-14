@@ -124,6 +124,31 @@
   </div>
 </div>
 
+<!-- Validación del correo: primera vez que entra -->
+<div id="verifyEmailView" class="login-wrap hidden">
+  <div class="login-card">
+    <div class="brand">
+      <svg class="logo" width="34" height="34" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="apLogo7" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
+        <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#apLogo7)"/>
+        <path d="M9 19 L16 11 L23 19" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M11 22.5 L21 22.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".75"/>
+      </svg>
+      Aprendor
+    </div>
+    <p class="sub">Validemos tu correo. Te enviamos un código a <b id="veEmail">tu correo</b>; a esa dirección llegarán tus certificados.</p>
+    <label>Código de 6 dígitos</label>
+    <input id="veCode" class="field" type="text" inputmode="numeric" autocomplete="one-time-code"
+           maxlength="6" placeholder="000000" style="letter-spacing:6px;text-align:center;font-size:20px" />
+    <button class="btn full" id="veBtn">Validar mi correo</button>
+    <p class="msg" id="veMsg"></p>
+    <p class="sub" style="margin:10px 0 0;text-align:center">
+      <a href="#" id="veResend" style="color:#4f46e5;text-decoration:none">Reenviar código</a>
+      <a href="#" id="veLogout" style="color:#64748b;text-decoration:none;margin-left:12px">Salir</a>
+    </p>
+  </div>
+</div>
+
 <!-- Segundo factor: se muestra después de validar la contraseña -->
 <div id="twoFaView" class="login-wrap hidden">
   <div class="login-card">
@@ -249,12 +274,12 @@
     <!-- ADMIN -->
     <div id="adminView" class="hidden">
       <div class="card">
-        <h2>Clientes (tenants)</h2>
-        <p class="hint">Cada cliente vive en su propia base de datos, con un Database= ÚNICO.</p>
+        <h2>Compañías</h2>
+        <p class="hint">Cada compañía vive en su propia base de datos, con un Database= ÚNICO.</p>
         <div class="row">
-          <div><label>Nombre</label><input id="tName" class="field" placeholder="Cliente A" /></div>
+          <div><label>Nombre</label><input id="tName" class="field" placeholder="Compañía A" /></div>
           <div style="flex:2"><label>Connection string de su base</label>
-            <input id="tConn" class="field" placeholder="Server=localhost;Database=TP_ClienteA;Trusted_Connection=True;TrustServerCertificate=True;" /></div>
+            <input id="tConn" class="field" placeholder="Server=localhost;Database=TP_CompaniaA;Trusted_Connection=True;TrustServerCertificate=True;" /></div>
           <button class="btn sm" id="createTenantBtn">Crear</button>
         </div>
         <p class="msg" id="tenantMsg"></p>
@@ -263,12 +288,12 @@
       <div class="card">
         <h2>Usuarios</h2>
         <div class="row">
-          <div><label>Correo</label><input id="uEmail" class="field" placeholder="autor@clientea.com" /></div>
+          <div><label>Correo</label><input id="uEmail" class="field" placeholder="autor@compania.com" /></div>
           <div><label>Nombre</label><input id="uName" class="field" placeholder="Autora" /></div>
           <div><label>Contraseña</label><input id="uPass" class="field" type="text" placeholder="Pass123!" /></div>
           <div><label>Rol</label><select id="uRole" class="field">
             <option>Author</option><option>Moderator</option><option>Learner</option><option>Admin</option></select></div>
-          <div><label>Cliente</label><select id="uTenant" class="field"></select></div>
+          <div><label>Compañía</label><select id="uTenant" class="field"></select></div>
           <button class="btn sm" id="createUserBtn">Crear</button>
         </div>
         <p class="msg" id="userMsg"></p>
@@ -334,9 +359,55 @@
           <p class="hint">Te aparecen hasta que los completes con puntuación satisfactoria. Abren en una pestaña aparte, a pantalla completa.</p>
           <div class="list" id="catalogList"></div>
         </div>
+        <div class="card hidden" id="repasoCard" style="margin-top:16px">
+          <h2>Disponibles para repaso</h2>
+          <p class="hint">Ya los aprobaste. Puedes abrirlos cuando quieras para consultarlos; no cuentan como intento nuevo.</p>
+          <div class="list" id="repasoList"></div>
+        </div>
       </div>
 
       <!-- SECCIÓN: Historial -->
+      <div class="section hidden" id="sec-record">
+        <button class="back-link" onclick="showDash()">← Inicio</button>
+        <div class="card">
+          <h2>Expediente de certificaciones</h2>
+          <p class="sub" style="margin:0 0 12px">Todo junto: lo aprobado en la plataforma y lo que se tomó fuera.</p>
+          <div class="row" style="margin-bottom:10px;gap:10px;flex-wrap:wrap">
+            <select id="recUser" class="field" style="max-width:320px"></select>
+            <button class="btn sm ghost" onclick="loadRecord()">Ver expediente</button>
+            <button class="btn sm ghost" id="recAddBtn" onclick="toggleCertForm()">+ Registrar certificación externa</button>
+          </div>
+
+          <div id="certForm" class="hidden" style="border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px">
+            <div class="row" style="gap:10px;flex-wrap:wrap">
+              <div style="flex:1 1 260px"><label>Certificación</label><input id="ceTitle" class="field" placeholder="Ej. OSHA 10 horas" /></div>
+              <div style="flex:1 1 200px"><label>Emitida por</label><input id="ceIssuer" class="field" placeholder="Ej. OSHA Training Institute" /></div>
+            </div>
+            <div class="row" style="gap:10px;flex-wrap:wrap">
+              <div style="flex:1 1 160px"><label>Fecha de emisión</label><input id="ceIssued" class="field" type="date" /></div>
+              <div style="flex:1 1 160px"><label>Vence (opcional)</label><input id="ceExpires" class="field" type="date" /></div>
+              <div style="flex:1 1 200px"><label>Número / folio</label><input id="ceCred" class="field" placeholder="Opcional" /></div>
+            </div>
+            <div class="row" style="gap:10px;flex-wrap:wrap">
+              <div style="flex:1 1 260px"><label>Documento (PDF o imagen)</label><input id="ceFile" class="field" type="file" accept=".pdf,image/*" /></div>
+              <div style="flex:1 1 260px"><label>o enlace externo (Tempox u otro)</label><input id="ceUrl" class="field" placeholder="https://…" /></div>
+            </div>
+            <div class="row" style="gap:10px;flex-wrap:wrap">
+              <div style="flex:1 1 160px"><label>Sistema externo</label><input id="ceSource" class="field" placeholder="tempox" /></div>
+              <div style="flex:1 1 160px"><label>Id en ese sistema</label><input id="ceRef" class="field" placeholder="Opcional" /></div>
+              <div style="flex:1 1 260px"><label>Notas</label><input id="ceNotes" class="field" placeholder="Opcional" /></div>
+            </div>
+            <div style="margin-top:12px">
+              <button class="btn sm" onclick="saveCert()">Guardar en el expediente</button>
+              <button class="btn sm ghost" onclick="toggleCertForm()">Cancelar</button>
+            </div>
+            <p class="msg" id="certMsg2"></p>
+          </div>
+
+          <div class="list" id="recordList"><div class="empty">Escoge un empleado y pulsa "Ver expediente".</div></div>
+        </div>
+      </div>
+
       <div class="section hidden" id="sec-history">
         <button class="back-link" onclick="showDash()">← Inicio</button>
         <div class="card">
@@ -519,11 +590,16 @@
     <label class="opt optrow"><input type="checkbox" id="certEnabled" checked /> Emitir certificado al aprobar este curso</label>
 
     <div class="row" style="margin-top:10px">
-      <div><label>Entidad emisora</label><input id="certIssuer" class="field" placeholder="(por defecto: nombre del cliente)" /></div>
+      <div><label>Entidad emisora</label><input id="certIssuer" class="field" placeholder="(por defecto: nombre de la compañía)" /></div>
     </div>
     <div class="row">
       <div><label>Firmante</label><input id="certSignName" class="field" placeholder="Ej. María Pérez" /></div>
       <div><label>Cargo del firmante</label><input id="certSignTitle" class="field" placeholder="Ej. Directora de Cumplimiento" /></div>
+      <div style="grid-column:1/-1">
+        <label>Enviar copia del certificado a</label>
+        <input id="certRecipients" class="field" placeholder="rrhh@empresa.com, supervisor@empresa.com" />
+        <p class="hint" style="margin:4px 0 0">Al aprobar, el PDF se envía al empleado y a estos correos (quien lo archiva en el expediente). No tiene que ser quien firma. Separa varios con coma.</p>
+      </div>
     </div>
     <div class="row" style="margin-top:8px">
       <div><label>Firma escaneada (imagen, opcional)</label>
@@ -601,16 +677,62 @@ function entrarConSesion(r){
   localStorage.setItem('tp_token', token);
   localStorage.setItem('tp_user', JSON.stringify(user));
   if (user.mustChangePassword){ el('fcCur').value = el('password').value; showForceChange(); }
+  else if (user.emailVerified === false){ pedirValidacionCorreo(); }
+  else if (user.mustEnroll2fa){ showApp(); forzarAlta2FA(); }
   else showApp();
 }
+
+// La compañía exige doble factor y el usuario aún no lo tiene: se le lleva al alta.
+function forzarAlta2FA(){
+  openProfile();
+  setTimeout(()=>{
+    const m = el('tfaMsg'); m.className='msg err';
+    m.textContent = 'Tu compañía exige verificación en dos pasos. Actívala con tu app autenticadora para seguir usando la plataforma.';
+    el('tfaSetupBox')?.scrollIntoView({behavior:'smooth'});
+  }, 200);
+}
+
+// ----- Validación del correo (primera vez que entra) -----
+let retoCorreo = null;
+
+async function pedirValidacionCorreo(){
+  mostrarSolo('verifyEmailView');
+  el('veEmail').textContent = user.email;
+  el('veCode').value = '';
+  const m = el('veMsg'); m.className='msg'; m.textContent = 'Enviando el código…';
+  try{
+    const r = await api('/me/email/send-code','POST');
+    if(r.verified){ user.emailVerified = true; localStorage.setItem('tp_user', JSON.stringify(user)); showApp(); return; }
+    retoCorreo = r.challengeId;
+    m.className='msg ok'; m.textContent = 'Te enviamos un código a ' + (r.email || user.email) + '.';
+    el('veCode').focus();
+  }catch(e){ m.className='msg err'; m.textContent = e.message; }
+}
+
+async function validarCorreo(){
+  const m = el('veMsg'); m.className='msg err'; m.textContent='';
+  const code = el('veCode').value.trim();
+  if(code.length !== 6){ m.textContent = 'El código son 6 dígitos.'; return; }
+  el('veBtn').disabled = true;
+  try{
+    await api('/me/email/verify','POST',{ challengeId: retoCorreo, code });
+    user.emailVerified = true;
+    localStorage.setItem('tp_user', JSON.stringify(user));
+    retoCorreo = null;
+    showApp();
+  }catch(e){ m.textContent = e.message; }
+  finally{ el('veBtn').disabled = false; }
+}
+el('veBtn').onclick = validarCorreo;
+el('veCode').addEventListener('keydown', e => { if(e.key==='Enter') validarCorreo(); });
+el('veResend').onclick = e => { e.preventDefault(); pedirValidacionCorreo(); };
+el('veLogout').onclick = e => { e.preventDefault(); logout(); };
 
 // ----- Segundo factor en el login -----
 function pedirSegundoFactor(r){
   retoActual = { challengeId: r.challengeId, mode: r.mode };
-  el('tfSub').textContent = r.mode === 'totp'
-    ? 'Abre tu app autenticadora y escribe el código que muestra para Aprendor.'
-    : 'Te enviamos un código a tu correo. Escríbelo aquí.';
-  el('tfResend').style.display = r.mode === 'email' ? 'inline' : 'none';
+  el('tfSub').textContent = 'Abre tu app autenticadora y escribe el código que muestra para Aprendor.';
+  el('tfResend').style.display = 'none';   // con app autenticadora no hay nada que reenviar
   el('tfCode').value = ''; el('tfMsg').textContent = '';
   mostrarSolo('twoFaView');
   el('tfCode').focus();
@@ -642,14 +764,14 @@ el('tfCancel').onclick = e => { e.preventDefault(); retoActual = null; el('passw
 function logout(){ token=null; user=null; retoActual=null;
   localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user');
   el('profileModal').classList.add('hidden'); el('forceChangeView').classList.add('hidden');
-  el('twoFaView').classList.add('hidden');
+  el('twoFaView').classList.add('hidden'); el('verifyEmailView').classList.add('hidden');
   el('appView').classList.add('hidden'); el('loginView').classList.remove('hidden'); }
 el('logoutBtn').onclick = logout;
 
 // ----- Recuperar contraseña desde el login -----
 // El servidor contesta lo mismo exista o no el correo, así que la pantalla también.
 function mostrarSolo(vista){
-  ['loginView','twoFaView','forgotView','resetView','forceChangeView','appView'].forEach(v => {
+  ['loginView','twoFaView','verifyEmailView','forgotView','resetView','forceChangeView','appView'].forEach(v => {
     const n = el(v); if(n) n.classList.toggle('hidden', v !== vista);
   });
 }
@@ -659,12 +781,36 @@ el('forgotLink').onclick = e => {
   el('fgMsg').textContent = '';
   mostrarSolo('forgotView');
   el('fgEmail').focus();
+  actualizarBotonCooldown();
 };
 el('fgBackLink').onclick = e => { e.preventDefault(); mostrarSolo('loginView'); };
 el('rsBackLink').onclick = e => { e.preventDefault(); limpiarUrlReset(); mostrarSolo('loginView'); };
 
+// El servidor también frena reenvíos a menos de dos minutos del anterior, pero
+// aquí lo reflejamos en el botón para que ni se pueda intentar mientras tanto,
+// en vez de que el usuario le dé "Enviar" y no pase nada visible.
+const RESET_COOLDOWN_MS = 2 * 60 * 1000;
+let cooldownTimer = null;
+function msRestantesCooldown(){
+  const ultimo = Number(localStorage.getItem('tp_reset_last') || 0);
+  return Math.max(0, RESET_COOLDOWN_MS - (Date.now() - ultimo));
+}
+function actualizarBotonCooldown(){
+  const restante = msRestantesCooldown();
+  if(restante <= 0){
+    if(cooldownTimer){ clearInterval(cooldownTimer); cooldownTimer = null; }
+    el('fgBtn').disabled = false;
+    el('fgBtn').textContent = 'Enviar enlace';
+    return;
+  }
+  el('fgBtn').disabled = true;
+  el('fgBtn').textContent = `Espera ${Math.ceil(restante/1000)}s...`;
+  if(!cooldownTimer) cooldownTimer = setInterval(actualizarBotonCooldown, 1000);
+}
+
 async function pedirEnlace(){
   const m = el('fgMsg'); m.className = 'msg'; m.textContent = '';
+  if(msRestantesCooldown() > 0){ actualizarBotonCooldown(); return; }
   const correo = el('fgEmail').value.trim();
   if(!correo){ m.className = 'msg err'; m.textContent = 'Escribe tu correo.'; return; }
   el('fgBtn').disabled = true;
@@ -672,9 +818,10 @@ async function pedirEnlace(){
     const r = await api('/auth/forgot-password','POST',{ email: correo });
     m.className = 'msg ok';
     m.textContent = r.message || 'Si el correo está registrado, te enviamos un enlace.';
+    localStorage.setItem('tp_reset_last', String(Date.now()));
   }catch(e){
     m.className = 'msg err'; m.textContent = 'No se pudo procesar la solicitud. Intenta de nuevo.';
-  }finally{ el('fgBtn').disabled = false; }
+  }finally{ actualizarBotonCooldown(); }
 }
 el('fgBtn').onclick = pedirEnlace;
 el('fgEmail').addEventListener('keydown', e => { if(e.key==='Enter') pedirEnlace(); });
@@ -770,6 +917,31 @@ function openProfile(){
   el('profTenant').textContent = user.tenantId ? (tenantName || '—') : 'Plataforma';
   el('profileModal').classList.remove('hidden');
   cargarEstado2FA();
+  cargarCompanias();
+}
+
+// Un usuario puede pertenecer a varias compañías; el selector cambia el token.
+async function cargarCompanias(){
+  try{
+    const cs = await api('/me/companies');
+    const fila = el('profCompaniesRow');
+    if(!cs || cs.length < 2){ fila.classList.add('hidden'); return; }
+    el('profCompanies').innerHTML = cs.map(c=>
+      `<option value="${c.tenantId}" ${c.tenantId===user.tenantId?'selected':''}>${c.nombre} · ${roleLabel(c.rol)}</option>`).join('');
+    fila.classList.remove('hidden');
+  }catch(e){ el('profCompaniesRow').classList.add('hidden'); }
+}
+
+async function cambiarCompania(tenantId){
+  if(!tenantId || tenantId === user.tenantId) return;
+  try{
+    const r = await api('/me/switch-company','POST',{ tenantId });
+    token = r.token; user = r.user;
+    localStorage.setItem('tp_token', token);
+    localStorage.setItem('tp_user', JSON.stringify(user));
+    closeProfile();
+    showApp();
+  }catch(e){ alert(e.message); cargarCompanias(); }
 }
 function closeProfile(){ el('profileModal').classList.add('hidden'); }
 
@@ -782,11 +954,19 @@ async function cargarEstado2FA(){
   try{
     const s = await api('/me/2fa');
     const activo = s.confirmed && s.mode !== 'none';
-    et.textContent = activo ? (s.mode === 'totp' ? 'activa · app autenticadora' : 'activa · código por correo') : 'desactivada';
+    et.textContent = activo ? 'activa · app autenticadora' : 'desactivada';
     et.style.background = activo ? '#dcfce7' : '#f1f5f9';
     et.style.color = activo ? '#166534' : '#475569';
     el('tfaOn').classList.toggle('hidden', !activo);
     el('tfaOff').classList.toggle('hidden', activo);
+
+    // Lo que decidió la compañía manda sobre lo que quiera el usuario.
+    const pol = user.twoFactorPolicy || 'optional';
+    el('tfaPolitica').textContent =
+      pol === 'required' ? 'Tu compañía la exige: no se puede desactivar.'
+      : pol === 'off'    ? 'Tu compañía la tiene apagada: no se pedirá al entrar.'
+                         : 'Tu compañía la deja opcional: actívala si quieres.';
+    el('tfaOff').classList.toggle('hidden', activo || pol === 'off');
   }catch(e){ et.textContent = '—'; }
 }
 function tfaCancelar(){
@@ -795,18 +975,14 @@ function tfaCancelar(){
   el('tfaConfirmBox').classList.add('hidden');
   el('tfaCode').value = '';
 }
-async function tfaSetup(modo){
+async function tfaSetup(){
   const m = el('tfaMsg'); m.className='msg'; m.textContent='';
   try{
-    const r = await api('/me/2fa/setup','POST',{ mode: modo });
-    tfaPendiente = { mode: modo, challengeId: r.challengeId };
-    if(modo === 'totp'){
-      el('tfaSecret').textContent = r.secret;
-      el('tfaCuenta').textContent = user.email;
-      el('tfaTotpBox').classList.remove('hidden');
-    } else {
-      m.className='msg ok'; m.textContent = 'Te enviamos un código a ' + user.email + '.';
-    }
+    const r = await api('/me/2fa/setup','POST',{ mode:'totp' });
+    tfaPendiente = { mode:'totp' };
+    el('tfaSecret').textContent = r.secret;
+    el('tfaCuenta').textContent = user.email;
+    el('tfaTotpBox').classList.remove('hidden');
     el('tfaConfirmBox').classList.remove('hidden');
     el('tfaCode').focus();
   }catch(e){ m.className='msg err'; m.textContent = e.message; }
@@ -817,7 +993,7 @@ async function tfaConfirm(){
   const code = el('tfaCode').value.trim();
   if(code.length !== 6){ m.textContent = 'El código son 6 dígitos.'; return; }
   try{
-    await api('/me/2fa/confirm','POST',{ mode: tfaPendiente.mode, code, challengeId: tfaPendiente.challengeId || null });
+    await api('/me/2fa/confirm','POST',{ mode:'totp', code });
     m.className='msg ok'; m.textContent = 'Verificación en dos pasos activada.';
     await cargarEstado2FA();
     el('tfaMsg').className='msg ok'; el('tfaMsg').textContent = 'Verificación en dos pasos activada.';
@@ -836,13 +1012,14 @@ async function tfaDisable(){
 let tenantName = '';
 
 // ===== Dashboard y navegación por secciones =====
-const SECTIONS = ['sec-manage','sec-take','sec-history','sec-review'];
-function isCreator(){ return ['Admin','Author'].includes(user.role); }
-function isReviewer(){ return ['Admin','Author','Moderator'].includes(user.role); }
+const SECTIONS = ['sec-manage','sec-take','sec-history','sec-review','sec-record'];
+function isCreator(){ return !!user && ['Admin','Author'].includes(user.role); }
+function isReviewer(){ return !!user && ['Admin','Author','Moderator'].includes(user.role); }
 
 function buildDashTiles(){
   const tiles = [];
   tiles.push({key:'take', icon:'📚', title:'Mis adiestramientos', desc:'Cursos asignados por tomar o completar', badge:'badge-take'});
+  tiles.push({key:'record', icon:'📁', title:'Expediente', desc:'Certificaciones en línea y las tomadas fuera'});
   if (isCreator()){
     tiles.push({key:'manage', icon:'🗂', title:'Adiestramientos', desc:'Crear, editar contenido y publicar'});
     tiles.push({key:'assign', icon:'⚙', title:'Sets y asignación', desc:'Versiones y quién ve qué'});
@@ -921,6 +1098,110 @@ function showSection(id){
   else if (id==='sec-take'){ loadCatalog(); }
   else if (id==='sec-history'){ loadMyHistory(); }
   else if (id==='sec-review'){ loadGrading(); loadPending(); }
+  else if (id==='sec-record'){ initRecord(); }
+}
+
+// ===== Expediente de certificaciones =====
+// El learner ve el suyo; autores y moderadores pueden ver el de cualquiera y
+// registrar certificaciones tomadas fuera de la plataforma.
+async function initRecord(){
+  const sel = el('recUser');
+  el('recAddBtn').classList.toggle('hidden', !isReviewer());
+  if (!isReviewer()){
+    sel.innerHTML = `<option value="${user.id}">${user.name || user.email}</option>`;
+    sel.disabled = true;
+    loadRecord();
+    return;
+  }
+  if (sel.options.length === 0){
+    try{
+      const us = await api('/tenant-users');
+      sel.innerHTML = us.map(u=>`<option value="${u.id}">${u.name || u.email}</option>`).join('');
+      const yo = us.find(u=>u.id===user.id); if(yo) sel.value = yo.id;
+    }catch(e){ sel.innerHTML = `<option value="${user.id}">${user.name || user.email}</option>`; }
+  }
+  loadRecord();
+}
+
+async function loadRecord(){
+  const userId = el('recUser').value || user.id;
+  try{
+    const filas = await api('/record/'+userId);
+    el('recordList').innerHTML = filas.length ? filas.map(r=>{
+      const origen = r.origen === 'plataforma'
+        ? `<span class="tag" style="background:#e0e7ff;color:#3730a3">en línea</span>`
+        : `<span class="tag" style="background:#fef3c7;color:#92400e">externa${r.externalSource?(' · '+r.externalSource):''}</span>`;
+      const estado = r.vigente
+        ? `<span class="tag" style="background:#dcfce7;color:#166534">vigente</span>`
+        : `<span class="tag" style="background:#fee2e2;color:#991b1b">vencida</span>`;
+      const fechas = `emitida ${String(r.issuedOn).slice(0,10)}` + (r.expiresOn ? ` · vence ${String(r.expiresOn).slice(0,10)}` : ' · no caduca');
+      const doc = r.documentUrl ? `<a class="btn sm ghost" style="text-decoration:none" href="${r.documentUrl}" target="_blank" rel="noopener">Ver documento</a>` : '';
+      const pdf = r.origen === 'plataforma'
+        ? `<button class="btn sm ghost" onclick="bajarCertPdf('${r.credentialId}')">Descargar PDF</button>` : '';
+      const borrar = (r.origen==='externa' && isReviewer())
+        ? `<button class="btn sm ghost danger" onclick="deleteCert('${r.id}')">Eliminar</button>` : '';
+      return `<div class="item" style="flex-wrap:wrap;gap:8px">
+        <div style="flex:1 1 320px">
+          <div style="font-weight:600">${r.title} ${origen} ${estado}</div>
+          <div style="color:var(--muted);font-size:13px">${fechas}${r.issuer?(' · '+r.issuer):''}${r.credentialId?(' · folio '+r.credentialId):''}</div>
+          ${r.notes?`<div style="color:var(--muted);font-size:13px">${r.notes}</div>`:''}
+        </div>
+        <span class="sp">${doc} ${pdf} ${borrar}</span></div>`;
+    }).join('') : `<div class="empty">Sin certificaciones registradas.</div>`;
+  }catch(e){ el('recordList').innerHTML = `<div class="empty">${e.message}</div>`; }
+}
+
+function toggleCertForm(){ el('certForm').classList.toggle('hidden'); el('certMsg2').textContent=''; }
+
+// El PDF va por endpoint autenticado, así que se baja con fetch y se entrega como blob.
+async function bajarCertPdf(serial){
+  try{
+    const res = await fetch('/certificates/'+encodeURIComponent(serial)+'/pdf', { headers:{ Authorization:'Bearer '+token } });
+    if(!res.ok) throw new Error('No se pudo generar el PDF.');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'Certificado-'+serial+'.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 5000);
+  }catch(e){ alert(e.message); }
+}
+
+async function saveCert(){
+  const m = el('certMsg2'); m.className='msg err'; m.textContent='';
+  const titulo = el('ceTitle').value.trim();
+  const emitida = el('ceIssued').value;
+  if(!titulo){ m.textContent='Pon el nombre de la certificación.'; return; }
+  if(!emitida){ m.textContent='Pon la fecha de emisión.'; return; }
+  const archivo = el('ceFile').files[0];
+  const enlace = el('ceUrl').value.trim();
+  if(!archivo && !enlace){ m.textContent='Sube el documento o pon el enlace del sistema externo.'; return; }
+  try{
+    let mediaId = null;
+    if(archivo){ const up = await uploadFile(archivo); mediaId = up.id; }
+    await api('/certifications','POST',{
+      userId: el('recUser').value || user.id,
+      title: titulo,
+      issuer: el('ceIssuer').value.trim() || null,
+      credentialId: el('ceCred').value.trim() || null,
+      issuedOn: emitida,
+      expiresOn: el('ceExpires').value || null,
+      mediaAssetId: mediaId,
+      externalSource: el('ceSource').value.trim() || null,
+      externalRef: el('ceRef').value.trim() || null,
+      externalUrl: enlace || null,
+      notes: el('ceNotes').value.trim() || null
+    });
+    ['ceTitle','ceIssuer','ceCred','ceIssued','ceExpires','ceUrl','ceSource','ceRef','ceNotes'].forEach(x=>el(x).value='');
+    el('ceFile').value='';
+    m.className='msg ok'; m.textContent='Certificación registrada.';
+    loadRecord();
+  }catch(e){ m.textContent = e.message; }
+}
+
+async function deleteCert(id){
+  if(!confirm('¿Eliminar esta certificación del expediente?')) return;
+  try{ await api('/certifications/'+id,'DELETE'); loadRecord(); }catch(e){ alert(e.message); }
 }
 
 // ===== Admin =====
@@ -928,7 +1209,7 @@ el('createTenantBtn').onclick = async () => {
   const msg = el('tenantMsg'); msg.textContent=''; msg.className='msg';
   try{
     await api('/admin/tenants','POST',{ name:el('tName').value.trim(), connectionString:el('tConn').value.trim() });
-    msg.textContent='Cliente creado y su base de datos migrada.'; msg.className='msg ok';
+    msg.textContent='Compañía creada y su base de datos migrada.'; msg.className='msg ok';
     el('tName').value=''; el('tConn').value=''; loadTenants();
   }catch(e){ msg.textContent=e.message; msg.className='msg err'; }
 };
@@ -937,13 +1218,36 @@ async function loadTenants(){
   try{
     const ts = await api('/admin/tenants');
     adminTenants = ts;
-    el('tenantList').innerHTML = ts.length ? ts.map(t=>`<div class="item">${t.name} <span class="tag" style="${t.status==='active'?'background:#dcfce7;color:#166534':''}">${t.status}</span>
-      <span class="sp"><button class="btn sm ghost" onclick="toggleTenant('${t.id}','${t.status}')">${t.status==='active'?'Desactivar':'Activar'}</button></span></div>`).join('') : `<div class="empty">Aún no hay clientes.</div>`;
+    el('tenantList').innerHTML = ts.length ? ts.map(t=>{
+      const pol = t.twoFactorPolicy || 'optional';
+      const etq = pol==='required' ? {t:'2FA obligatorio', s:'background:#dcfce7;color:#166534'}
+                : pol==='off'      ? {t:'2FA apagado',    s:'background:#f1f5f9;color:#475569'}
+                                   : {t:'2FA opcional',   s:'background:#e0e7ff;color:#3730a3'};
+      return `<div class="item">${t.name} <span class="tag" style="${t.status==='active'?'background:#dcfce7;color:#166534':''}">${t.status}</span>
+      <span class="tag" style="${etq.s}">🔐 ${etq.t}</span>
+      <span class="sp">
+        <button class="btn sm ghost" onclick="setPolitica2FA('${t.id}','${t.name.replace(/'/g,"")}','${pol}')">Doble factor</button>
+        <button class="btn sm ghost" onclick="toggleTenant('${t.id}','${t.status}')">${t.status==='active'?'Desactivar':'Activar'}</button>
+      </span></div>`;
+    }).join('') : `<div class="empty">Aún no hay compañías.</div>`;
     el('uTenant').innerHTML = ts.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
-    el('userFilter').innerHTML = `<option value="">Todos los clientes</option>` + ts.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+    el('userFilter').innerHTML = `<option value="">Todas las compañías</option>` + ts.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
     loadUsers();
   }catch(e){}
 }
+// La política de doble factor la fija la compañía, no cada usuario.
+async function setPolitica2FA(id, nombre, actual){
+  const r = prompt('Verificación en dos pasos de "'+nombre+'"\n\n'
+    + 'Ahora: ' + actual + '\n\n'
+    + 'off      = no se usa\n'
+    + 'optional = quien quiera la activa en su perfil\n'
+    + 'required = obligatoria para todos\n\n'
+    + 'Se hace siempre con app autenticadora (Google Authenticator, Authy, Microsoft Authenticator).', actual);
+  if(r===null) return;
+  try{ await api('/admin/tenants/'+id+'/two-factor','POST',{ policy:r.trim().toLowerCase() }); loadTenants(); }
+  catch(e){ alert(e.message); }
+}
+
 async function toggleTenant(id, status){
   const next = status==='active' ? 'inactive' : 'active';
   try{ await api('/admin/tenants/'+id+'/status','POST',{status:next}); loadTenants(); }catch(e){ alert(e.message); }
@@ -1014,8 +1318,9 @@ async function loadTrainings(){
   try{
     const trs = await api('/trainings');
     el('trList').innerHTML = trs.length ? trs.map(t=>{
-      const rec = t.recurrenceMonths
-        ? `<span class="tag" style="background:#dbeafe;color:#1e40af">🔁 cada ${t.recurrenceMonths} mes(es) · reabre ${t.renewLeadDays}d antes</span>`
+      const fija = t.expiresOn ? String(t.expiresOn).slice(0,10) : null;
+      const rec = (t.recurrenceMonths || fija)
+        ? `<span class="tag" style="background:#dbeafe;color:#1e40af">🔁 ${fija ? ('vence ' + fija + (t.recurrenceMonths ? ` · rueda cada ${t.recurrenceMonths} mes(es)` : '')) : ('cada ' + t.recurrenceMonths + ' mes(es)')} · reabre ${t.renewLeadDays}d antes</span>`
         : `<span class="tag">una sola vez</span>`;
       const arch = t.status === 'archived';
       const est = arch
@@ -1023,7 +1328,9 @@ async function loadTrainings(){
         : `<span class="tag">${t.status}</span>`;
       const acciones = arch
         ? `<button class="btn sm ghost" onclick="unarchiveTraining('${t.id}','${t.title.replace(/'/g,"")}')">Restaurar</button>`
-        : `<button class="btn sm ghost" onclick="setRecurrence('${t.id}','${t.title.replace(/'/g,"")}',${t.recurrenceMonths||'null'},${t.renewLeadDays})">Recurrencia</button>
+        : `<button class="btn sm ghost" onclick="setPlayerConfig('${t.id}','${t.title.replace(/'/g,"")}')">Opciones</button>
+           <button class="btn sm ghost" onclick="setRecurrence('${t.id}','${t.title.replace(/'/g,"")}',${t.recurrenceMonths||'null'},${t.renewLeadDays},${fija?`'${fija}'`:'null'})">Vigencia</button>
+           <button class="btn sm ghost" onclick="setNotifications('${t.id}','${t.title.replace(/'/g,"")}')">Avisos</button>
            <button class="btn sm ghost" onclick="openCertConfig('${t.id}','${t.title.replace(/'/g,"")}',${t.recurrenceMonths||'null'})">Certificado</button>
            <button class="btn sm ghost" onclick="openContent('${t.id}','${t.title.replace(/'/g,"")}')">Contenido</button>
            <button class="btn sm ghost" onclick="loadResults('${t.id}','${t.title.replace(/'/g,"")}')">Resultados</button>
@@ -1036,6 +1343,30 @@ async function loadTrainings(){
     }).join('') : `<div class="empty">Sin adiestramientos.</div>`;
   }catch(e){}
 }
+// Permitir o no que el learner vuelva a la pantalla anterior mientras toma el curso,
+// dejarlo disponible para repaso tras aprobarlo, y si ve al instante si acertó cada
+// pregunta o solo se entera del resultado al terminar el intento.
+async function setPlayerConfig(id, title){
+  try{
+    const c = await api('/trainings/'+id+'/player-config');
+    const atras = c.allowBack !== false, repaso = c.reviewAfterPass === true, inmediato = c.immediateFeedback === true;
+    const resp = prompt('Opciones de "'+title+'"\n\n'
+      + '1 = ' + (atras ? 'bloquear' : 'permitir') + ' el botón Anterior (ahora: ' + (atras?'permitido':'bloqueado') + ')\n'
+      + '2 = ' + (repaso ? 'quitar' : 'dejar') + ' disponible para repaso tras aprobarlo (ahora: ' + (repaso?'sí':'no') + ')\n'
+      + '3 = ' + (inmediato ? 'calificar solo al final (recomendado para cumplimiento)' : 'mostrar de inmediato si acertó cada pregunta') + ' (ahora: ' + (inmediato?'inmediato':'al final') + ')\n\n'
+      + 'Escribe 1, 2, 3, o varios separados por coma.', '');
+    if(resp===null) return;
+    const op = resp.split(',').map(x=>x.trim());
+    const cambio = {
+      allowBack: op.includes('1') ? !atras : atras,
+      reviewAfterPass: op.includes('2') ? !repaso : repaso,
+      immediateFeedback: op.includes('3') ? !inmediato : inmediato
+    };
+    await api('/trainings/'+id+'/player-config','PUT',cambio);
+    loadTrainings();
+  }catch(e){ alert(e.message); }
+}
+
 async function renameTraining(id, title){
   const nuevo = prompt('Nuevo nombre del adiestramiento:', title);
   if(nuevo===null) return;
@@ -1060,19 +1391,56 @@ async function unarchiveTraining(id, title){
   try{ await api('/trainings/'+id+'/unarchive','POST'); loadTrainings(); }
   catch(e){ alert(e.message); }
 }
-async function setRecurrence(id, title, curMonths, curLead){
-  const mRaw = prompt('Recurrencia de "'+title+'":\n\n¿Cada cuántos MESES caduca? (vacío = una sola vez, sin caducidad)', curMonths==null?'':curMonths);
+async function setRecurrence(id, title, curMonths, curLead, curExpiresOn){
+  const mRaw = prompt('Vigencia de "'+title+'":\n\n¿Cada cuántos MESES caduca desde que cada persona lo aprueba?\n(vacío = no caduca por tiempo)', curMonths==null?'':curMonths);
   if (mRaw===null) return;
   let months = null;
   if (mRaw.trim()!==''){ months = parseInt(mRaw,10); if(isNaN(months)||months<1){ alert('Pon un número de meses (1 o más) o déjalo vacío.'); return; } }
+
+  const fRaw = prompt('¿Vence en una FECHA FIJA para todos? (AAAA-MM-DD, vacío = no)\n\n'
+    + 'Si pones fecha fija Y meses, la fecha rueda cada N meses:\n'
+    + '2026-12-31 con 12 meses = cada 31 de diciembre.', curExpiresOn ? String(curExpiresOn).slice(0,10) : '');
+  if (fRaw===null) return;
+  let expiresOn = null;
+  if (fRaw.trim()!==''){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(fRaw.trim())){ alert('La fecha va en formato AAAA-MM-DD.'); return; }
+    expiresOn = fRaw.trim();
+  }
+
   let lead = curLead||30;
-  if (months!==null){
+  if (months!==null || expiresOn!==null){
     const lRaw = prompt('¿Cuántos DÍAS antes del vencimiento debe reabrir para renovar?', String(curLead||30));
     if (lRaw===null) return;
     lead = parseInt(lRaw,10); if(isNaN(lead)||lead<0) lead = 30;
   }
-  try{ await api('/trainings/'+id+'/recurrence','POST',{recurrenceMonths:months, renewLeadDays:lead}); loadTrainings(); }
+  try{ await api('/trainings/'+id+'/recurrence','POST',{recurrenceMonths:months, renewLeadDays:lead, expiresOn}); loadTrainings(); }
   catch(e){ alert(e.message); }
+}
+
+// Avisos por correo de este curso: encendido/apagado y con cuánta anticipación.
+async function setNotifications(id, title){
+  try{
+    const c = await api('/trainings/'+id+'/notification-config');
+    const estado = c.enabled ? 'ENCENDIDOS' : 'APAGADOS';
+    const dias = (c.daysBefore||[]).join(', ') || 'ninguno';
+    const resp = prompt('Avisos por correo de "'+title+'"\n\n'
+      + 'Ahora: ' + estado + ' · al abrir: ' + (c.onOpen?'sí':'no') + ' · antes de vencer: ' + dias + ' día(s)\n\n'
+      + 'Escribe los días de anticipación separados por coma (ej. 30,15,5),\n'
+      + '"no" para apagar todos los avisos de este curso,\n'
+      + 'o "solo-vencimiento" para no avisar cuando abre.', dias === 'ninguno' ? '15,5' : dias);
+    if(resp===null) return;
+    const v = resp.trim().toLowerCase();
+
+    let cfg;
+    if(v === 'no') cfg = { enabled:false, onOpen:false, daysBefore:[] };
+    else if(v === 'solo-vencimiento') cfg = { enabled:true, onOpen:false, daysBefore:c.daysBefore||[15,5] };
+    else {
+      const dd = v.split(',').map(x=>parseInt(x.trim(),10)).filter(n=>!isNaN(n) && n>0 && n<=365);
+      cfg = { enabled:true, onOpen:true, daysBefore:dd };
+    }
+    await api('/trainings/'+id+'/notification-config','PUT',cfg);
+    loadTrainings();
+  }catch(e){ alert(e.message); }
 }
 
 // ----- Configuración del certificado por curso -----
@@ -1091,6 +1459,7 @@ async function openCertConfig(id, title, recMonths){
     el('certIssuer').value         = c.issuerName || '';
     el('certSignName').value       = c.signatoryName || '';
     el('certSignTitle').value      = c.signatoryTitle || '';
+    el('certRecipients').value     = c.recipientEmails || '';
     el('certStatement').value      = c.statement || '';
     el('certShowScore').checked    = c.showScore !== false;
     el('certShowValidity').checked = c.showValidity !== false;
@@ -1136,6 +1505,7 @@ function certFormBody(){
     issuerName:     el('certIssuer').value.trim() || null,
     signatoryName:  el('certSignName').value.trim() || null,
     signatoryTitle: el('certSignTitle').value.trim() || null,
+    recipientEmails: el('certRecipients').value.trim() || null,
     signatureDataUrl: certSignData || null,
     statement:      el('certStatement').value.trim() || null,
     showScore:      el('certShowScore').checked,
@@ -1164,7 +1534,7 @@ el('certPreviewBtn').onclick = () => {
     passPercent: 70,
     issuedAt: now.toISOString(),
     expiresAt, validity,
-    issuerName: cfg.issuerName || '«Nombre del cliente»',
+    issuerName: cfg.issuerName || '«Nombre de la compañía»',
     signatoryName: cfg.signatoryName,
     signatoryTitle: cfg.signatoryTitle,
     signatureDataUrl: cfg.signatureDataUrl,
@@ -1625,7 +1995,7 @@ function renderCohorts(){
         <button class="btn sm danger" onclick="deleteCohort('${c.id}')">Eliminar</button>
       </span>
       <div id="mem_${c.id}" class="hidden" style="flex-basis:100%;margin-top:8px;padding:10px;background:var(--soft);border-radius:8px">
-        ${asgUsers.length ? asgUsers.map(u=>`<label class="opt"><input type="checkbox" ${c.memberIds.includes(u.id)?'checked':''} onchange="toggleMember('${c.id}','${u.id}',this.checked)"> ${u.name||u.email} <span class="hint">${u.role}</span></label>`).join('') : '<span class="hint">No hay usuarios en este cliente.</span>'}
+        ${asgUsers.length ? asgUsers.map(u=>`<label class="opt"><input type="checkbox" ${c.memberIds.includes(u.id)?'checked':''} onchange="toggleMember('${c.id}','${u.id}',this.checked)"> ${u.name||u.email} <span class="hint">${u.role}</span></label>`).join('') : '<span class="hint">No hay usuarios en esta compañía.</span>'}
       </div>
     </div>`).join('') : `<div class="empty">Sin cohortes.</div>`;
 }
@@ -1749,7 +2119,15 @@ async function deleteAssignment(id){ try{ await api('/assignments/'+id,'DELETE')
 function fmtDate(s){ try{ return new Date(s).toLocaleDateString('es-PR',{year:'numeric',month:'short',day:'numeric'}); }catch{ return ''; } }
 async function loadCatalog(){
   try{
-    const cat = (await api('/catalog')).filter(c=>c.status!=='current' && c.status!=='done'); // vigentes no se listan aquí
+    const todo = await api('/catalog');
+    const cat = todo.filter(c=>c.status!=='current' && c.status!=='done'); // vigentes no se listan aquí
+    // Aprobados que el curso deja abiertos para consulta (manual del empleado, onboarding).
+    const paraRepaso = todo.filter(c=>(c.status==='current'||c.status==='done') && c.canReview);
+    el('repasoList').innerHTML = paraRepaso.length ? paraRepaso.map(c=>
+      `<div class="item">${c.title} <span class="tag" style="background:#dcfce7;color:#166534">aprobado</span>
+       <span class="sp"><button class="btn sm ghost" onclick="openRepaso('${c.versionId}','${c.title.replace(/'/g,"")}','${c.setId||''}')">Repasar ▸</button></span></div>`
+    ).join('') : '';
+    el('repasoCard').classList.toggle('hidden', paraRepaso.length===0);
     el('catalogList').innerHTML = cat.length ? cat.map(c=>{
       const st = ({
         'not-started':       {tag:'No comenzado', cls:'',                                     btn:'Tomar ▸',     go:true},
@@ -1769,6 +2147,10 @@ async function loadCatalog(){
 }
 function openPlayer(versionId, title, setId){
   window.open('player.html?v='+encodeURIComponent(versionId)+'&t='+encodeURIComponent(title)+(setId?('&set='+encodeURIComponent(setId)):'')+'&_='+Date.now(), '_blank');
+}
+// Repaso: abre el curso en modo consulta, sin crear intento ni tocar el historial.
+function openRepaso(versionId, title, setId){
+  window.open('player.html?repaso='+encodeURIComponent(versionId)+'&t='+encodeURIComponent(title)+(setId?('&set='+encodeURIComponent(setId)):'')+'&_='+Date.now(), '_blank');
 }
 function openReview(attemptId, title){
   window.open('player.html?review='+encodeURIComponent(attemptId)+'&t='+encodeURIComponent(title)+'&_='+Date.now(), '_blank');
@@ -1876,7 +2258,9 @@ if (tokenDeLaUrl()){
   mostrarSolo('resetView');
   el('rsNew').focus();
 } else if (token && user){
-  if (user.mustChangePassword) showForceChange(); else showApp();
+  if (user.mustChangePassword) showForceChange();
+  else if (user.emailVerified === false) pedirValidacionCorreo();
+  else showApp();
 }
 </script>
 
@@ -1893,7 +2277,9 @@ if (tokenDeLaUrl()){
     <div class="list" style="margin-top:18px">
       <div class="item"><span style="color:var(--muted)">Correo</span><span class="sp" id="profEmail"></span></div>
       <div class="item"><span style="color:var(--muted)">Rol</span><span class="sp" id="profRole"></span></div>
-      <div class="item"><span style="color:var(--muted)">Cliente</span><span class="sp" id="profTenant"></span></div>
+      <div class="item"><span style="color:var(--muted)">Compañía</span><span class="sp" id="profTenant"></span></div>
+      <div class="item hidden" id="profCompaniesRow"><span style="color:var(--muted)">Cambiar de compañía</span>
+        <span class="sp"><select id="profCompanies" class="field" style="max-width:260px" onchange="cambiarCompania(this.value)"></select></span></div>
     </div>
     <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
       <button class="btn sm ghost" id="togglePwdBtn" onclick="togglePwd()">🔑 Cambiar contraseña</button>
@@ -1913,11 +2299,11 @@ if (tokenDeLaUrl()){
           <b style="font-size:14px">🔐 Verificación en dos pasos</b>
           <span id="tfaEstado" class="tag">cargando…</span>
         </div>
-        <p class="sub" style="margin:6px 0 10px">Además de la contraseña, al entrar se pide un código temporal.</p>
+        <p class="sub" style="margin:6px 0 4px">Además de la contraseña, al entrar se pide el código de tu app autenticadora.</p>
+        <p class="sub" id="tfaPolitica" style="margin:0 0 10px"></p>
 
         <div id="tfaOff">
-          <button class="btn sm ghost" onclick="tfaSetup('totp')">📱 Usar app autenticadora</button>
-          <button class="btn sm ghost" onclick="tfaSetup('email')">✉️ Recibir código por correo</button>
+          <button class="btn sm ghost" onclick="tfaSetup()">📱 Activar con app autenticadora</button>
         </div>
 
         <div id="tfaTotpBox" class="hidden" style="margin-top:12px">

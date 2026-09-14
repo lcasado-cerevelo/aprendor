@@ -15,6 +15,12 @@
 
 .EXAMPLE
   .\Seed-Curso.ps1 -Url http://localhost:8086 -Email autor@cliente.com -Password "clave" -CoursePath .\course.json -Publish
+
+.EXAMPLE
+  # Actualiza el curso YA EXISTENTE (por título exacto) en vez de crear uno nuevo:
+  # reemplaza todos sus items y refresca titulo, descripcion, recurrencia y certificado.
+  # No crea un Training nuevo ni duplica el curso.
+  .\Seed-Curso.ps1 -Url http://localhost:8086 -Email autor@cliente.com -Password "clave" -CoursePath .\course.json -Update
 #>
 [CmdletBinding()]
 param(
@@ -23,6 +29,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Password,
     [Parameter(Mandatory = $true)][string]$CoursePath,
     [switch]$Publish,
+    [switch]$Update,
     [switch]$SoloProbarConexion
 )
 
@@ -91,6 +98,58 @@ if (-not $login.user.tenantId) {
 }
 if ($SoloProbarConexion) { Write-Output 'Conexion y credenciales OK. No se creo nada (-SoloProbarConexion).'; exit 0 }
 
+function Publicar-SiCorresponde($trainingId) {
+    if ($Publish) {
+        $v = Invoke-Api -Path "/trainings/$trainingId/publish" -Method 'POST'
+        Write-Output "Publicado: version $($v.versionNumber)."
+    } else {
+        Write-Output 'Queda en BORRADOR. Revisalo en la app y publicalo desde ahi, o corre de nuevo con -Publish.'
+    }
+}
+
+if ($Update) {
+    # ---- Modo actualizar: reemplaza el contenido del curso YA EXISTENTE ----
+    # No llama a POST /trainings ni POST /categories -- nunca crea un curso nuevo.
+    $trainings = Invoke-Api -Path '/trainings'
+    $existing = $trainings | Where-Object { $_.title -eq $course.training.title } | Select-Object -First 1
+    if (-not $existing) {
+        Write-Error "No hay ningun curso con el titulo exacto '$($course.training.title)' en este tenant. Corre sin -Update si quieres crearlo de nuevo."
+        exit 1
+    }
+    Write-Output "Curso existente: $($existing.title) ($($existing.id)), status actual: $($existing.status)"
+
+    Invoke-Api -Path "/trainings/$($existing.id)" -Method 'PUT' -Body @{
+        title = $course.training.title; description = $course.training.description
+    } | Out-Null
+    Invoke-Api -Path "/trainings/$($existing.id)/recurrence" -Method 'POST' -Body @{
+        recurrenceMonths = $course.training.recurrenceMonths; renewLeadDays = $course.training.renewLeadDays
+    } | Out-Null
+    Invoke-Api -Path "/trainings/$($existing.id)/certificate-config" -Method 'PUT' -Body $course.training.certificate | Out-Null
+    Write-Output "Titulo, descripcion, recurrencia y certificado actualizados."
+
+    $draft = Invoke-Api -Path "/trainings/$($existing.id)/draft"
+    Write-Output "Borrando $($draft.items.Count) items existentes del borrador..."
+    foreach ($old in $draft.items) {
+        Invoke-Api -Path "/items/$($old.id)" -Method 'DELETE' | Out-Null
+    }
+
+    $n = 0
+    foreach ($it in $items) {
+        $payloadJson = $it.payload | ConvertTo-Json -Depth 30 -Compress
+        Invoke-Api -Path "/trainings/$($existing.id)/items" -Method 'POST' -Body @{
+            type = $it.type; payloadJson = $payloadJson; points = [int]$it.points; required = $true; active = $true
+        } | Out-Null
+        $n++
+        Write-Progress -Activity 'Subiendo contenido actualizado' -Status "$n de $($items.Count)" -PercentComplete ($n * 100 / $items.Count)
+    }
+    Write-Progress -Activity 'Subiendo contenido actualizado' -Completed
+    Write-Output "$n items nuevos creados (reemplazan a los anteriores)."
+
+    Publicar-SiCorresponde $existing.id
+    exit 0
+}
+
+# ---- Modo por defecto: crea un curso nuevo ----
 # ---- Categoria ----
 $categorias = Invoke-Api -Path '/categories'
 $cat = $categorias | Where-Object { $_.name -eq $course.training.category } | Select-Object -First 1
@@ -127,10 +186,4 @@ foreach ($it in $items) {
 Write-Progress -Activity 'Subiendo contenido' -Completed
 Write-Output "$n items creados en el borrador."
 
-# ---- Publicar ----
-if ($Publish) {
-    $v = Invoke-Api -Path "/trainings/$($training.id)/publish" -Method 'POST'
-    Write-Output "Publicado: version $($v.versionNumber)."
-} else {
-    Write-Output 'Queda en BORRADOR. Revisalo en la app y publicalo desde ahi.'
-}
+Publicar-SiCorresponde $training.id

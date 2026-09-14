@@ -42,6 +42,7 @@
   .center{max-width:760px;margin:60px auto;padding:0 18px;text-align:center;color:var(--muted);}
   a{color:var(--brand);}
   .hintbox{background:#fef9c3;border:1px solid #fde68a;color:#854d0e;border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px;}
+  .hidden{display:none !important;}
 </style>
 </head>
 <body>
@@ -66,6 +67,7 @@ const versionId = params.get('v');
 const setId     = params.get('set');
 const reviewId  = params.get('review');
 const previewId = params.get('preview');
+const repasoId  = params.get('repaso');   // curso ya aprobado, abierto para consulta
 const title = params.get('t') || 'Adiestramiento';
 const token = localStorage.getItem('tp_token');
 const el = id => document.getElementById(id);
@@ -130,6 +132,16 @@ function fmtTime(s){
   return sec+'s';
 }
 let hbTimer=null, hbBound=false;
+let allowBack = true;          // opción por curso: permitir volver a la pantalla anterior
+let immediateFeedback = false; // opción por curso: ver de inmediato si acertó, o solo al final
+// No se revela CUÁL era la opción correcta al instante (eso solo pasa en /review, tras
+// aprobar) — solo si acertó o no. Así no se filtra la respuesta correcta a mitad de curso.
+function verdictBadge(isCorrect){
+  if(isCorrect===null || isCorrect===undefined) return '';
+  return isCorrect
+    ? '<span style="margin-left:8px;color:var(--ok);font-weight:700">✅ Correcto</span>'
+    : '<span style="margin-left:8px;color:var(--err);font-weight:700">❌ Incorrecto</span>';
+}
 function sendHeartbeat(){
   if(!T || !T.attemptId || T.preview || T.review) return;
   api('/attempts/'+T.attemptId+'/heartbeat','POST').catch(()=>{});
@@ -156,8 +168,15 @@ async function startTake(){
     }
     const useSet = s.setId || setId;
     const items = await api('/versions/'+versionId+'/take'+(useSet?('?setId='+encodeURIComponent(useSet)):''));
+    // Opciones del curso: volver atrás, y ver el veredicto de inmediato o solo al final.
+    try{
+      const cfg = await api('/versions/'+versionId+'/config');
+      allowBack = cfg.allowBack !== false;
+      immediateFeedback = !!cfg.immediateFeedback;
+    }catch{ allowBack = true; immediateFeedback = false; }
+    el('prevBtn').classList.toggle('hidden', !allowBack);
     if(!items.length){ el('screen').innerHTML=`<div class="center">Este adiestramiento no tiene contenido.</div>`; return; }
-    const answers = {};
+    const answers = {}, revealed = {};
     (s.responses||[]).forEach(r=>{
       try{ const a=JSON.parse(r.answerJson);
         if(a.selectedOptionId!==undefined) answers[r.itemId]={type:'single',selectedOptionId:a.selectedOptionId};
@@ -165,8 +184,18 @@ async function startTake(){
         else if(a.matches) answers[r.itemId]={type:'match',matches:a.matches};
         else if(typeof a.text==='string') answers[r.itemId]={type:'open',text:a.text};
       }catch{}
+      if(r.isCorrect!==null && r.isCorrect!==undefined) revealed[r.itemId]=r.isCorrect;
     });
-    T = { attemptId:s.attemptId, items, pages:buildPages(items), idx:0, answers, review:false };
+    const pages = buildPages(items);
+    const revealedPages = {};
+    // Si se reanuda un intento, bloquea de una vez las páginas cuyas preguntas
+    // calificables ya se contestaron — así no se puede aprovechar para cambiarlas
+    // después de haber visto (o poder ver) el veredicto.
+    if(immediateFeedback) pages.forEach((pg,i)=>{
+      const checkable = pg.items.filter(it=>isQuestion(it) && it.type!=='OpenResponse');
+      if(checkable.length>0 && checkable.every(it=>revealed[it.id]!==undefined)) revealedPages[i]=true;
+    });
+    T = { attemptId:s.attemptId, items, pages, idx:0, answers, revealed, revealedPages, review:false };
     el('nav').style.display='flex';
     renderStep();
     startHeartbeat();
@@ -209,9 +238,10 @@ function renderStep(){
   el('prevBtn').disabled = T.idx===0;
   const last = T.idx===N;
   el('nextBtn').classList.toggle('hidden', last);
+  if(!last) el('nextBtn').textContent = (immediateFeedback && T.revealedPages[T.idx]) ? 'Continuar ▸' : 'Siguiente ▸';
   if(last){
     el('finishBtn').classList.remove('hidden');
-    el('finishBtn').textContent = T.preview ? 'Cerrar (vista previa)' : 'Finalizar';
+    el('finishBtn').textContent = T.repaso ? 'Cerrar' : (T.preview ? 'Cerrar (vista previa)' : 'Finalizar');
     el('finishBtn').disabled = !canFinish();
   } else { el('finishBtn').classList.add('hidden'); }
   window.scrollTo(0,0);
@@ -225,22 +255,25 @@ function itemHtml(it){
     return renderInfo(p);
   } else if(it.type==='MultipleChoice'){
     const sel=(T.answers[it.id]||{}).selectedOptionId; const nm='w_'+it.id;
-    return `<b>${p.question||''}</b>${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">`+
-      (p.options||[]).map(o=>`<label class="opt"><input type="radio" name="${nm}" value="${o.id}" ${sel===o.id?'checked':''}/> ${o.text}</label>`).join('')+`</div>`;
+    const locked = immediateFeedback && T.revealed[it.id]!==undefined;
+    return `<b>${p.question||''}</b>${locked?verdictBadge(T.revealed[it.id]):''}${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">`+
+      (p.options||[]).map(o=>`<label class="opt"><input type="radio" name="${nm}" value="${o.id}" ${sel===o.id?'checked':''} ${locked?'disabled':''}/> ${o.text}</label>`).join('')+`</div>`;
   } else if(it.type==='MultiSelect'){
     const sel=((T.answers[it.id]||{}).selectedOptionIds)||[]; const nm='w_'+it.id;
-    return `<b>${p.question||''}</b> <span style="color:#64748b;font-size:13px">(varias correctas)</span>${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">`+
-      (p.options||[]).map(o=>`<label class="opt"><input type="checkbox" name="${nm}" value="${o.id}" ${sel.indexOf(o.id)>=0?'checked':''}/> ${o.text}</label>`).join('')+`</div>`;
+    const locked = immediateFeedback && T.revealed[it.id]!==undefined;
+    return `<b>${p.question||''}</b> <span style="color:#64748b;font-size:13px">(varias correctas)</span>${locked?verdictBadge(T.revealed[it.id]):''}${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">`+
+      (p.options||[]).map(o=>`<label class="opt"><input type="checkbox" name="${nm}" value="${o.id}" ${sel.indexOf(o.id)>=0?'checked':''} ${locked?'disabled':''}/> ${o.text}</label>`).join('')+`</div>`;
   } else if(it.type==='Matching'){
     const saved=((T.answers[it.id]||{}).matches)||{};
     const choices=p.choices||[];
+    const locked = immediateFeedback && T.revealed[it.id]!==undefined;
     const rows=(p.prompts||[]).map(pr=>`
       <div class="matchrow"><div class="mp">${pr.text}</div>
-        <select class="match" data-item="${it.id}" data-pid="${pr.id}">
+        <select class="match" data-item="${it.id}" data-pid="${pr.id}" ${locked?'disabled':''}>
           <option value="">— elige —</option>
           ${choices.map(c=>`<option value="${c.id}" ${saved[pr.id]===c.id?'selected':''}>${c.text}</option>`).join('')}
         </select></div>`).join('');
-    return `<b>${p.question||''}</b> <span style="color:#64748b;font-size:13px">(empareja cada uno)</span>${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">${rows}</div>`;
+    return `<b>${p.question||''}</b> <span style="color:#64748b;font-size:13px">(empareja cada uno)</span>${locked?verdictBadge(T.revealed[it.id]):''}${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">${rows}</div>`;
   } else if(it.type==='OpenResponse'){
     const saved=((T.answers[it.id]||{}).text)||'';
     const note = p.graded ? ' <span style="color:#64748b;font-size:13px">(la evaluará el moderador)</span>' : ' <span style="color:#64748b;font-size:13px">(respuesta abierta)</span>';
@@ -278,18 +311,21 @@ function renderSummary(){
 async function persistCurrent(){
   const page = (T.pages && T.idx<T.pages.length) ? T.pages[T.idx].items : [];
   for(const it of page){
+    // Ya se reveló (feedback inmediato) — no se vuelve a mandar, los campos están bloqueados.
+    // (T.revealed no existe en preview/repaso, que no llaman a la API igual.)
+    if(T.revealed && T.revealed[it.id]!==undefined) continue;
     if(it.type==='MultipleChoice'){
       const v=(document.querySelector('input[name="w_'+it.id+'"]:checked')||{}).value;
       if(v){ T.answers[it.id]={type:'single',selectedOptionId:v};
-        if(!T.preview) await api('/attempts/'+T.attemptId+'/answer','POST',{ itemId:it.id, answerJson:JSON.stringify({selectedOptionId:v}) }); }
+        if(!T.preview){ const r=await api('/attempts/'+T.attemptId+'/answer','POST',{ itemId:it.id, answerJson:JSON.stringify({selectedOptionId:v}) }); T.revealed[it.id]=r.isCorrect; } }
     } else if(it.type==='MultiSelect'){
       const vs=[...document.querySelectorAll('input[name="w_'+it.id+'"]:checked')].map(x=>x.value);
       if(vs.length){ T.answers[it.id]={type:'multi',selectedOptionIds:vs};
-        if(!T.preview) await api('/attempts/'+T.attemptId+'/answer','POST',{ itemId:it.id, answerJson:JSON.stringify({selectedOptionIds:vs}) }); }
+        if(!T.preview){ const r=await api('/attempts/'+T.attemptId+'/answer','POST',{ itemId:it.id, answerJson:JSON.stringify({selectedOptionIds:vs}) }); T.revealed[it.id]=r.isCorrect; } }
     } else if(it.type==='Matching'){
       const m={}; document.querySelectorAll('select.match[data-item="'+it.id+'"]').forEach(s=>{ if(s.value) m[s.dataset.pid]=s.value; });
       T.answers[it.id]={type:'match',matches:m};
-      if(!T.preview && Object.keys(m).length) await api('/attempts/'+T.attemptId+'/answer','POST',{ itemId:it.id, answerJson:JSON.stringify({matches:m}) });
+      if(!T.preview && Object.keys(m).length){ const r=await api('/attempts/'+T.attemptId+'/answer','POST',{ itemId:it.id, answerJson:JSON.stringify({matches:m}) }); T.revealed[it.id]=r.isCorrect; }
     } else if(it.type==='OpenResponse'){
       const v=(document.getElementById('open_'+it.id)||{}).value||'';
       T.answers[it.id]={type:'open',text:v};
@@ -298,8 +334,21 @@ async function persistCurrent(){
   }
 }
 
+// Con feedback inmediato activado, la primera vez que se sale de una página con
+// preguntas calificables (todas menos OpenResponse) hay que "revelar" el veredicto
+// antes de dejar avanzar: se contesta, se muestra ✅/❌ por pregunta (nunca cuál era
+// la opción correcta) y la página queda bloqueada — un segundo clic sí avanza.
 el('prevBtn').onclick = async () => { if(!T.review) await persistCurrent(); if(T.idx>0){ T.idx--; renderStep(); } };
-el('nextBtn').onclick = async () => { if(!T.review) await persistCurrent(); if(T.idx<T.pages.length){ T.idx++; renderStep(); } };
+el('nextBtn').onclick = async () => {
+  if(!T.review){
+    const page = (T.pages && T.idx<T.pages.length) ? T.pages[T.idx].items : [];
+    const checkable = page.filter(it=>isQuestion(it) && it.type!=='OpenResponse');
+    const needsCheck = immediateFeedback && checkable.length>0 && !T.revealedPages[T.idx];
+    await persistCurrent();
+    if(needsCheck){ T.revealedPages[T.idx]=true; renderStep(); return; }
+  }
+  if(T.idx<T.pages.length){ T.idx++; renderStep(); }
+};
 el('finishBtn').onclick = async () => {
   if(T.preview){ window.close(); return; }
   if(!canFinish()) return;
@@ -398,14 +447,30 @@ async function startPreview(){
   try{
     const items = await api('/versions/'+previewId+'/preview');
     if(!items.length){ el('screen').innerHTML=`<div class="center">Este adiestramiento no tiene contenido todavía.</div>`; return; }
-    T = { items, pages:buildPages(items), idx:0, answers:{}, review:false, preview:true };
+    T = { items, pages:buildPages(items), idx:0, answers:{}, revealed:{}, revealedPages:{}, review:false, preview:true };
     el('nav').style.display='flex';
     renderStep();
   }catch(e){ el('screen').innerHTML=`<div class="center">${e.message}</div>`; }
 }
 
+// ---------- REPASO (learner, curso ya aprobado: sin intento ni puntuación) ----------
+async function startRepaso(){
+  if(!guard()) return;
+  el('title').textContent = title + ' · repaso';
+  try{
+    const items = await api('/versions/'+repasoId+'/take'+(setId?('?setId='+encodeURIComponent(setId)):''));
+    if(!items.length){ el('screen').innerHTML=`<div class="center">Este adiestramiento no tiene contenido.</div>`; return; }
+    T = { items, pages:buildPages(items), idx:0, answers:{}, revealed:{}, revealedPages:{}, review:false, preview:true, repaso:true };
+    el('nav').style.display='flex';
+    el('prevBtn').classList.remove('hidden');   // en repaso siempre se puede ir y venir
+    renderStep();
+  }catch(e){ el('screen').innerHTML=`<div class="center">${e.message}</div>`; }
+}
+
 // ---------- boot ----------
-if(reviewId){
+if(repasoId){
+  startRepaso();
+} else if(reviewId){
   el('prevBtn').onclick = () => { if(T.idx>0){ T.idx--; renderStepReview(); } };
   el('nextBtn').onclick = () => { if(T.idx<T.pages.length){ T.idx++; renderStepReview(); } };
   startReview();

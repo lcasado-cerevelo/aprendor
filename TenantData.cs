@@ -19,13 +19,59 @@ public class Training
     public Guid? CategoryId { get; set; }
     public string Status { get; set; } = "draft"; // draft | published | archived
     public Guid? CreatedByUserId { get; set; }
-    public int? RecurrenceMonths { get; set; }     // null = una sola vez (sin caducidad)
+    // Vigencia. Tres modos, según qué esté puesto:
+    //   ambos null                  -> una sola vez, no caduca
+    //   RecurrenceMonths            -> vence N meses después de que CADA persona lo aprobó
+    //   ExpiresOn                   -> vence ese día para todos, sin importar cuándo lo tomaron
+    //   ExpiresOn + RecurrenceMonths-> fecha fija que rueda: 31/dic + 12 meses = 31/dic del año siguiente
+    public int? RecurrenceMonths { get; set; }
+    public DateTime? ExpiresOn { get; set; }
     public int RenewLeadDays { get; set; } = 30;   // días antes del vencimiento en que reabre para renovar
+
+    // Avisos por correo de este curso: { "enabled": true, "onOpen": true, "daysBefore": [15,5] }
+    public string NotificationConfigJson { get; set; } = "{}";
     // Plantilla del certificado ESPECÍFICA de este curso: firmante, entidad emisora, leyenda,
     // logo y qué mostrar. La estructura visual (marco, sello, folio) es común a todos los cursos;
     // esto solo sobrescribe los campos configurables. Ver CertificateConfig en Certificates.cs.
     public string CertificateConfigJson { get; set; } = "{}";
+    // Comportamiento del reproductor para este curso. Hoy: { "allowBack": true }.
+    // Un solo blob para no pedir una migración por cada opción nueva.
+    public string PlayerConfigJson { get; set; } = "{}";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+// Certificación tomada FUERA de la plataforma (OSHA, CPR, licencias, cursos
+// presenciales) que el autor del cliente sube al expediente del empleado.
+// El documento puede vivir aquí (MediaAssetId) o en otro sistema como Tempox
+// (ExternalSource + ExternalRef + ExternalUrl), sin duplicar el archivo.
+public class ExternalCertification
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }                  // AppUser.Id (catálogo)
+    public string Title { get; set; } = "";
+    public string? Issuer { get; set; }               // quién la emitió
+    public string? CredentialId { get; set; }         // folio o número de la certificación
+    public DateTime IssuedOn { get; set; }
+    public DateTime? ExpiresOn { get; set; }          // null = no caduca
+    public Guid? MediaAssetId { get; set; }           // documento subido a la plataforma
+    public string? ExternalSource { get; set; }       // p. ej. "tempox"
+    public string? ExternalRef { get; set; }          // id del documento en ese sistema
+    public string? ExternalUrl { get; set; }          // enlace para verlo allá
+    public string? Notes { get; set; }
+    public Guid? CreatedByUserId { get; set; }        // autor que la registró
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+// Recordatorios ya enviados. Existe para no repetir el mismo aviso: la clave real
+// es (UserId, TrainingId, Kind), donde Kind lleva la versión o la fecha de
+// vencimiento incrustada para que un ciclo nuevo sí vuelva a avisar.
+public class NotificationLog
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public Guid TrainingId { get; set; }
+    public string Kind { get; set; } = "";   // open:{versionId} | due15:{yyyyMMdd} | due5:{yyyyMMdd}
+    public DateTime SentAt { get; set; } = DateTime.UtcNow;
 }
 
 // Immutable published snapshot. Attempts reference a version so history never changes.
@@ -215,6 +261,8 @@ public class TenantDbContext : DbContext
     public DbSet<UserGroup> UserGroups => Set<UserGroup>();
     public DbSet<UserGroupMember> UserGroupMembers => Set<UserGroupMember>();
     public DbSet<Assignment> Assignments => Set<Assignment>();
+    public DbSet<NotificationLog> NotificationLogs => Set<NotificationLog>();
+    public DbSet<ExternalCertification> ExternalCertifications => Set<ExternalCertification>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -234,6 +282,8 @@ public class TenantDbContext : DbContext
         b.Entity<UserGroup>().ToTable("UserGroup");
         b.Entity<UserGroupMember>().ToTable("UserGroupMember");
         b.Entity<Assignment>().ToTable("Assignment");
+        b.Entity<NotificationLog>().ToTable("NotificationLog");
+        b.Entity<ExternalCertification>().ToTable("ExternalCertification");
 
         b.Entity<Training>().HasIndex(t => t.CategoryId);
         b.Entity<Training>().Property(t => t.RenewLeadDays).HasDefaultValue(30);
@@ -254,6 +304,9 @@ public class TenantDbContext : DbContext
         b.Entity<TrainingSetExclusion>().HasIndex(e => e.SetId);
         b.Entity<UserGroupMember>().HasIndex(m => new { m.UserGroupId, m.UserId }).IsUnique();
         b.Entity<Assignment>().HasIndex(a => a.TrainingId);
+        b.Entity<NotificationLog>().HasIndex(n => new { n.UserId, n.TrainingId, n.Kind }).IsUnique();
+        b.Entity<ExternalCertification>().HasIndex(c => c.UserId);
+        b.Entity<ExternalCertification>().HasIndex(c => new { c.ExternalSource, c.ExternalRef });
     }
 }
 

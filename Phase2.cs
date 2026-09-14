@@ -150,6 +150,61 @@ public static class Phase2Endpoints
             return Results.Ok(new { version.Id, version.VersionNumber, version.PublishedAt });
         }).RequireAuthorization();
 
+        // ---------------- Opciones del reproductor por curso ----------------
+        // allowBack: si el learner puede volver a la pantalla anterior mientras lo toma.
+        // immediateFeedback: si ve si acertó o falló cada pregunta al momento de contestarla,
+        // en vez de solo al terminar el intento (por defecto, apagado: se califica al final —
+        // ver la nota de diseño en PlayerConfig.ImmediateFeedback).
+        app.MapGet("/trainings/{id:guid}/player-config", async (Guid id, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            var t = await db.Trainings.FindAsync(id);
+            if (t is null) return Results.NotFound();
+            return Results.Ok(new
+            {
+                allowBack = PlayerConfig.AllowBack(t.PlayerConfigJson),
+                reviewAfterPass = PlayerConfig.ReviewAfterPass(t.PlayerConfigJson),
+                immediateFeedback = PlayerConfig.ImmediateFeedback(t.PlayerConfigJson)
+            });
+        }).RequireAuthorization();
+
+        app.MapPut("/trainings/{id:guid}/player-config", async (Guid id, PlayerConfigRequest req, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            var t = await db.Trainings.FindAsync(id);
+            if (t is null) return Results.NotFound();
+            var node = JsonNode.Parse(string.IsNullOrWhiteSpace(t.PlayerConfigJson) ? "{}" : t.PlayerConfigJson)?.AsObject() ?? new JsonObject();
+            node["allowBack"] = req.AllowBack;
+            if (req.ReviewAfterPass is bool rap) node["reviewAfterPass"] = rap;
+            if (req.ImmediateFeedback is bool ifb) node["immediateFeedback"] = ifb;
+            t.PlayerConfigJson = node.ToJsonString();
+            await db.SaveChangesAsync();
+            return Results.Ok(new
+            {
+                allowBack = req.AllowBack,
+                reviewAfterPass = PlayerConfig.ReviewAfterPass(t.PlayerConfigJson),
+                immediateFeedback = PlayerConfig.ImmediateFeedback(t.PlayerConfigJson)
+            });
+        }).RequireAuthorization();
+
+        // Lo que necesita el reproductor: se resuelve desde la versión para no
+        // cambiar la forma de /take, que ya está en uso.
+        app.MapGet("/versions/{versionId:guid}/config", async (Guid versionId, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            var cfg = await (from v in db.TrainingVersions
+                             where v.Id == versionId
+                             join t in db.Trainings on v.TrainingId equals t.Id
+                             select t.PlayerConfigJson).FirstOrDefaultAsync();
+            return Results.Ok(new
+            {
+                allowBack = PlayerConfig.AllowBack(cfg),
+                immediateFeedback = PlayerConfig.ImmediateFeedback(cfg)
+            });
+        }).RequireAuthorization();
+
         // ---------------- Renombrar, archivar y restaurar ----------------
 
         // Renombrar / editar la descripción. El título del certificado se congela al emitirse
@@ -210,10 +265,19 @@ public static class Phase2Endpoints
             var cohortIds = await db.UserGroupMembers.Where(m => m.UserId == tc.UserId)
                 .Select(m => m.UserGroupId).ToListAsync();
             var pending = await CatalogLogic.ResolveAsync(db, tc.UserId, cohortIds);
+
+            // Cursos marcados como "disponibles para repaso": el learner puede volver a
+            // abrirlos después de aprobados (manual del empleado, onboarding).
+            var ids = pending.Select(p => p.TrainingId).ToList();
+            var repaso = await db.Trainings.Where(t => ids.Contains(t.Id))
+                .Select(t => new { t.Id, t.PlayerConfigJson }).ToListAsync();
+            var puedeRepasar = repaso.ToDictionary(x => x.Id, x => PlayerConfig.ReviewAfterPass(x.PlayerConfigJson));
+
             return Results.Ok(pending.Select(p => new
             {
                 trainingId = p.TrainingId, title = p.Title, versionId = p.VersionId,
-                setId = p.SetId, status = p.Status, expiresAt = p.ExpiresAt
+                setId = p.SetId, status = p.Status, expiresAt = p.ExpiresAt,
+                canReview = puedeRepasar.TryGetValue(p.TrainingId, out var r) && r
             }));
         }).RequireAuthorization();
 
@@ -291,7 +355,7 @@ public static class Phase2Endpoints
             }
 
             var responses = await db.ItemResponses.Where(r => r.AttemptId == attempt.Id)
-                .Select(r => new { r.ItemId, r.AnswerJson }).ToListAsync();
+                .Select(r => new { r.ItemId, r.AnswerJson, r.IsCorrect }).ToListAsync();
             return Results.Ok(new { attemptId = attempt.Id, setId = attempt.SetId, responses });
         }).RequireAuthorization();
 
@@ -317,7 +381,7 @@ public static class Phase2Endpoints
             resp.NeedsGrading = item.Type == "OpenResponse" && IsGraded(item.PayloadJson);
             resp.AnsweredAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
-            return Results.Ok(new { isCorrect = correct });
+            return Results.Ok(new { isCorrect = correct, points });
         }).RequireAuthorization();
 
         // Latido: el reproductor lo manda mientras la pestaña está visible. Acumula tiempo real.
@@ -333,7 +397,7 @@ public static class Phase2Endpoints
             return Results.Ok(new { activeSeconds = attempt.ActiveSeconds });
         }).RequireAuthorization();
 
-        app.MapPost("/attempts/{attemptId:guid}/complete", async (Guid attemptId, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog, IEmailSender email) =>
+        app.MapPost("/attempts/{attemptId:guid}/complete", async (Guid attemptId, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog, IEmailSender email, IConfiguration cfg) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             var attempt = await db.Attempts.FindAsync(attemptId);
@@ -364,7 +428,11 @@ public static class Phase2Endpoints
                 var title = await (from v in db.TrainingVersions where v.Id == attempt.TrainingVersionId
                                    join t in db.Trainings on v.TrainingId equals t.Id select t.Title).FirstOrDefaultAsync();
                 await CompletionAlert.SendAsync(catalog, email, tc.TenantId, attempt.LearnerName, title, score, total);
-                certificateSerial = (await CertificateService.EnsureIssuedAsync(db, attempt))?.Serial;
+                var cert = await CertificateService.EnsureIssuedAsync(db, attempt);
+                certificateSerial = cert?.Serial;
+                // El certificado en PDF va al learner y a quien esté configurado para archivarlo.
+                if (cert is not null)
+                    await CertificateEndpoints.MailAsync(catalog, email, cert, tc.TenantId, cfg["App:BaseUrl"]);
             }
             return Results.Ok(new { attempt.Score, total, attempt.Passed, status = "completed", activeSeconds = attempt.ActiveSeconds, certificateSerial });
         }).RequireAuthorization();
@@ -488,9 +556,154 @@ public static class Phase2Endpoints
             if (t is null) return Results.NotFound();
             if (req.RecurrenceMonths is < 1) return Results.BadRequest("Los meses deben ser 1 o más (o vacío para 'una sola vez').");
             t.RecurrenceMonths = req.RecurrenceMonths;                 // null = una sola vez
+            t.ExpiresOn = req.ExpiresOn?.Date;                         // null = sin fecha fija
             t.RenewLeadDays = req.RenewLeadDays is null ? 30 : Math.Max(0, req.RenewLeadDays.Value);
             await db.SaveChangesAsync();
-            return Results.Ok(new { t.RecurrenceMonths, t.RenewLeadDays });
+            return Results.Ok(new { t.RecurrenceMonths, t.ExpiresOn, t.RenewLeadDays });
+        }).RequireAuthorization();
+
+        // ---------------- Avisos por curso ----------------
+        app.MapGet("/trainings/{id:guid}/notification-config", async (Guid id, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            var t = await db.Trainings.FindAsync(id);
+            if (t is null) return Results.NotFound();
+            var cfg = NotificationConfig.Parse(t.NotificationConfigJson);
+            return Results.Ok(new { cfg.Enabled, cfg.OnOpen, cfg.DaysBefore });
+        }).RequireAuthorization();
+
+        app.MapPut("/trainings/{id:guid}/notification-config", async (Guid id, NotificationConfig req, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            var t = await db.Trainings.FindAsync(id);
+            if (t is null) return Results.NotFound();
+            req.DaysBefore = (req.DaysBefore ?? new List<int>())
+                .Where(d => d is > 0 and <= 365).Distinct().OrderByDescending(d => d).ToList();
+            t.NotificationConfigJson = req.ToJson();
+            await db.SaveChangesAsync();
+            return Results.Ok(new { req.Enabled, req.OnOpen, req.DaysBefore });
+        }).RequireAuthorization();
+
+        // ---------------- Expediente de certificaciones ----------------
+        // Certificaciones tomadas fuera de la plataforma, registradas por el autor.
+        app.MapPost("/certifications", async (ExternalCertRequest req, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            if (string.IsNullOrWhiteSpace(req.Title)) return Results.BadRequest("Pon el nombre de la certificación.");
+            if (req.UserId == Guid.Empty) return Results.BadRequest("Falta el empleado.");
+            if (req.MediaAssetId is null && string.IsNullOrWhiteSpace(req.ExternalUrl))
+                return Results.BadRequest("Sube el documento o enlaza el que está en el otro sistema.");
+            if (req.ExpiresOn is DateTime e && e.Date < req.IssuedOn.Date)
+                return Results.BadRequest("La fecha de vencimiento no puede ser anterior a la de emisión.");
+
+            var cert = new ExternalCertification
+            {
+                UserId = req.UserId,
+                Title = req.Title.Trim(),
+                Issuer = req.Issuer?.Trim(),
+                CredentialId = req.CredentialId?.Trim(),
+                IssuedOn = req.IssuedOn.Date,
+                ExpiresOn = req.ExpiresOn?.Date,
+                MediaAssetId = req.MediaAssetId,
+                ExternalSource = req.ExternalSource?.Trim(),
+                ExternalRef = req.ExternalRef?.Trim(),
+                ExternalUrl = req.ExternalUrl?.Trim(),
+                Notes = req.Notes?.Trim(),
+                CreatedByUserId = tc.UserId
+            };
+            db.ExternalCertifications.Add(cert);
+            await db.SaveChangesAsync();
+            return Results.Ok(cert);
+        }).RequireAuthorization();
+
+        app.MapPut("/certifications/{certId:guid}", async (Guid certId, ExternalCertRequest req, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            var cert = await db.ExternalCertifications.FindAsync(certId);
+            if (cert is null) return Results.NotFound();
+            cert.Title = req.Title.Trim();
+            cert.Issuer = req.Issuer?.Trim();
+            cert.CredentialId = req.CredentialId?.Trim();
+            cert.IssuedOn = req.IssuedOn.Date;
+            cert.ExpiresOn = req.ExpiresOn?.Date;
+            if (req.MediaAssetId is not null) cert.MediaAssetId = req.MediaAssetId;
+            cert.ExternalSource = req.ExternalSource?.Trim();
+            cert.ExternalRef = req.ExternalRef?.Trim();
+            cert.ExternalUrl = req.ExternalUrl?.Trim();
+            cert.Notes = req.Notes?.Trim();
+            await db.SaveChangesAsync();
+            return Results.Ok(cert);
+        }).RequireAuthorization();
+
+        app.MapDelete("/certifications/{certId:guid}", async (Guid certId, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            var cert = await db.ExternalCertifications.FindAsync(certId);
+            if (cert is null) return Results.NotFound();
+            db.ExternalCertifications.Remove(cert);
+            await db.SaveChangesAsync();
+            return Results.Ok();
+        }).RequireAuthorization();
+
+        // Expediente completo de una persona: lo tomado en la plataforma y lo de fuera,
+        // en una sola lista ordenada. El learner ve el suyo; el autor ve el de cualquiera.
+        app.MapGet("/record/{userId:guid}", async (Guid userId, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (userId != tc.UserId && !CanAuthor(tc.Role)) return Results.Forbid();
+
+            var internos = await (from c in db.Certificates
+                                  where c.UserId == userId
+                                  select new
+                                  {
+                                      origen = "plataforma",
+                                      id = c.Id,
+                                      title = c.TrainingTitle,
+                                      issuer = (string?)null,
+                                      credentialId = c.Serial,
+                                      issuedOn = c.IssuedAt,
+                                      expiresOn = c.ExpiresAt,
+                                      documentUrl = "/certificate.html?serial=" + c.Serial,
+                                      externalSource = (string?)null,
+                                      notes = (string?)null
+                                  }).ToListAsync();
+
+            var externos = await (from c in db.ExternalCertifications
+                                  where c.UserId == userId
+                                  select new
+                                  {
+                                      origen = "externa",
+                                      id = c.Id,
+                                      title = c.Title,
+                                      issuer = c.Issuer,
+                                      credentialId = c.CredentialId,
+                                      issuedOn = c.IssuedOn,
+                                      expiresOn = c.ExpiresOn,
+                                      documentUrl = c.MediaAssetId != null ? "/media/" + c.MediaAssetId : c.ExternalUrl,
+                                      externalSource = c.ExternalSource,
+                                      notes = c.Notes
+                                  }).ToListAsync();
+
+            var todo = internos.Concat(externos).OrderByDescending(x => x.issuedOn).ToList();
+            var hoy = DateTime.UtcNow.Date;
+            return Results.Ok(todo.Select(x => new
+            {
+                x.origen, x.id, x.title, x.issuer, x.credentialId, x.issuedOn, x.expiresOn,
+                x.documentUrl, x.externalSource, x.notes,
+                vigente = x.expiresOn == null || x.expiresOn.Value.Date >= hoy
+            }));
+        }).RequireAuthorization();
+
+        app.MapGet("/me/record", async (ITenantContext tc, IServiceProvider sp, HttpContext http) =>
+        {
+            if (tc.UserId is null) return Results.BadRequest("Sin usuario.");
+            http.Response.Redirect($"/record/{tc.UserId}", permanent: false);
+            return Results.Empty;
         }).RequireAuthorization();
 
         // ---------------- Grading (open/explanation questions) ----------------
@@ -616,9 +829,8 @@ public static class Phase2Endpoints
         {
             if (!CanAuthor(tc.Role)) return Results.Forbid();
             if (tc.TenantId is null) return Results.BadRequest("No tenant context.");
-            var users = await catalog.Users.Where(u => u.TenantId == tc.TenantId)
-                .OrderBy(u => u.Name)
-                .Select(u => new { u.Id, u.Email, u.Name, u.Role }).ToListAsync();
+            var users = (await CompanyUsers.OfAsync(catalog, tc.TenantId.Value))
+                .OrderBy(u => u.Name).ToList();
             return Results.Ok(users);
         }).RequireAuthorization();
 
@@ -955,13 +1167,43 @@ public static class Phase2Endpoints
 public record AddItemRequest(string Type, string PayloadJson, int Points, bool Required, bool? Active = true, Guid? AfterItemId = null);
 public record UpdateTrainingRequest(string Title, string? Description);
 public record ConfirmTitleRequest(string ConfirmTitle);
+public record PlayerConfigRequest(bool AllowBack, bool? ReviewAfterPass = null, bool? ImmediateFeedback = null);
+
+// Lectura tolerante del blob de opciones del reproductor: si falta o está corrupto,
+// se comporta como antes (se puede volver atrás, y no queda disponible para repaso).
+public static class PlayerConfig
+{
+    public static bool AllowBack(string? json) => Leer(json, "allowBack", true);
+
+    // Manual del empleado, onboarding: una vez aprobado, el learner puede volver a
+    // abrirlo cuando quiera, sin intento nuevo y sin afectar su historial.
+    public static bool ReviewAfterPass(string? json) => Leer(json, "reviewAfterPass", false);
+
+    // Si el learner ve al instante si acertó o falló cada pregunta (en vez de solo al
+    // terminar el intento). Por defecto apagado: para cursos de cumplimiento legal es
+    // mejor calificar solo al final — combinado con allowBack, el feedback inmediato
+    // permitiría retroceder, ver que falló y corregir, sin haber sabido la respuesta la
+    // primera vez, lo cual le resta valor como evidencia de que aprendió el contenido.
+    // wwwroot/player.html bloquea la respuesta ya revelada para que no se pueda cambiar
+    // después de verla, incluso si allowBack está encendido.
+    public static bool ImmediateFeedback(string? json) => Leer(json, "immediateFeedback", false);
+
+    private static bool Leer(string? json, string clave, bool porDefecto)
+    {
+        try { return JsonNode.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json!)?[clave]?.GetValue<bool>() ?? porDefecto; }
+        catch { return porDefecto; }
+    }
+}
 public record ActiveRequest(bool Active);
 public record MoveRequest(string Direction);
 public record NameRequest(string Name);
 public record UserRefRequest(Guid UserId);
 public record SetItemRequest(Guid StableKey, bool Included);
 public record AssignRequest(Guid SetId, string TargetType, Guid TargetId);
-public record RecurrenceRequest(int? RecurrenceMonths, int? RenewLeadDays);
+public record RecurrenceRequest(int? RecurrenceMonths, int? RenewLeadDays, DateTime? ExpiresOn = null);
+public record ExternalCertRequest(Guid UserId, string Title, string? Issuer, string? CredentialId,
+    DateTime IssuedOn, DateTime? ExpiresOn, Guid? MediaAssetId, string? ExternalSource, string? ExternalRef,
+    string? ExternalUrl, string? Notes);
 public record AnswerRequest(Guid ItemId, string AnswerJson);
 public record CommentRequest(string Comment);
 public record GradeRequest(Guid ItemId, int Points, string? Comment);

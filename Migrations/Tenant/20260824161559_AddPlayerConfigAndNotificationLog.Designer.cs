@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TrainingPlatform.TenantData;
 
@@ -11,9 +12,11 @@ using TrainingPlatform.TenantData;
 namespace TrainingPlatform.Migrations.Tenant
 {
     [DbContext(typeof(TenantDbContext))]
-    partial class TenantDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260824161559_AddPlayerConfigAndNotificationLog")]
+    partial class AddPlayerConfigAndNotificationLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -204,61 +207,6 @@ namespace TrainingPlatform.Migrations.Tenant
                     b.ToTable("Certificate", (string)null);
                 });
 
-            modelBuilder.Entity("TrainingPlatform.TenantData.ExternalCertification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CredentialId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ExpiresOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ExternalRef")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ExternalSource")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ExternalUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("IssuedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Issuer")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid?>("MediaAssetId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("ExternalSource", "ExternalRef");
-
-                    b.ToTable("ExternalCertification", (string)null);
-                });
-
             modelBuilder.Entity("TrainingPlatform.TenantData.ItemResponse", b =>
                 {
                     b.Property<long>("Id")
@@ -442,13 +390,6 @@ namespace TrainingPlatform.Migrations.Tenant
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ExpiresOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("NotificationConfigJson")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PlayerConfigJson")
