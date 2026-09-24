@@ -11,6 +11,7 @@ panel diagonal con el título en mayúsculas).
 - Recurrencia **anual** (`recurrenceMonths: 12`, reabre 30 días antes de vencer).
 - `course.mjs` trae `playerConfig.presentation` (tema y transición `cover`); `seed.mjs` lo
   manda a `PUT /trainings/{id}/player-config` al crear o actualizar el curso.
+  `tools/Seed-Curso.ps1` hace lo mismo cuando `course.json` trae `training.playerConfig`.
 
 ## Uso
 

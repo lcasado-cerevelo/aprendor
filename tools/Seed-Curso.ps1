@@ -98,6 +98,16 @@ if (-not $login.user.tenantId) {
 }
 if ($SoloProbarConexion) { Write-Output 'Conexion y credenciales OK. No se creo nada (-SoloProbarConexion).'; exit 0 }
 
+# Opciones del reproductor (allowBack, reviewAfterPass, immediateFeedback y el bloque
+# `presentation` del modo 16:9). Solo se envian si course.json trae training.playerConfig;
+# si no, el servidor conserva lo que ya tenga guardado.
+function Enviar-PlayerConfig($trainingId) {
+    $pc = $course.training.playerConfig
+    if ($null -eq $pc) { return }
+    Invoke-Api -Path "/trainings/$trainingId/player-config" -Method 'PUT' -Body $pc | Out-Null
+    Write-Output "Opciones del reproductor enviadas (modo presentacion: $($pc.presentation.enabled))."
+}
+
 function Publicar-SiCorresponde($trainingId) {
     if ($Publish) {
         $v = Invoke-Api -Path "/trainings/$trainingId/publish" -Method 'POST'
@@ -125,6 +135,7 @@ if ($Update) {
         recurrenceMonths = $course.training.recurrenceMonths; renewLeadDays = $course.training.renewLeadDays
     } | Out-Null
     Invoke-Api -Path "/trainings/$($existing.id)/certificate-config" -Method 'PUT' -Body $course.training.certificate | Out-Null
+    Enviar-PlayerConfig $existing.id
     Write-Output "Titulo, descripcion, recurrencia y certificado actualizados."
 
     $draft = Invoke-Api -Path "/trainings/$($existing.id)/draft"
@@ -171,6 +182,7 @@ Invoke-Api -Path "/trainings/$($training.id)/recurrence" -Method 'POST' -Body @{
     recurrenceMonths = $course.training.recurrenceMonths; renewLeadDays = $course.training.renewLeadDays
 } | Out-Null
 Invoke-Api -Path "/trainings/$($training.id)/certificate-config" -Method 'PUT' -Body $course.training.certificate | Out-Null
+Enviar-PlayerConfig $training.id
 Write-Output "Recurrencia y certificado configurados."
 
 # ---- Items, en orden ----

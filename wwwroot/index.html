@@ -1904,6 +1904,9 @@ function showDash(){
   loadAlerts();
 }
 function showSection(id){
+  // Cumplimiento solo existe para el Admin de la compañía y los oficiales; si alguien
+  // llega aquí sin permiso (p. ej. tras cambiar de compañía), vuelve al inicio.
+  if (id==='sec-compliance' && !canCompliance()){ showDash(); return; }
   el('dashGrid').classList.add('hidden');
   SECTIONS.forEach(s=>el(s).classList.toggle('hidden', s!==id));
   window.scrollTo({ top:0 });
