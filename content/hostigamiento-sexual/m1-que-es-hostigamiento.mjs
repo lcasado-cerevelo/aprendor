@@ -1,47 +1,43 @@
-import { info, T, S, img, fig, quote, chips } from '../_shared/authoring.mjs';
+// Láminas 4-6 del deck: definición, formas y manifestaciones.
+import { slide, T, bullets } from '../_shared/authoring.mjs';
 
 export default [
-  info('¿Qué es el hostigamiento sexual bajo la Ley Núm. 17?',
-    T(`${img('https://images.unsplash.com/photo-1758873269276-9518d0cb4a0b?fm=jpg&q=60&w=1200&auto=format&fit=crop',
-        'Compañeros de trabajo interactuando de forma profesional en la oficina',
-        'Foto: Vitaly Gariev / Unsplash')}
-       ${quote('Una conducta de naturaleza sexual no deseada que afecta o interfiere con el ambiente de trabajo.', '#a21caf')}
-       ${chips(['Verbal', 'Física', 'Visual', 'Por medios electrónicos'], '#a21caf')}
-       <p>Puede involucrar a compañeros, supervisores, gerentes, clientes, suplidores u otras personas
-       relacionadas con el trabajo.</p>
-       <div style="${S.call}">No requiere contacto físico.</div>`)),
+  // Lámina 4
+  slide({ layout: 'split', title: '¿Qué es el Hostigamiento Sexual bajo la Ley Núm. 17?' },
+    T(bullets([
+      'Es una conducta de naturaleza sexual <b>no deseada</b> que afecta o interfiere con el ambiente de trabajo.',
+      'Puede ocurrir de forma verbal, física, visual o mediante medios electrónicos.',
+      'Puede involucrar a compañeros, supervisores, gerentes, clientes, suplidores u otras personas relacionadas con el trabajo.',
+      'No requiere contacto físico.',
+    ]))),
 
-  info('Formas del hostigamiento sexual',
-    T(`<div style="${S.cols2}">
-         <div>
-           <p><b>Quid pro quo</b></p>
-           <p>Ocurre cuando se condiciona un beneficio o decisión laboral a cambio de favores sexuales.</p>
-           <p style="${S.muted}">Ejemplo: "Si sales conmigo, puedo recomendarte para el ascenso."</p>
-         </div>
-         <div>
-           <p><b>Ambiente hostil</b></p>
-           <p>Conductas sexuales no deseadas que crean un ambiente intimidante, ofensivo, humillante o incómodo.
-           Puede surgir por comentarios, imágenes, mensajes, bromas o conductas repetitivas.</p>
-         </div>
-       </div>`)),
+  // Lámina 5
+  slide({ layout: 'split', title: 'Formas del hostigamiento sexual' },
+    T(bullets([
+      ['<b>Quid Pro Quo</b>', [
+        'Ocurre cuando se condiciona un beneficio o decisión laboral a cambio de favores sexuales.',
+        'Ejemplo: “Si sales conmigo, puedo recomendarte para el ascenso.”',
+      ]],
+      ['<b>Ambiente Hostil</b>', [
+        'Conductas sexuales no deseadas que crean un ambiente intimidante, ofensivo, humillante o incómodo.',
+        'Puede surgir por comentarios, imágenes, mensajes, bromas o conductas repetitivas.',
+      ]],
+    ]))),
 
-  info('¿Cómo se puede manifestar?',
-    T(`${fig(import.meta.url, './img/incomodidad.jpg',
-        'Ilustración de una sombra amenazante e intimidante detrás de una persona',
-        'Ilustración: Fast Ink / Unsplash')}
-       <p>Algunos ejemplos de hostigamiento sexual:</p>
-       <ul>
-         <li>Besos, pellizcos, apretones</li>
-         <li>Piropos</li>
-         <li>Comentar sobre lo bien que se ve la persona o hacer comentarios sobre alguna parte de su cuerpo</li>
-         <li>Hacer chistes o bromas de contenido sexual</li>
-         <li>Conductas de índole sexual en presencia de otras personas que incomoden a quien no es directamente
-             hostigada</li>
-         <li>Preguntas sobre la vida sexual de la persona</li>
-         <li>Envío de reels, videos o memes con contenido sexual</li>
-         <li>Uso de aplicaciones como WhatsApp y redes sociales para enviar acercamientos directos o indirectos</li>
-         <li>Mensajes con emojis de connotación sexual</li>
-         <li>Contacto físico no deseado</li>
-         <li>Otras conductas de índole sexual no deseada</li>
-       </ul>`)),
+  // Lámina 6 — en el deck el panel va a la derecha (contenido sobre oscuro).
+  slide({ layout: 'split', variant: 'right', title: '¿Cómo se puede manifestar el hostigamiento sexual?' },
+    T(`<p><b>Algunos ejemplos de hostigamiento sexual:</b></p>
+       ${bullets([
+         'Besos, pellizcos, apretones',
+         'Piropos',
+         'Comentar sobre lo bien que se ve la persona o hacer comentarios sobre alguna parte de su cuerpo',
+         'Hacer chistes o bromas de contenido sexual',
+         'Conductas de índole sexual en presencia de otras que incomode a la persona que no es directamente hostigada',
+         'Preguntas sobre la vida sexual de la persona',
+         'Envío de reels, videos, memes con contenido sexual',
+         'Uso de aplicaciones como WhatsApp y redes sociales para enviar acercamientos directos o indirectos.',
+         'Mensajes con emojis de connotación sexual',
+         'Contacto físico no deseado',
+         'Otras conductas de índole sexual no deseada',
+       ])}`)),
 ];

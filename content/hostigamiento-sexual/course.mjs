@@ -5,7 +5,10 @@
 // Sexual.pptx", basado en la Ley Núm. 17 de 1988 (Ley para Prohibir el
 // Hostigamiento Sexual en el Empleo) de Puerto Rico.
 //
-// 5 módulos. El último cierra con las 7 preguntas de evaluación (10 puntos c/u).
+// 21 láminas en el orden del deck (1 portada; 2-3 instrucciones y objetivo; 4-13
+// contenido; 14-20 las 7 preguntas de 10 puntos) más una lámina final de recursos
+// adicionales. Se toma en modo presentación (PlayerConfig.presentation): cada
+// lámina se dibuja en un escenario 16:9 con el estilo del deck.
 // El umbral de aprobación de la versión es 70% (TrainingVersion.PassPercent).
 // ============================================================================
 
@@ -36,6 +39,17 @@ export default {
       showScore: true,
       showValidity: true,
       accentColor: '#a21caf',
+    },
+    // Opciones del reproductor (PUT /trainings/{id}/player-config). El bloque
+    // `presentation` enciende el modo presentación con el tema del deck: fondo negro,
+    // acento naranja y el panel diagonal con el título en mayúsculas.
+    playerConfig: {
+      allowBack: true,
+      presentation: {
+        enabled: true,
+        theme: { bg: '#0d0d0d', accent: '#f97316', panel: true, panelTitle: 'HOSTIGAMIENTO SEXUAL EN EL EMPLEO' },
+        transition: 'cover',
+      },
     },
   },
 

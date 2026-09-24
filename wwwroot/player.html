@@ -43,6 +43,140 @@
   a{color:var(--brand);}
   .hintbox{background:#fef9c3;border:1px solid #fde68a;color:#854d0e;border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px;}
   .hidden{display:none !important;}
+
+  /* ===================== Modo presentación (PlayerConfig.presentation) =====================
+     Cada página se dibuja en un escenario fijo de 1280×720 escalado a la ventana. Los
+     marcadores PRES-CSS delimitan el bloque que content/<curso>/seed.mjs --preview copia
+     a preview.html para que la revisión estática se vea igual que el reproductor. */
+  /*PRES-CSS-START*/
+  :root{--pbg:#0d0d0d;--pacc:#f97316;}
+  body.pres{overflow:hidden;background:var(--pbg);}
+  body.pres>header,body.pres>.progress,body.pres>main,body.pres>.nav{display:none !important;}
+  #presRoot{display:none;}
+  body.pres #presRoot{display:block;position:fixed;inset:0;background:var(--pbg);}
+  .pstage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform:translate(-50%,-50%) scale(var(--pk,1));overflow:hidden;background:var(--pbg);}
+  .player{position:absolute;inset:0;}
+  .slide{position:absolute;inset:0;transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .35s ease;}
+  .slide.from-right{transform:translateX(100%);box-shadow:-24px 0 48px rgba(0,0,0,.45);}
+  .slide.from-right.in{transform:translateX(0);}
+  .slide.to-right{transform:translateX(100%);box-shadow:-24px 0 48px rgba(0,0,0,.45);}
+  .slide.fade-in{opacity:0;} .slide.fade-in.in{opacity:1;}
+  .slide.fade-out{opacity:0;}
+  @media (prefers-reduced-motion:reduce){ .slide{transition:none !important;} }
+
+  /* --- lámina: base --- */
+  .sl{position:absolute;inset:0;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:#fff;background:var(--pbg);line-height:1.25;}
+  .sl *{box-sizing:border-box;}
+  .sl-body{position:absolute;overflow:hidden;}
+  .sl-fit{transform-origin:top left;}
+  .sl-body p{margin:0 0 14px;}
+  .sl-body ul{margin:0 0 10px;padding-left:32px;} .sl-body li{margin:0 0 10px;}
+  .sl-body ul ul{margin:8px 0 0;list-style:disc;} .sl-body li li{margin:0 0 6px;font-size:.92em;}
+  .sl-body h2{font-size:30px;font-weight:700;margin:0 0 16px;line-height:1.15;}
+  .sl-body h3{font-size:28px;font-weight:700;text-transform:uppercase;margin:0 0 12px;line-height:1.2;}
+  .sl-body a{color:var(--pacc);}
+  .sl-body img,.sl-body video{max-width:100%;max-height:360px;border-radius:0;margin:10px 0;}
+  .sl-body .row2{margin:0;}
+  .sl-over{position:absolute;top:14px;right:14px;z-index:5;background:#dc2626;color:#fff;font:700 14px/1 system-ui,sans-serif;padding:8px 12px;border-radius:8px;}
+  .sl-kicker{margin:0;}
+
+  /* --- cover: foto a sangre + banda de título --- */
+  .sl-cover .cover-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .sl-cover .cover-band{position:absolute;left:0;right:0;top:548px;height:96px;background:rgba(255,255,255,.86);border-top:2px solid #2a2a2a;border-bottom:2px solid #2a2a2a;box-shadow:0 -5px 0 rgba(255,255,255,.75),0 5px 0 rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;text-align:center;padding:0 60px;}
+  .sl-cover .cover-band h1{margin:0;font-size:44px;font-weight:700;color:#111;line-height:1.1;}
+  .sl-cover .sl-body{left:90px;right:90px;top:660px;bottom:0;font-size:18px;}
+
+  /* --- dark: kicker en mayúsculas arriba, línea de acento, cuerpo --- */
+  .sl-dark .sl-kicker{position:absolute;left:100px;right:90px;top:44px;font-size:52px;font-weight:700;text-transform:uppercase;line-height:1.08;}
+  .sl-dark .sl-rule{position:absolute;left:88px;right:88px;top:190px;border-top:2px solid var(--pacc);}
+  .sl-dark .sl-body{left:96px;right:88px;top:216px;bottom:36px;font-size:24px;}
+  .sl-dark .sl-body h3{border-bottom:2px solid rgba(255,255,255,.45);padding-bottom:4px;margin-bottom:14px;}
+  .sl-dark.sl-mod .sl-kicker{top:250px;font-size:56px;} .sl-dark.sl-mod .sl-rule{top:400px;} .sl-dark.sl-mod .sl-body{top:420px;font-size:26px;color:#cfcfcf;}
+
+  /* --- pregunta: dark con marco de acento y opciones clicables --- */
+  .sl-q .sl-frame{position:absolute;inset:12px;border:2px solid var(--pacc);pointer-events:none;}
+  .sl-q .sl-kicker{position:absolute;left:100px;top:118px;font-size:64px;font-weight:400;text-transform:uppercase;line-height:1;}
+  .sl-q .sl-rule{position:absolute;left:14px;width:550px;top:212px;border-top:2px solid var(--pacc);}
+  .sl-q .sl-body{left:160px;right:90px;top:250px;bottom:36px;font-size:30px;}
+  .sl-q .qwrap{counter-reset:opt;}
+  .sl-q .qwrap+.qwrap{border-top:1px solid #333;margin-top:18px;padding-top:18px;}
+  .sl-q .qwrap>b{display:block;font-size:30px;font-weight:700;margin-bottom:26px;}
+  .sl-q .opt{counter-increment:opt;position:relative;display:flex;align-items:center;background:none;border:0;border-radius:8px;padding:6px 12px;margin:2px 0;font-size:30px;line-height:1.25;color:#fff;cursor:pointer;gap:0;}
+  .sl-q .opt::before{content:counter(opt,lower-alpha) ".";flex:none;width:46px;}
+  .sl-q .opt:hover{background:rgba(255,255,255,.08);}
+  .sl-q .opt:has(input:checked){background:color-mix(in srgb,var(--pacc) 18%,transparent);outline:2px solid var(--pacc);}
+  .sl-q .opt.correct{background:rgba(22,163,74,.25);} .sl-q .opt.wrong{background:rgba(220,38,38,.25);}
+  .sl-q .opt input{position:absolute;opacity:0;width:0;height:0;margin:0;}
+  .sl-q .opt .mk{margin-left:auto;color:#cfcfcf;font-size:16px;}
+  .sl-q .qwrap>.mk{color:#bbb;font-size:18px;}
+  .sl-q .matchrow{display:flex;gap:12px;align-items:center;margin:8px 0;} .sl-q .matchrow .mp{flex:1;font-size:24px;font-weight:600;}
+  .sl-q .matchrow select,.sl-q .opentext{background:#1c1c1c;color:#fff;border:1px solid #4a4a4a;font-size:22px;}
+  .sl-q .opentext{min-height:170px;} .sl-q .opentext-ro{background:#1c1c1c;border-color:#4a4a4a;font-size:22px;}
+  .sl-q .hintbox{font-size:18px;}
+
+  /* --- split: panel diagonal oscuro + contenido sobre blanco --- */
+  .sl-split{background:#fff;color:#111;}
+  .sl-split .panel{position:absolute;left:0;top:0;width:494px;height:720px;background:#1f1f1f;overflow:hidden;}
+  .sl-split .panel::before{content:"";position:absolute;inset:0;background:#2e2e2e;clip-path:polygon(18% 0,100% 0,100% 100%,69% 100%);}
+  .sl-split .ptitle{position:absolute;left:98px;width:340px;top:50%;transform:translateY(-50%);margin:0;font-size:34px;font-weight:700;text-transform:uppercase;color:#fff;line-height:1.15;z-index:2;}
+  .sl-split .sl-body{left:575px;right:80px;top:50px;bottom:36px;font-size:24px;display:flex;flex-direction:column;}
+  .sl-split .sl-fit{margin:auto 0;}   /* centrado vertical seguro: si desborda, queda arriba */
+  .sl-split .sl-body p{margin-bottom:10px;} .sl-split .sl-body li{margin-bottom:8px;}
+  .sl-split .sl-body h2{font-size:30px;margin-bottom:14px;}
+  .sl-split .sl-body h3{font-size:26px;text-transform:none;margin:4px 0 8px;}
+  /* variante right: panel blanco a la izquierda con el título en negro, contenido sobre oscuro */
+  .sl-split.right .panel{left:auto;right:0;width:960px;background:transparent;}
+  .sl-split.right .panel::before{background:#6a6a6a;clip-path:polygon(31% 0,100% 0,100% 100%,0 100%);}
+  .sl-split.right .panel::after{content:"";position:absolute;inset:0;background:#262626;clip-path:polygon(34.5% 0,100% 0,100% 100%,3.6% 100%);}
+  .sl-split.right .ptitle{color:#111;width:380px;left:100px;}
+  .sl-split.right .sl-body{left:655px;right:50px;top:36px;bottom:24px;color:#fff;font-size:23px;}
+  .sl-split.right .sl-body li{margin-bottom:6px;}
+  /* variante lines: fondo oscuro, título del panel entre dos líneas de acento */
+  .sl-split.lines{background:var(--pbg);color:#fff;}
+  .sl-split.lines .panel{width:520px;background:transparent;}
+  .sl-split.lines .panel::before{background:transparent;clip-path:none;left:105px;right:0;top:150px;bottom:150px;border-top:2px solid var(--pacc);border-bottom:2px solid var(--pacc);}
+  .sl-split.lines .ptitle{left:118px;width:400px;font-size:40px;}
+  .sl-split.lines .sl-body{left:655px;right:80px;font-size:30px;}
+  .sl-split.lines .sl-body h2{font-size:38px;}
+  /* theme.panel=false: sin panel diagonal, contenido a lo ancho con el título del panel pequeño arriba */
+  .sl-split.no-panel .panel,.sl-split.no-panel .ptitle{display:none;}
+  .sl-split.no-panel .sl-body{left:90px;right:90px;top:70px;}
+  .sl-split.no-panel .sl-kicker{position:absolute;left:90px;top:28px;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;}
+
+  /* --- photo-left: foto a la izquierda, contenido a la derecha sobre blanco --- */
+  .sl-photo{background:#fff;color:#111;}
+  .sl-photo .photo{position:absolute;left:0;top:0;width:486px;height:720px;object-fit:cover;object-position:var(--ppos,50% 50%);}
+  .sl-photo .sl-kicker{position:absolute;left:535px;right:85px;top:100px;font-size:34px;font-weight:700;text-transform:uppercase;line-height:1.15;}
+  .sl-photo .sl-rule{position:absolute;left:535px;right:85px;top:218px;border-top:3px solid var(--pacc);}
+  .sl-photo .sl-body{left:535px;right:85px;top:255px;bottom:40px;font-size:24px;}
+  .sl-photo .sl-body h2{font-size:30px;}
+
+  /* --- resumen y resultado como láminas --- */
+  .sl-sum .sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 40px;}
+  .sl-sum .sumrow{display:flex;gap:10px;border-bottom:1px solid #333;font-size:19px;padding:8px 2px;} .sl-sum .sumrow .st{margin-left:auto;}
+  .sl .res{font-size:30px;font-weight:700;text-align:center;padding:12px;margin-top:14px;border-radius:12px;}
+  .sl .res.pass{background:transparent;color:#4ade80;} .sl .res.fail{background:transparent;color:#f87171;}
+  .sl .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px;}
+  .sl .tiempo{color:#bbb !important;font-size:18px !important;text-align:center;}
+  .sl .center{margin:20px 0 0;padding:0;color:#bbb;}
+  .sl .center .btn{margin:0 6px;}
+  .sl .hintbox{background:rgba(254,249,195,.12);border-color:#a16207;color:#fde68a;font-size:16px;}
+  .sl .btn,.pbtn{padding:13px 30px;border:0;border-radius:10px;background:var(--pacc);color:#fff;font:700 17px system-ui,sans-serif;cursor:pointer;text-decoration:none;display:inline-block;}
+  .sl .btn.ghost,.pbtn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);}
+  .sl .btn:disabled,.pbtn:disabled{opacity:.45;cursor:not-allowed;}
+
+  /* --- cromo del reproductor: contador, flechas, pantalla de inicio, aviso --- */
+  .pres-counter{position:fixed;right:16px;bottom:12px;color:#fff;opacity:.6;font:600 13px system-ui,sans-serif;letter-spacing:.04em;pointer-events:none;z-index:20;}
+  .pres-arrow{position:fixed;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.5);color:#fff;font-size:22px;line-height:1;cursor:pointer;z-index:20;transition:opacity .4s;display:flex;align-items:center;justify-content:center;padding:0;}
+  .pres-arrow.l{left:14px;} .pres-arrow.r{right:14px;}
+  .pres-arrow:hover{background:rgba(0,0,0,.75);}
+  #presRoot.idle .pres-arrow{opacity:0;}
+  .pres-start{position:fixed;inset:0;z-index:30;background:var(--pbg);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;font-family:Arial,Helvetica,sans-serif;}
+  .pres-start h1{font-size:34px;margin:0 0 12px;text-transform:uppercase;max-width:800px;}
+  .pres-start p{color:#a3a3a3;margin:0 0 28px;font-size:15px;max-width:520px;line-height:1.5;}
+  .pres-toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:10px;font:600 14px system-ui,sans-serif;z-index:25;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;}
+  .pres-toast.show{opacity:1;}
+  /*PRES-CSS-END*/
 </style>
 </head>
 <body>
@@ -59,6 +193,20 @@
   <button class="btn ghost" id="prevBtn">◂ Anterior</button>
   <button class="btn" id="nextBtn" style="margin-left:auto">Siguiente ▸</button>
   <button class="btn ok hidden" id="finishBtn" style="margin-left:auto">Finalizar</button>
+</div>
+<!-- Modo presentación: escenario 16:9 escalado, contador, flechas y pantalla de inicio.
+     Solo se muestra cuando la configuración del curso trae presentation.enabled. -->
+<div id="presRoot">
+  <div class="pstage" id="presStage"><div class="player" id="presLayer"></div></div>
+  <button class="pres-arrow l" id="presPrev" title="Anterior (←)">&#9664;</button>
+  <button class="pres-arrow r" id="presNext" title="Siguiente (→)">&#9654;</button>
+  <div class="pres-counter" id="presCounter"></div>
+  <div class="pres-toast" id="presToast"></div>
+  <div class="pres-start hidden" id="presStart">
+    <h1 id="presStartTitle"></h1>
+    <p>Avanza con → o Espacio y retrocede con ←. Esc sale de pantalla completa sin cerrar el adiestramiento.</p>
+    <button class="pbtn" id="presStartBtn">Comenzar</button>
+  </div>
 </div>
 
 <script>
@@ -96,8 +244,26 @@ function blockHtml(b){
   if(b.type==='media') return mediaEl(b.mediaUrl,b.mediaType);
   return '';
 }
+// Cuerpo de una pantalla Info (solo los bloques, sin título): lo comparten el modo
+// clásico y las láminas del modo presentación.
+function infoBody(p){
+  let h = '';
+  if(Array.isArray(p.blocks)){
+    const bl=p.blocks; let i=0;
+    while(i<bl.length){
+      const b=bl[i];
+      if(b.span==='half' && i+1<bl.length && bl[i+1].span==='half'){
+        h += `<div class="row2"><div>${blockHtml(b)}</div><div>${blockHtml(bl[i+1])}</div></div>`;
+        i+=2;
+      } else { h += blockHtml(b); i++; }
+    }
+  } else { h += mediaEl(p.mediaUrl,p.mediaType) + `<div>${p.bodyHtml||''}</div>`; }
+  return h;
+}
 function renderInfo(p){
   let h = p.title ? `<h2>${p.title}</h2>` : '';
+  // Foto de lámina (cover / photo-left): en modo clásico se muestra como una imagen más.
+  if(p.photo) h += `<img src="${p.photo}" alt="" />`;
   if(Array.isArray(p.blocks)){
     const bl=p.blocks; let i=0;
     while(i<bl.length){
@@ -173,6 +339,7 @@ async function startTake(){
       const cfg = await api('/versions/'+versionId+'/config');
       allowBack = cfg.allowBack !== false;
       immediateFeedback = !!cfg.immediateFeedback;
+      presActivate(cfg);
     }catch{ allowBack = true; immediateFeedback = false; }
     el('prevBtn').classList.toggle('hidden', !allowBack);
     if(!items.length){ el('screen').innerHTML=`<div class="center">Este adiestramiento no tiene contenido.</div>`; return; }
@@ -197,6 +364,7 @@ async function startTake(){
     });
     T = { attemptId:s.attemptId, items, pages, idx:0, answers, revealed, revealedPages, review:false };
     el('nav').style.display='flex';
+    presBegin();
     renderStep();
     startHeartbeat();
   }catch(e){ el('screen').innerHTML=`<div class="center">${e.message}</div>`; }
@@ -225,12 +393,15 @@ function setModuleHeader(){ el('moduleLabel').textContent = (T.pages && T.idx < 
 
 function renderStep(){
   const N=T.pages.length;
-  if(T.idx < N){
+  if(PRES){
+    presShow(T.idx < N ? presPageHtml(T.pages[T.idx]) : presSummaryHtml(), T.idx - (T.lastIdx ?? T.idx));
+  } else if(T.idx < N){
     el('screen').innerHTML = T.pages[T.idx].items.map((it,i)=>{
       const sep = i>0 ? 'border-top:1px solid #e2e8f0;margin-top:18px;padding-top:18px' : '';
       return `<div style="${sep}">${itemHtml(it)}</div>`;
     }).join('');
   } else renderSummary();
+  T.lastIdx = T.idx;
   setModuleHeader();
   const total=N+1;
   el('progressText').textContent = `Página ${T.idx+1} de ${total}`;
@@ -244,6 +415,7 @@ function renderStep(){
     el('finishBtn').textContent = T.repaso ? 'Cerrar' : (T.preview ? 'Cerrar (vista previa)' : 'Finalizar');
     el('finishBtn').disabled = !canFinish();
   } else { el('finishBtn').classList.add('hidden'); }
+  if(PRES) presChrome();
   window.scrollTo(0,0);
 }
 
@@ -293,19 +465,20 @@ function summaryRows(){
   }).join('');
 }
 
-function renderSummary(){
-  let html=`<h2>Resumen del adiestramiento</h2><div style="margin-top:6px">${summaryRows()}</div>`;
+// Pie del resumen (resultado en revisión, aviso de vista previa o de preguntas pendientes).
+function summaryFoot(){
   if(T.review){
     const pct=T.totalPts?Math.round(T.score*100/T.totalPts):100;
-    html+=`<div class="res ${T.passed?'pass':'fail'}">${T.passed?'✅ Aprobado':'❌ No aprobado'} — ${T.score} pts (${pct}%)</div>
+    return `<div class="res ${T.passed?'pass':'fail'}">${T.passed?'✅ Aprobado':'❌ No aprobado'} — ${T.score} pts (${pct}%)</div>
       <div style="color:#64748b;font-size:13px;margin-top:8px;text-align:center">⏱️ Tiempo en el curso: ${fmtTime(T.activeSeconds)}</div>
       <div class="center"><button class="btn ghost" onclick="window.close()">Cerrar pestaña</button></div>`;
-  } else if(T.preview){
-    html+=`<div class="hintbox">Vista previa — así verá el learner el curso. No se registra ningún intento.</div>`;
-  } else {
-    if(pendingRequired()>0) html+=`<div class="hintbox">Te faltan preguntas obligatorias por contestar. Usa “Anterior” para volver y completarlas; el botón Finalizar se activará cuando todas estén contestadas.</div>`;
   }
-  el('screen').innerHTML=html;
+  if(T.preview) return `<div class="hintbox">Vista previa — así verá el learner el curso. No se registra ningún intento.</div>`;
+  if(pendingRequired()>0) return `<div class="hintbox">Te faltan preguntas obligatorias por contestar. Usa “Anterior” para volver y completarlas; el botón Finalizar se activará cuando todas estén contestadas.</div>`;
+  return '';
+}
+function renderSummary(){
+  el('screen').innerHTML=`<h2>Resumen del adiestramiento</h2><div style="margin-top:6px">${summaryRows()}</div>${summaryFoot()}`;
 }
 
 async function persistCurrent(){
@@ -338,8 +511,8 @@ async function persistCurrent(){
 // preguntas calificables (todas menos OpenResponse) hay que "revelar" el veredicto
 // antes de dejar avanzar: se contesta, se muestra ✅/❌ por pregunta (nunca cuál era
 // la opción correcta) y la página queda bloqueada — un segundo clic sí avanza.
-el('prevBtn').onclick = async () => { if(!T.review) await persistCurrent(); if(T.idx>0){ T.idx--; renderStep(); } };
-el('nextBtn').onclick = async () => {
+async function goPrev(){ if(!T.review) await persistCurrent(); if(T.idx>0){ T.idx--; renderStep(); } }
+async function goNext(){
   if(!T.review){
     const page = (T.pages && T.idx<T.pages.length) ? T.pages[T.idx].items : [];
     const checkable = page.filter(it=>isQuestion(it) && it.type!=='OpenResponse');
@@ -348,24 +521,31 @@ el('nextBtn').onclick = async () => {
     if(needsCheck){ T.revealedPages[T.idx]=true; renderStep(); return; }
   }
   if(T.idx<T.pages.length){ T.idx++; renderStep(); }
-};
+}
+el('prevBtn').onclick = goPrev;
+el('nextBtn').onclick = goNext;
+// Pantalla final (resultado): en modo presentación va como lámina; si no, al panel de siempre.
+function showFinal(html){
+  if(PRES){ presShow(`<div class="sl sl-dark"><h1 class="sl-kicker">${panelTitle()}</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit">${html}</div></div></div>`, 1); presChrome(true); }
+  else el('screen').innerHTML=html;
+}
 el('finishBtn').onclick = async () => {
   if(T.preview){ window.close(); return; }
   if(!canFinish()) return;
   stopHeartbeat();
   try{
     const r=await api('/attempts/'+T.attemptId+'/complete','POST');
-    const tiempo = `<div style="color:#64748b;font-size:13px;margin-top:8px">⏱️ Tiempo en el curso: ${fmtTime(r.activeSeconds)}</div>`;
+    const tiempo = `<div class="tiempo" style="color:#64748b;font-size:13px;margin-top:8px">⏱️ Tiempo en el curso: ${fmtTime(r.activeSeconds)}</div>`;
     if(r.pendingGrading || r.status==='pending-grading'){
-      el('screen').innerHTML=`<div class="res" style="background:#fef9c3;color:#854d0e">📝 Respuestas enviadas<br>Tienes preguntas abiertas pendientes de evaluación del moderador. Tu resultado final aparecerá cuando las califiquen.</div>${tiempo}
-        <div class="center"><button class="btn ghost" onclick="window.close()">Cerrar pestaña</button></div>`;
+      showFinal(`<div class="res" style="background:#fef9c3;color:#854d0e">📝 Respuestas enviadas<br>Tienes preguntas abiertas pendientes de evaluación del moderador. Tu resultado final aparecerá cuando las califiquen.</div>${tiempo}
+        <div class="center"><button class="btn ghost" onclick="window.close()">Cerrar pestaña</button></div>`);
     } else {
       const pct=r.total?Math.round(r.score*100/r.total):100;
       const cert = (r.passed && r.certificateSerial)
         ? `<a class="btn" style="text-decoration:none" href="/certificate.html?attempt=${T.attemptId}" target="_blank" rel="noopener">📜 Descargar certificado</a>`
         : '';
-      el('screen').innerHTML=`<div class="res ${r.passed?'pass':'fail'}">${r.passed?'✅ Aprobado':'❌ No aprobado'}<br>${r.score} / ${r.total} puntos (${pct}%)</div>${tiempo}
-        <div class="center" style="gap:10px;display:flex;justify-content:center;flex-wrap:wrap">${cert}<button class="btn ghost" onclick="window.close()">Cerrar pestaña</button></div>`;
+      showFinal(`<div class="res ${r.passed?'pass':'fail'}">${r.passed?'✅ Aprobado':'❌ No aprobado'}<br>${r.score} / ${r.total} puntos (${pct}%)</div>${tiempo}
+        <div class="center" style="gap:10px;display:flex;justify-content:center;flex-wrap:wrap">${cert}<button class="btn ghost" onclick="window.close()">Cerrar pestaña</button></div>`);
     }
     el('nav').style.display='none'; el('progressBar').style.width='100%';
   }catch(e){ alert(e.message); }
@@ -447,8 +627,10 @@ async function startPreview(){
   try{
     const items = await api('/versions/'+previewId+'/preview');
     if(!items.length){ el('screen').innerHTML=`<div class="center">Este adiestramiento no tiene contenido todavía.</div>`; return; }
+    try{ presActivate(await api('/versions/'+previewId+'/config')); }catch{}
     T = { items, pages:buildPages(items), idx:0, answers:{}, revealed:{}, revealedPages:{}, review:false, preview:true };
     el('nav').style.display='flex';
+    presBegin();
     renderStep();
   }catch(e){ el('screen').innerHTML=`<div class="center">${e.message}</div>`; }
 }
@@ -460,11 +642,217 @@ async function startRepaso(){
   try{
     const items = await api('/versions/'+repasoId+'/take'+(setId?('?setId='+encodeURIComponent(setId)):''));
     if(!items.length){ el('screen').innerHTML=`<div class="center">Este adiestramiento no tiene contenido.</div>`; return; }
+    try{ presActivate(await api('/versions/'+repasoId+'/config')); }catch{}
     T = { items, pages:buildPages(items), idx:0, answers:{}, revealed:{}, revealedPages:{}, review:false, preview:true, repaso:true };
     el('nav').style.display='flex';
     el('prevBtn').classList.remove('hidden');   // en repaso siempre se puede ir y venir
+    presBegin();
     renderStep();
   }catch(e){ el('screen').innerHTML=`<div class="center">${e.message}</div>`; }
+}
+
+// ---------- MODO PRESENTACIÓN ----------
+// Se enciende solo si /versions/{id}/config trae presentation.enabled. Cada página se
+// dibuja como una lámina de 1280×720 dentro de #presStage, que se escala a la ventana;
+// el header, la barra de progreso y la barra de botones se ocultan y quedan el contador,
+// dos flechas (se atenúan a los 2 s sin mover el ratón) y el teclado. Sin este bloque
+// activo, nada de lo de arriba cambia de comportamiento.
+let PRES = null;                 // { theme:{bg,accent,panel,panelTitle}, transition }
+let presCur = null;              // lámina actualmente visible dentro de #presLayer
+let navLock = false;             // evita avanzar dos páginas con dos teclas seguidas
+const motionOk = !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+function presActivate(cfg){
+  const p = cfg && cfg.presentation;
+  if(!p || !p.enabled || PRES) return;
+  PRES = {
+    theme: Object.assign({ bg:'#0d0d0d', accent:'#f97316', panel:true, panelTitle:'' }, p.theme||{}),
+    transition: ['cover','fade','none'].includes(p.transition) ? p.transition : 'cover'
+  };
+  document.documentElement.style.setProperty('--pbg', PRES.theme.bg);
+  document.documentElement.style.setProperty('--pacc', PRES.theme.accent);
+  document.body.classList.add('pres');
+  presFit(); window.addEventListener('resize', presFit);
+  el('presPrev').onclick = ()=>presNav(goPrev);
+  el('presNext').onclick = ()=>presNav(goNext);
+  presWake();
+}
+function presFit(){ el('presStage').style.setProperty('--pk', Math.min(innerWidth/1280, innerHeight/720)); }
+function panelTitle(){ return ((PRES && PRES.theme.panelTitle) || '').trim() || title.toUpperCase(); }
+
+// Pantalla de inicio: pide pantalla completa (si el navegador lo niega, sigue igual).
+function presBegin(){
+  if(!PRES) return;
+  el('presStartTitle').textContent = title;
+  el('presStart').classList.remove('hidden');
+  el('presStartBtn').onclick = ()=>{
+    try{ const r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); if(r && r.catch) r.catch(()=>{}); }catch{}
+    el('presStart').classList.add('hidden');
+    presWake();
+  };
+}
+
+async function presNav(fn){ if(navLock || !T) return; navLock=true; try{ await fn(); } finally{ navLock=false; } }
+
+// Contador «4 / 21» y flechas según la página; `final` = ya se mostró el resultado.
+function presChrome(final){
+  const N = T.pages.length;
+  el('presCounter').textContent = final ? '' : `${T.idx+1} / ${N+1}`;
+  const canPrev = !final && T.idx>0 && !el('prevBtn').classList.contains('hidden');
+  el('presPrev').classList.toggle('hidden', !canPrev);
+  el('presNext').classList.toggle('hidden', !!final || T.idx>=N);
+}
+
+let idleTimer=null;
+function presWake(){
+  el('presRoot').classList.remove('idle');
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(()=>el('presRoot').classList.add('idle'), 2000);
+}
+document.addEventListener('mousemove', ()=>{ if(PRES) presWake(); });
+
+let toastTimer=null;
+function presToast(msg){
+  const t=el('presToast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+// Enter/Espacio solo avanzan si la(s) pregunta(s) de la lámina ya tienen respuesta
+// (se lee del DOM, igual que persistCurrent). Las flechas se comportan como «Siguiente».
+function pageAnswered(){
+  if(T.idx>=T.pages.length) return true;
+  for(const it of T.pages[T.idx].items){
+    if(!isQuestion(it)) continue;
+    if(T.revealed && T.revealed[it.id]!==undefined) continue;
+    if(it.type==='MultipleChoice' || it.type==='MultiSelect'){
+      if(!document.querySelector('input[name="w_'+it.id+'"]:checked')) return false;
+    } else if(it.type==='Matching'){
+      if([...document.querySelectorAll('select.match[data-item="'+it.id+'"]')].some(s=>!s.value)) return false;
+    } else if(it.type==='OpenResponse'){
+      if(!((document.getElementById('open_'+it.id)||{}).value||'').trim()) return false;
+    }
+  }
+  return true;
+}
+document.addEventListener('keydown', e=>{
+  if(!PRES || !T) return;
+  if(!el('presStart').classList.contains('hidden')){
+    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); el('presStartBtn').click(); }
+    return;
+  }
+  if(e.altKey || e.ctrlKey || e.metaKey) return;
+  const tag = (e.target.tagName||'').toLowerCase();
+  if(tag==='textarea' || tag==='select' || tag==='button' || tag==='a') return;
+  if(tag==='input' && (e.target.type==='text' || e.key===' ')) return;   // espacio sobre un radio lo marca
+  const fwd = ['ArrowRight','ArrowDown',' ','Enter','PageDown'], back = ['ArrowLeft','ArrowUp','PageUp'];
+  if(fwd.includes(e.key)){
+    e.preventDefault();
+    if(T.idx>=T.pages.length) return;                       // en el resumen se termina con el botón
+    if((e.key===' ' || e.key==='Enter') && !pageAnswered()){ presToast('Contesta para continuar'); return; }
+    presNav(goNext);
+  } else if(back.includes(e.key)){
+    e.preventDefault();
+    if(!el('presPrev').classList.contains('hidden')) presNav(goPrev);
+  }
+  // Esc: el navegador sale de pantalla completa por su cuenta; el intento sigue abierto.
+});
+
+// ---- Láminas ----
+function slideWrap(cls, chrome, body, style){
+  return `<div class="sl ${cls}"${style?` style="${style}"`:''}>${chrome}<div class="sl-body"><div class="sl-fit">${body}</div></div></div>`;
+}
+function presInfoSlide(p){
+  const layout = p.layout || 'dark';
+  const body = infoBody(p);
+  const tt = p.title ? `<h2>${p.title}</h2>` : '';
+  if(layout==='cover')
+    return slideWrap('sl-cover', `<img class="cover-photo" src="${p.photo||''}" alt="" /><div class="cover-band"><h1>${p.title||''}</h1></div>`, body);
+  if(layout==='photo-left')
+    return slideWrap('sl-photo', `<img class="photo" src="${p.photo||''}" alt="" /><h1 class="sl-kicker">${p.kicker||panelTitle()}</h1><div class="sl-rule"></div>`,
+                     tt+body, p.photoPos ? `--ppos:${p.photoPos}` : '');
+  if(layout==='split'){
+    const v = (p.variant && p.variant!=='left') ? ' '+p.variant : '';
+    const np = PRES.theme.panel===false ? ' no-panel' : '';
+    return slideWrap('sl-split'+v+np, `<div class="panel"></div><h1 class="ptitle">${panelTitle()}</h1>${np?`<div class="sl-kicker">${panelTitle()}</div>`:''}`, tt+body);
+  }
+  // dark: el título va en el cuerpo como subtítulo en mayúsculas, salvo que el cuerpo ya traiga uno.
+  const sub = (p.title && !/<h3[\s>]/i.test(body)) ? `<h3>${p.title}</h3>` : '';
+  return slideWrap('sl-dark', `<h1 class="sl-kicker">${p.kicker||panelTitle()}</h1><div class="sl-rule"></div>`, sub+body);
+}
+function qNumber(it){ return T.items.filter(isQuestion).indexOf(it)+1; }
+function presPageHtml(page){
+  const items = page.items;
+  if(items.length===1){
+    const it=items[0]; let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
+    if(it.type==='Info') return presInfoSlide(p);
+    if(it.type==='ModuleHeader')
+      return slideWrap('sl-dark sl-mod', `<h1 class="sl-kicker">${p.title||''}</h1><div class="sl-rule"></div>`, `<p>${p.subtitle||''}</p>`);
+  }
+  // Pregunta(s) — o varios ítems en la misma página: lámina oscura con marco de acento.
+  const qs = items.filter(isQuestion);
+  const kicker = qs.length ? 'Pregunta '+qNumber(qs[0])+(qs.length>1?` – ${qNumber(qs[qs.length-1])}`:'') : panelTitle();
+  const body = items.map(it=>`<div class="qwrap">${itemHtml(it)}</div>`).join('');
+  return slideWrap('sl-dark sl-q', `<div class="sl-frame"></div><h1 class="sl-kicker">${kicker}</h1><div class="sl-rule"></div>`, body);
+}
+function presSummaryHtml(){
+  const rows = T.items.filter(isQuestion).map(it=>{
+    let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
+    const ok = isAnswered(it);
+    return `<div class="sumrow">${ok?'✓':'✗'} ${p.question||'Pregunta'}<span class="st">${ok?'contestada':'sin contestar'}</span></div>`;
+  }).join('');
+  let actions='';
+  if(!T.review){
+    const label = T.repaso ? 'Cerrar' : (T.preview ? 'Cerrar (vista previa)' : 'Finalizar');
+    actions = `<div class="actions"><button class="pbtn" onclick="el('finishBtn').click()" ${canFinish()?'':'disabled'}>${label}</button>` +
+              (el('prevBtn').classList.contains('hidden') ? '' : `<button class="pbtn ghost" onclick="presNav(goPrev)">Volver</button>`) + `</div>`;
+  }
+  return slideWrap('sl-dark sl-sum', `<h1 class="sl-kicker">Resumen del adiestramiento</h1><div class="sl-rule"></div>`,
+    `<p>${answeredCount()} de ${questionCount()} preguntas contestadas.</p><div class="sumgrid">${rows}</div>${summaryFoot()}${actions}`);
+}
+
+// Mete la lámina nueva en el escenario con la transición configurada. dir>0 avanza,
+// dir<0 retrocede, 0 = misma página (p. ej. al revelar el veredicto): sin animación.
+function presShow(html, dir){
+  const layer = el('presLayer');
+  [...layer.children].forEach(c=>{ if(c!==presCur) layer.removeChild(c); });   // restos de una transición a medias
+  const old = presCur;
+  const s = document.createElement('div'); s.className='slide'; s.innerHTML=html;
+  presCur = s;
+  const mode = (!old || !dir || !motionOk) ? 'none' : PRES.transition;
+  const drop = ()=>{ if(old && old.parentNode===layer) layer.removeChild(old); };
+  const next2 = fn => requestAnimationFrame(()=>requestAnimationFrame(fn));
+  if(mode==='cover' && dir>0){
+    s.classList.add('from-right'); layer.appendChild(s);
+    next2(()=>s.classList.add('in'));
+    setTimeout(()=>{ drop(); s.classList.remove('from-right','in'); }, 480);
+  } else if(mode==='cover'){
+    layer.insertBefore(s, old);
+    next2(()=>old.classList.add('to-right'));
+    setTimeout(drop, 480);
+  } else if(mode==='fade'){
+    s.classList.add('fade-in'); layer.appendChild(s);
+    next2(()=>{ s.classList.add('in'); old.classList.add('fade-out'); });
+    setTimeout(()=>{ drop(); s.classList.remove('fade-in','in'); }, 400);
+  } else {
+    layer.innerHTML=''; layer.appendChild(s);
+  }
+  presFitOverflow(s);
+}
+// Control de desborde: si el cuerpo no cabe en la lámina, en modo autor (vista previa)
+// se marca «Excede la lámina»; en modo normal se encoge el bloque en pasos hasta 80 %.
+function presFitOverflow(s){
+  const body = s.querySelector('.sl-body'), fit = s.querySelector('.sl-fit');
+  if(!body || !fit) return;
+  const avail = body.clientHeight;
+  if(fit.scrollHeight <= avail+1) return;
+  if(T && T.preview && !T.repaso){
+    const b=document.createElement('div'); b.className='sl-over'; b.textContent='Excede la lámina';
+    s.firstElementChild.appendChild(b); return;
+  }
+  for(const k of [0.95,0.9,0.85,0.8]){
+    fit.style.transform=`scale(${k})`; fit.style.width=`${100/k}%`;
+    if(fit.scrollHeight*k <= avail+1) break;
+  }
 }
 
 // ---------- boot ----------
