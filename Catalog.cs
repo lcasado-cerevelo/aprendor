@@ -18,6 +18,115 @@ public class Tenant
     //   optional = quien quiera lo activa desde su perfil
     //   required = obligatorio; sin él no se entra
     public string TwoFactorPolicy { get; set; } = "optional";
+
+    // Reglas de cumplimiento de la compañía (blob JSON, ver ComplianceConfig):
+    // a quién más se copia, cómo se entrega el certificado y cadencia de avisos.
+    public string ComplianceConfigJson { get; set; } = "{}";
+}
+
+// Enlace directo a un certificado (GET /c/{token}), con vencimiento. Vive en el
+// catálogo porque el enlace es anónimo: hay que saber de qué compañía es ANTES de
+// conectarse a su base. Del token solo se guarda el hash (SHA-256 en base64): quien
+// lea la tabla no puede abrir ningún certificado.
+public class CertificateLink
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public Guid CertificateId { get; set; }             // Certificate.Id en la base de la compañía
+    public string Purpose { get; set; } = "learner";    // learner | officer | extra
+    public string TokenHash { get; set; } = "";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAt { get; set; }
+    public int AccessCount { get; set; }
+    public DateTime? LastAccessAt { get; set; }
+    public DateTime? RevokedAt { get; set; }            // no nulo = revocado a mano
+}
+
+// Reglas de cumplimiento por compañía, guardadas en Tenant.ComplianceConfigJson.
+// Lectura tolerante (como NotificationConfig): si el blob falta, está corrupto o
+// trae valores fuera de rango, se usa el valor por defecto de ese campo.
+public class ComplianceConfig
+{
+    // Correos que reciben copia del certificado y de los resúmenes, además de los
+    // oficiales de cumplimiento marcados.
+    public List<string> ExtraEmails { get; set; } = new();
+    public int DueSoonDays { get; set; } = 30;                  // ventana de "por vencer"
+    public string DigestFrequency { get; set; } = "weekly";     // daily | weekly | monthly
+    public string DigestDayOfWeek { get; set; } = "Monday";     // solo weekly
+    public int DigestDayOfMonth { get; set; } = 1;              // solo monthly
+    public int DigestHour { get; set; } = 8;                    // hora local mínima de envío
+    public int ExpiredRepeatDays { get; set; } = 14;            // cada cuánto se repite un vencido
+    public bool IncludeNotStarted { get; set; } = true;
+    public string CertificateDelivery { get; set; } = "link";   // link | attachment
+    public int LinkDays { get; set; } = 30;                     // vigencia del enlace del certificado
+
+    public static ComplianceConfig Parse(string? json)
+    {
+        var cfg = new ComplianceConfig();
+        System.Text.Json.Nodes.JsonObject? n;
+        try { n = System.Text.Json.Nodes.JsonNode.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json!) as System.Text.Json.Nodes.JsonObject; }
+        catch { return cfg; }
+        if (n is null) return cfg;
+
+        // Cada campo por separado: uno malo no tumba a los demás.
+        if (n["extraEmails"] is System.Text.Json.Nodes.JsonArray arr)
+            cfg.ExtraEmails = LimpiarCorreos(arr.Select(x => Texto(x)));
+        else if (Texto(n["extraEmails"]) is string lista)   // también "a@x.com, b@y.com"
+            cfg.ExtraEmails = LimpiarCorreos(lista.Split(',', ';'));
+
+        cfg.DueSoonDays = Entero(n["dueSoonDays"], 1, 365) ?? cfg.DueSoonDays;
+        var freq = Texto(n["digestFrequency"])?.Trim().ToLowerInvariant();
+        if (freq is "daily" or "weekly" or "monthly") cfg.DigestFrequency = freq;
+        if (Enum.TryParse<DayOfWeek>(Texto(n["digestDayOfWeek"])?.Trim(), true, out var dia) && Enum.IsDefined(dia))
+            cfg.DigestDayOfWeek = dia.ToString();
+        cfg.DigestDayOfMonth = Entero(n["digestDayOfMonth"], 1, 31) ?? cfg.DigestDayOfMonth;
+        cfg.DigestHour = Entero(n["digestHour"], 0, 23) ?? cfg.DigestHour;
+        cfg.ExpiredRepeatDays = Entero(n["expiredRepeatDays"], 1, 365) ?? cfg.ExpiredRepeatDays;
+        try { if (n["includeNotStarted"] is not null) cfg.IncludeNotStarted = n["includeNotStarted"]!.GetValue<bool>(); } catch { }
+        var entrega = Texto(n["certificateDelivery"])?.Trim().ToLowerInvariant();
+        if (entrega is "link" or "attachment") cfg.CertificateDelivery = entrega;
+        cfg.LinkDays = Entero(n["linkDays"], 1, 365) ?? cfg.LinkDays;
+        return cfg;
+    }
+
+    public string ToJson() => System.Text.Json.JsonSerializer.Serialize(new
+    {
+        extraEmails = ExtraEmails,
+        dueSoonDays = DueSoonDays,
+        digestFrequency = DigestFrequency,
+        digestDayOfWeek = DigestDayOfWeek,
+        digestDayOfMonth = DigestDayOfMonth,
+        digestHour = DigestHour,
+        expiredRepeatDays = ExpiredRepeatDays,
+        includeNotStarted = IncludeNotStarted,
+        certificateDelivery = CertificateDelivery,
+        linkDays = LinkDays
+    });
+
+    private static string? Texto(System.Text.Json.Nodes.JsonNode? x)
+    {
+        try { return x?.GetValue<string>(); } catch { return null; }
+    }
+
+    // Acepta 30 y "30"; fuera de rango o ilegible = null (se queda el default).
+    private static int? Entero(System.Text.Json.Nodes.JsonNode? x, int min, int max)
+    {
+        if (x is null) return null;
+        int v;
+        try { v = x.GetValue<int>(); }
+        catch
+        {
+            if (!int.TryParse(Texto(x), out v)) return null;
+        }
+        return v >= min && v <= max ? v : null;
+    }
+
+    private static List<string> LimpiarCorreos(IEnumerable<string?> correos)
+        => correos.Select(c => (c ?? "").Trim())
+                  .Where(c => c.Length is > 3 and <= 254 && c.Contains('@') && !c.Contains(' '))
+                  .Distinct(StringComparer.OrdinalIgnoreCase)
+                  .Take(20)
+                  .ToList();
 }
 
 // Un usuario puede pertenecer a varias compañías, con rol distinto en cada una.
@@ -122,6 +231,7 @@ public class CatalogDbContext : DbContext
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<TwoFactorChallenge> TwoFactorChallenges => Set<TwoFactorChallenge>();
     public DbSet<UserCompany> UserCompanies => Set<UserCompany>();
+    public DbSet<CertificateLink> CertificateLinks => Set<CertificateLink>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -140,6 +250,15 @@ public class CatalogDbContext : DbContext
         b.Entity<TwoFactorChallenge>().HasIndex(c => c.UserId);
         b.Entity<UserCompany>().ToTable("UserCompany");
         b.Entity<UserCompany>().HasIndex(m => new { m.UserId, m.TenantId }).IsUnique();
+
+        // Las filas que ya existían toman "{}" (config por defecto) al migrar.
+        b.Entity<Tenant>().Property(t => t.ComplianceConfigJson).HasDefaultValue("{}");
+
+        b.Entity<CertificateLink>().ToTable("CertificateLink");
+        b.Entity<CertificateLink>().Property(l => l.TokenHash).HasMaxLength(64);
+        b.Entity<CertificateLink>().Property(l => l.Purpose).HasMaxLength(16);
+        b.Entity<CertificateLink>().HasIndex(l => l.TokenHash).IsUnique();
+        b.Entity<CertificateLink>().HasIndex(l => new { l.TenantId, l.CertificateId });
     }
 }
 

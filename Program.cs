@@ -96,6 +96,14 @@ app.UseAuthentication();
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 
+// Origen de la petición en curso: con App:BaseUrl vacío, el enlace del certificado
+// (/c/{token}) que sale por correo se arma con el host por el que entró la petición.
+app.Use(async (ctx, next) =>
+{
+    CertificateLinks.OrigenPeticion = $"{ctx.Request.Scheme}://{ctx.Request.Host}{ctx.Request.PathBase}";
+    await next();
+});
+
 // ---------- Auth ----------
 app.MapPost("/auth/login", async (LoginRequest req, CatalogDbContext catalog, JwtTokenService jwt,
     IEmailSender email, ILoggerFactory logs, IConfiguration cfg) =>
@@ -422,7 +430,7 @@ app.MapGet("/admin/tenants", async (CatalogDbContext catalog) =>
 
 // Dispara el resumen semanal de inmediato (para probar o forzar un envío).
 // Vista previa de las plantillas de correo, para revisar cómo se ven sin enviar nada.
-// /admin/email-preview?kind=reminder|open|invite|reset|2fa|completion|digest
+// /admin/email-preview?kind=reminder|open|invite|reset|2fa|completion|digest|certificate|certificate-officer
 app.MapGet("/admin/email-preview", (string? kind) =>
 {
     var k = (kind ?? "reminder").ToLowerInvariant();
@@ -435,6 +443,10 @@ app.MapGet("/admin/email-preview", (string? kind) =>
         "reset" => EmailTemplates.PasswordReset("María Rivera", "https://aprendor.advancelogisticspr.com/index.html?reset=demo", 60),
         "2fa" => EmailTemplates.TwoFactorCode("María Rivera", "428913", 10),
         "completion" => EmailTemplates.Completion("María Rivera", "Cumplimiento HIPAA para transporte y logística", 270, 300),
+        "certificate" or "certificate-officer" => EmailTemplates.CertificateIssued("María Rivera",
+                    "Cumplimiento HIPAA para transporte y logística", "CERT-2026-1A2B3C4D", DateTime.UtcNow,
+                    DateTime.UtcNow.AddMonths(12), paraArchivo: k == "certificate-officer",
+                    "https://aprendor.advancelogisticspr.com", link: "https://aprendor.advancelogisticspr.com/c/demo", dias: 30),
         "digest" => EmailTemplates.Digest("María Rivera",
                     new List<PendingItem> { new(Guid.NewGuid(), "Ética Empresarial y Prevención de Fraude", Guid.NewGuid(), null, "not-started", null) },
                     new List<PendingItem> { new(Guid.NewGuid(), "Seguridad de la Información para Empleados", Guid.NewGuid(), null, "in-progress", null) }),

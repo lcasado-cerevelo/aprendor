@@ -406,17 +406,18 @@ public static class EmailTemplates
     }
 
     // Certificado emitido. Dos versiones: la que recibe el propio empleado y la
-    // que recibe quien lo archiva en su expediente.
+    // que recibe quien lo archiva en su expediente (oficial de cumplimiento u otra copia).
+    // Con `link` el certificado NO va adjunto: el botón abre el PDF por un enlace que
+    // vale `dias` días. Sin `link` es el correo de siempre, con el PDF adjunto.
     public static string CertificateIssued(string learnerName, string trainingTitle, string serial,
-        DateTime issuedAt, DateTime? expiresAt, bool paraArchivo, string? appUrl)
+        DateTime issuedAt, DateTime? expiresAt, bool paraArchivo, string? appUrl,
+        string? link = null, int dias = 0)
     {
+        if (!string.IsNullOrWhiteSpace(link))
+            return CertificateIssuedLink(learnerName, trainingTitle, serial, issuedAt, expiresAt, paraArchivo, appUrl, link!, dias);
+
         string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
-        var datos =
-            $"<div style=\"font:700 16px/1.4 Segoe UI,Arial,sans-serif;color:#0f172a;\">{Enc(trainingTitle)}</div>" +
-            (paraArchivo ? $"<div style=\"margin-top:8px;\"><span style=\"color:#64748b;\">Empleado:</span> <b>{Enc(learnerName)}</b></div>" : "") +
-            $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Emitido:</span> <b>{issuedAt.ToLocalTime():dd/MM/yyyy}</b></div>" +
-            (expiresAt is DateTime v ? $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Vigente hasta:</span> <b>{v.ToLocalTime():dd/MM/yyyy}</b></div>" : "") +
-            $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Folio:</span> <b style=\"font-family:Consolas,monospace;\">{Enc(serial)}</b></div>";
+        var datos = DatosCertificado(learnerName, trainingTitle, serial, issuedAt, expiresAt, paraArchivo);
 
         var body = paraArchivo
             ? Titulo("Certificado para expediente") +
@@ -429,6 +430,52 @@ public static class EmailTemplates
 
         return Render(body + Boton(paraArchivo ? "Ver en la plataforma" : "Ver mi expediente", appUrl ?? ""),
             paraArchivo ? $"Certificado de {learnerName}: {trainingTitle}" : $"Tu certificado de {trainingTitle}");
+    }
+
+    // Recuadro con los datos del certificado (común a las variantes con adjunto y con enlace).
+    private static string DatosCertificado(string learnerName, string trainingTitle, string serial,
+        DateTime issuedAt, DateTime? expiresAt, bool paraArchivo)
+    {
+        string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        return
+            $"<div style=\"font:700 16px/1.4 Segoe UI,Arial,sans-serif;color:#0f172a;\">{Enc(trainingTitle)}</div>" +
+            (paraArchivo ? $"<div style=\"margin-top:8px;\"><span style=\"color:#64748b;\">Empleado:</span> <b>{Enc(learnerName)}</b></div>" : "") +
+            $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Emitido:</span> <b>{issuedAt.ToLocalTime():dd/MM/yyyy}</b></div>" +
+            (expiresAt is DateTime v ? $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Vigente hasta:</span> <b>{v.ToLocalTime():dd/MM/yyyy}</b></div>" : "") +
+            $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Folio:</span> <b style=\"font-family:Consolas,monospace;\">{Enc(serial)}</b></div>";
+    }
+
+    // Variante por enlace: sin adjunto, botón «Ver certificado» y aviso de cuánto vale el enlace.
+    private static string CertificateIssuedLink(string learnerName, string trainingTitle, string serial,
+        DateTime issuedAt, DateTime? expiresAt, bool paraArchivo, string? appUrl, string link, int dias)
+    {
+        string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        var datos = DatosCertificado(learnerName, trainingTitle, serial, issuedAt, expiresAt, paraArchivo);
+        var plazo = dias > 0 ? $"{dias} día{(dias == 1 ? "" : "s")}" : "un tiempo limitado";
+
+        var body = paraArchivo
+            ? Titulo("Certificado para expediente") +
+              $"<p style=\"margin:0;\"><b>{Enc(learnerName)}</b> aprobó <b>{Enc(trainingTitle)}</b>. " +
+              "Abre el certificado en PDF con el botón para archivarlo en su expediente.</p>" +
+              Recuadro(datos) +
+              Boton("Ver certificado", link) +
+              $"<p style=\"margin:14px 0 0;color:#64748b;font-size:13px;\">El enlace vale {plazo}; después, el certificado " +
+              "sigue disponible en el expediente del empleado dentro de Aprendor.</p>"
+            : Titulo("¡Felicidades! Aquí está tu certificado") +
+              $"<p style=\"margin:0 0 4px;\">Hola {Enc(learnerName)},</p>" +
+              "<p style=\"margin:0;\">Completaste tu adiestramiento. Abre tu certificado en PDF con el botón para verlo, " +
+              "descargarlo o imprimirlo.</p>" +
+              Recuadro(datos) +
+              Boton("Ver certificado", link) +
+              $"<p style=\"margin:14px 0 0;color:#64748b;font-size:13px;\">El enlace vale {plazo}; después, lo encuentras " +
+              "en tu expediente dentro de Aprendor.</p>";
+
+        if (!string.IsNullOrWhiteSpace(appUrl))
+            body += $"<p style=\"margin:6px 0 0;color:#64748b;font-size:13px;\">" +
+                    $"<a href=\"{Enc(appUrl!)}\" style=\"color:#4f46e5;\">{(paraArchivo ? "Entrar a Aprendor" : "Ver mi expediente")}</a></p>";
+
+        return Render(body,
+            paraArchivo ? $"Certificado: {learnerName} aprobó {trainingTitle}" : $"Tu certificado: {trainingTitle}");
     }
 
     public static string VerifyEmail(string name, string code, int minutos)
