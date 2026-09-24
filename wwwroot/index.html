@@ -4,35 +4,49 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Aprendor</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" />
 <style>
-  :root{--canvas1:#1e293b;--canvas2:#0f172a;--panel:#fff;--ink:#0f172a;--muted:#64748b;--line:#e7ebf2;
-    --brand:#4f46e5;--brand-d:#4338ca;--accent:#0ea5e9;--ok:#16a34a;--err:#dc2626;--soft:#f3f5f9;}
+  /* ===== Sistema visual =====
+     Lienzo oscuro, paneles blancos e índigo de marca. Un solo radio (--r) para
+     paneles, tarjetas, campos y botones; una sola sombra (--lift) para lo pulsable al
+     pasar el ratón; cuatro colores de estado (verde, ámbar, rojo, azul) más el gris. */
+  :root{--canvas1:#1b2540;--canvas2:#0f172a;--bar:#0b1220;--panel:#fff;--panel2:#f5f7fb;--ink:#111a2e;--muted:#5f6d85;--line:#e3e8f1;
+    --brand:#4f46e5;--brand-d:#4338ca;--brand-soft:#eef0ff;--accent:#0ea5e9;--soft:#f3f5f9;
+    --ok:#15803d;--ok-bg:#dcfce7;--warn:#b45309;--warn-bg:#fef3c7;--err:#b91c1c;--err-bg:#fee2e2;
+    --info:#1d4ed8;--info-bg:#dbeafe;--gray:#475569;--gray-bg:#eef1f6;
+    --r:12px;--r-sm:9px;--lift:0 10px 30px rgba(2,6,23,.18);--rest:0 1px 2px rgba(2,6,23,.08);
+    --display:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
   *{box-sizing:border-box;}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
-    background:radial-gradient(1200px 600px at 70% -10%,#243049,#0f172a) , linear-gradient(180deg,var(--canvas1),var(--canvas2));min-height:100vh;}
+  body{margin:0;font:14px/1.5 var(--body);color:var(--ink);
+    background:radial-gradient(1100px 520px at 75% -10%,#26324f,transparent),linear-gradient(180deg,var(--canvas1),var(--canvas2));min-height:100vh;}
+  h1,h2,h3,h4{font-family:var(--display);letter-spacing:-.01em;text-wrap:balance;}
   .hidden{display:none !important;}
+  .num{font-variant-numeric:tabular-nums;}
   button{font:inherit;cursor:pointer;} input,select,textarea{font:inherit;}
   .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
-  .login-card{background:var(--panel);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.4);width:100%;max-width:390px;padding:34px;}
+  .login-card{background:var(--panel);border-radius:var(--r);box-shadow:0 24px 60px rgba(0,0,0,.4);width:100%;max-width:390px;padding:34px;}
   .logo{display:block;flex:0 0 auto;}
-  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:21px;margin-bottom:4px;letter-spacing:.2px;}
+  .brand{display:flex;align-items:center;gap:11px;font:800 21px var(--display);margin-bottom:4px;letter-spacing:.2px;}
   .brand .dot{width:26px;height:26px;border-radius:7px;background:var(--brand);display:inline-block;}
   .sub{color:var(--muted);font-size:14px;margin:0 0 22px;}
   label{display:block;font-size:13px;font-weight:600;color:#334155;margin:14px 0 6px;}
-  .field{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;}
+  .field{width:100%;padding:10px 13px;border:1px solid var(--line);border-radius:var(--r);background:#fff;color:var(--ink);}
   .field:focus{outline:2px solid var(--brand);border-color:transparent;}
-  .btn{padding:11px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(79,70,229,.28);}
-  .btn:hover{background:linear-gradient(135deg,#4f46e5,#4338ca);} .btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;}
-  .btn.full{width:100%;margin-top:18px;} .btn.sm{padding:7px 12px;font-size:13px;border-radius:8px;box-shadow:none;}
+  .btn{padding:10px 16px;border:none;border-radius:var(--r);background:var(--brand);color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(79,70,229,.28);transition:background .15s;}
+  .btn:hover{background:var(--brand-d);} .btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;}
+  .btn.full{width:100%;margin-top:18px;} .btn.sm{padding:7px 12px;font-size:13px;border-radius:var(--r-sm);box-shadow:none;}
   .btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--line);box-shadow:none;}
-  .btn.ghost:hover{background:var(--soft);}
-  .btn.danger{background:#fee2e2;color:#b91c1c;box-shadow:none;} .btn.danger:hover{background:#fecaca;}
+  .btn.ghost:hover{background:var(--brand-soft);}
+  .btn.danger{background:var(--err-bg);color:var(--err);border:none;box-shadow:none;} .btn.danger:hover{background:#fecaca;}
   .btn.ok{background:var(--ok);}
+  .btn:focus-visible,.chip:focus-visible,.tile:focus-visible,.ccard:focus-visible,.stat.go:focus-visible,.sw:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .msg{margin-top:12px;font-size:14px;min-height:1em;} .msg.err{color:var(--err);} .msg.ok{color:var(--ok);}
   /* Topbar */
-  .topbar{background:#0b1220;color:#e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:11px 22px;border-bottom:1px solid #1e293b;}
+  .topbar{background:var(--bar);color:#e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:10px 22px;border-bottom:1px solid #1e293b;position:sticky;top:0;z-index:5;}
   .topbar .left{display:flex;align-items:center;gap:11px;}
-  .brandname{font-weight:800;font-size:18px;color:#fff;letter-spacing:.2px;}
+  .brandname{font:800 18px var(--display);color:#fff;letter-spacing:.2px;}
   .topbar .right{display:flex;align-items:center;gap:12px;}
   .topbar .who{font-size:13px;color:#94a3b8;} .topbar .who b{color:#fff;}
   .profile-chip{display:flex;align-items:center;gap:9px;cursor:pointer;padding:5px 12px 5px 6px;border-radius:999px;border:1px solid #1e293b;background:#0e1830;transition:.15s;}
@@ -41,31 +55,41 @@
   .avatar.lg{width:56px;height:56px;font-size:21px;}
   .profile-chip .nm{font-size:13px;color:#e2e8f0;font-weight:600;line-height:1.15;}
   .profile-chip .rl{font-size:11px;color:#93a3bb;}
-  .container{max-width:1000px;margin:26px auto;padding:0 18px;}
-  /* Dashboard */
+  .container{max-width:1080px;margin:22px auto 40px;padding:0 18px;}
+  /* Encabezado de página */
+  .pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:6px 2px 16px;}
+  .pagehead h1{margin:0;font-size:26px;font-weight:800;color:#f8fafc;}
+  .pagehead p{margin:4px 0 0;color:#9fb0c9;font-size:14px;}
   .dash-head{margin:6px 2px 16px;}
-  .dash-title{margin:0;font-size:25px;font-weight:800;color:#f8fafc;}
-  .dash-sub{margin:4px 0 0;font-size:14px;color:#94a3b8;}
-  .profile-card{display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,#141f3a,#0b1220);border:1px solid #1e293b;border-radius:16px;padding:16px 20px;margin-bottom:18px;}
+  .dash-title{margin:0;font-size:26px;font-weight:800;color:#f8fafc;}
+  .dash-sub{margin:4px 0 0;font-size:14px;color:#9fb0c9;}
+  .dash-sub::first-letter{text-transform:uppercase;}
+  .profile-card{display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,#141f3a,#0b1220);border:1px solid #1e293b;border-radius:var(--r);padding:16px 20px;margin-bottom:18px;}
   .profile-card .pc-name{color:#f8fafc;font-weight:700;font-size:17px;}
   .profile-card .pc-meta{color:#9fb0c9;font-size:13px;margin-top:2px;}
   .profile-card .pc-actions{margin-left:auto;display:flex;gap:8px;}
-  .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-bottom:18px;}
-  .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px 16px;}
-  .stat .n{font-size:27px;font-weight:800;color:var(--ink);line-height:1;}
-  .stat .l{font-size:12.5px;color:var(--muted);margin-top:7px;}
+  /* Contadores */
+  .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:18px;}
+  .stat{background:#fff;border:1px solid transparent;border-radius:var(--r);padding:14px 16px;text-align:left;color:var(--ink);}
+  .stat .n{font:800 26px/1 var(--display);color:var(--ink);font-variant-numeric:tabular-nums;}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:6px;}
+  .stat.err .n{color:var(--err);} .stat.warn .n{color:var(--warn);} .stat.info .n{color:var(--info);} .stat.ok .n{color:var(--ok);} .stat.gray .n{color:var(--gray);}
   .stat.accent{background:linear-gradient(135deg,#eef2ff,#e0f2fe);border-color:#c7d2fe;}
-  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:14px;}
-  .tile{cursor:pointer;border:1px solid var(--line);border-radius:16px;padding:18px;background:#fff;transition:.16s;box-shadow:0 1px 2px rgba(2,6,23,.06);}
-  .tile:hover{transform:translateY(-2px);border-color:var(--brand);box-shadow:0 12px 28px rgba(79,70,229,.16);}
-  .tile-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(135deg,#eef2ff,#e0f2fe);}
-  .tile .t{font-weight:700;margin-top:12px;display:flex;align-items:center;gap:8px;color:var(--ink);}
-  .tile .d{font-size:13px;color:var(--muted);margin-top:3px;}
-  .tile .badge{background:var(--brand);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 8px;}
-  .back-link{background:transparent;border:1px solid #334155;color:#cbd5e1;padding:7px 13px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:14px;}
+  .stat.go{cursor:pointer;transition:.15s;} .stat.go:hover{border-color:var(--brand);transform:translateY(-2px);box-shadow:var(--lift);}
+  .stats-label{grid-column:1/-1;margin:6px 2px -4px;color:#8a9bb8;font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+  /* Mosaicos del inicio */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+  .tile{cursor:pointer;border:1px solid transparent;border-radius:var(--r);padding:16px;background:#fff;transition:.15s;display:flex;gap:12px;align-items:flex-start;box-shadow:var(--rest);}
+  .tile:hover{transform:translateY(-2px);border-color:var(--brand);box-shadow:var(--lift);}
+  .tile-ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand);flex:0 0 auto;}
+  .tile .t{font:700 14.5px var(--display);display:flex;align-items:center;gap:8px;color:var(--ink);}
+  .tile .d{font-size:13px;color:var(--muted);margin-top:2px;}
+  .tile .badge{background:var(--brand);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 8px;font-family:var(--body);}
+  .tile .badge.err{background:var(--err);}
+  .back-link{background:transparent;border:1px solid #334155;color:#cbd5e1;padding:7px 13px;border-radius:var(--r-sm);font-size:13px;font-weight:600;margin-bottom:14px;}
   .back-link:hover{background:#141f3a;border-color:#475569;}
-  /* Cards */
-  .card{background:var(--panel);border-radius:14px;box-shadow:0 6px 22px rgba(2,6,23,.10);padding:22px;margin-bottom:20px;}
+  /* Paneles */
+  .card{background:var(--panel);border-radius:var(--r);box-shadow:0 6px 22px rgba(2,6,23,.10);padding:22px;margin-bottom:20px;}
   .card h2{margin:0 0 4px;font-size:17px;} .card h3{margin:18px 0 8px;font-size:14px;color:#334155;}
   .card .hint{color:var(--muted);font-size:13px;margin:0 0 16px;}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;} .row>div{flex:1;min-width:150px;}
@@ -75,26 +99,117 @@
   .item .sp{margin-left:auto;display:flex;gap:6px;}
   .empty{color:var(--muted);font-size:14px;padding:14px 2px;}
   .opt{display:flex;align-items:center;gap:8px;margin:6px 0;} .opt input[type=text]{flex:1;}
-  .qbox{background:var(--soft);border-radius:10px;padding:14px;margin:10px 0;}
+  .qbox{background:var(--soft);border-radius:var(--r-sm);padding:14px;margin:10px 0;}
   .itform{margin-top:8px;}
   .rtbar{display:flex;gap:6px;margin:6px 0;flex-wrap:wrap;}
   .rtbar button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;}
-  .rtedit{min-height:70px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;}
+  .rtedit{min-height:70px;border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;background:#fff;}
   .rtedit:focus{outline:2px solid var(--brand);}
   /* Pantalla de contenido */
   .screen{position:fixed;inset:0;background:#eef2f7;z-index:50;overflow:auto;}
-  .screen-bar{position:sticky;top:0;background:#0b1220;color:#e2e8f0;display:flex;align-items:center;gap:10px;padding:12px 18px;z-index:1;}
+  .screen-bar{position:sticky;top:0;background:var(--bar);color:#e2e8f0;display:flex;align-items:center;gap:10px;padding:12px 18px;z-index:1;}
   .screen-bar .tag{background:#1e293b;color:#cbd5e1;}
   .screen-body{max-width:1000px;margin:18px auto;padding:0 18px;}
-  .screen-body .list{background:#fff;border-radius:12px;padding:4px 16px;border-top:none;box-shadow:0 8px 24px rgba(0,0,0,.08);}
+  .screen-body .list{background:#fff;border-radius:var(--r);padding:4px 16px;border-top:none;box-shadow:0 8px 24px rgba(0,0,0,.08);}
   .tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;}
   .tab{flex:0 0 auto;padding:8px 14px;border:1px solid var(--line);background:#fff;border-radius:999px;color:#334155;font-weight:600;font-size:13px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .tab.active{background:var(--brand);color:#fff;border-color:var(--brand);}
   /* Modal bloqueante */
   .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:28px 16px;overflow:auto;}
-  .modal-box{background:#fff;border-radius:16px;max-width:660px;width:100%;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+  .modal-box{background:#fff;border-radius:var(--r);max-width:660px;width:100%;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.4);}
   .modal-box h3{margin:0 0 12px;font-size:18px;}
-  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;border-top:1px solid var(--line);padding-top:14px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px;border-top:1px solid var(--line);padding-top:14px;}
+
+  /* ===== Componentes reutilizables ===== */
+  /* Diálogo propio (askModal / confirmModal / dialog): sustituye prompt/confirm/alert */
+  .modal.dlg{z-index:200;align-items:center;}
+  .dlg .modal-box{max-width:480px;}
+  .dlg .dlg-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:4px;}
+  .dlg .dlg-ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto;background:var(--brand-soft);color:var(--brand);}
+  .dlg .dlg-ic.danger{background:var(--err-bg);color:var(--err);}
+  .dlg .dlg-ic.ok{background:var(--ok-bg);color:var(--ok);}
+  .dlg h3{margin:6px 0 0;font-size:17px;}
+  .dlg .dlg-text{color:var(--muted);font-size:14px;margin:6px 0 0;white-space:pre-line;}
+  .dlg .dlg-fields label:first-child{margin-top:12px;}
+  .dlg .dlg-hint{color:var(--muted);font-size:12.5px;margin:4px 0 0;}
+  .dlg .dlg-err{color:var(--err);font-size:13.5px;margin:10px 0 0;}
+  .dlg .dlg-err:empty{display:none;}
+  .dlg .code{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;font:600 16px ui-monospace,Consolas,monospace;letter-spacing:1px;word-break:break-all;margin-top:12px;user-select:all;}
+  /* Interruptor */
+  .swrow{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line);}
+  .swrow:last-child{border-bottom:none;}
+  .swrow .t{flex:1;} .swrow b{display:block;font-family:var(--display);font-size:14px;} .swrow span{color:var(--muted);font-size:13px;}
+  .sw{width:44px;height:26px;border-radius:999px;background:#cbd5e1;border:none;position:relative;flex:0 0 auto;transition:.15s;padding:0;}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+  .sw.on{background:var(--brand);} .sw.on::after{left:21px;}
+  /* Opciones excluyentes */
+  .radio{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);margin-bottom:8px;cursor:pointer;background:#fff;text-align:left;width:100%;color:var(--ink);}
+  .radio.on{border-color:var(--brand);background:var(--brand-soft);}
+  .radio i{width:16px;height:16px;border-radius:50%;border:2px solid #94a3b8;margin-top:3px;flex:0 0 auto;}
+  .radio.on i{border-color:var(--brand);background:radial-gradient(circle,var(--brand) 45%,transparent 50%);}
+  .radio b{display:block;font-size:14px;} .radio span{color:var(--muted);font-size:13px;}
+  /* Chips de filtro (sobre el lienzo oscuro) y de selección (sobre panel blanco) */
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px;}
+  .chip{background:#141f3a;color:#cbd5e1;border:1px solid #2a3654;border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600;}
+  .chip:hover{border-color:#475569;}
+  .chip.on{background:#fff;color:var(--ink);border-color:#fff;}
+  .chip .n{color:#8a9bb8;font-weight:500;margin-left:5px;font-variant-numeric:tabular-nums;}
+  .chip.on .n{color:var(--muted);}
+  .daychip{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:5px 11px;font-size:13px;}
+  .daychip.on{background:var(--brand);border-color:var(--brand);color:#fff;}
+  .inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  /* Estado: píldora con punto */
+  .st{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap;}
+  .st::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;}
+  .st.err,.tag.err{background:var(--err-bg);color:var(--err);} .st.warn,.tag.warn{background:var(--warn-bg);color:var(--warn);}
+  .st.info,.tag.info{background:var(--info-bg);color:var(--info);} .st.ok,.tag.ok{background:var(--ok-bg);color:var(--ok);}
+  .st.gray,.tag.gray{background:var(--gray-bg);color:var(--gray);}
+  /* Aviso emergente */
+  .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,8px);background:var(--bar);color:#fff;padding:11px 16px;border-radius:var(--r);font-size:13.5px;box-shadow:var(--lift);opacity:0;pointer-events:none;transition:.2s;z-index:300;display:flex;gap:9px;align-items:center;max-width:min(560px,calc(100vw - 32px));}
+  .toast.show{opacity:1;transform:translate(-50%,0);}
+  .toast.err{background:#7f1d1d;} .toast.ok svg{color:#4ade80;} .toast.err svg{color:#fecaca;}
+  /* Franja «Lo que te toca ahora» */
+  .hero{display:grid;grid-template-columns:1.3fr 1fr;background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:var(--lift);margin-bottom:18px;}
+  .hero .txt{padding:24px 28px;}
+  .hero .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--brand);}
+  .hero .eyebrow.err{color:var(--err);} .hero .eyebrow.warn{color:var(--warn);} .hero .eyebrow.info{color:var(--info);} .hero .eyebrow.ok{color:var(--ok);}
+  .hero h2{font-size:23px;margin:8px 0 6px;}
+  .hero p{color:var(--muted);margin:0 0 14px;max-width:56ch;}
+  .hero .meta{margin-bottom:16px;}
+  .hero .art{min-height:180px;aspect-ratio:auto;}
+  .hero .art svg{width:108px;height:108px;}
+  @media (max-width:760px){.hero{grid-template-columns:1fr;}.hero .art{min-height:120px;order:-1;}.hero .art svg{width:64px;height:64px;}}
+  /* Tarjetas de curso */
+  .cgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+  @media (min-width:980px){.cgrid{grid-template-columns:repeat(3,1fr);}}
+  @media (max-width:600px){.cgrid{grid-template-columns:1fr;}}
+  .ccard{background:#fff;border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--rest);transition:.15s;border:1px solid transparent;}
+  .ccard:hover{transform:translateY(-3px);box-shadow:var(--lift);border-color:#c7d2fe;}
+  .cover{position:relative;aspect-ratio:16/9;max-width:100%;display:grid;place-items:center;color:#fff;background-size:cover;background-position:center;}
+  .cover svg{width:64px;height:64px;opacity:.95;filter:drop-shadow(0 4px 10px rgba(0,0,0,.25));}
+  .cover.photo svg{display:none;}
+  .ribbon{position:absolute;top:10px;left:10px;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;background:#fff;color:var(--ink);box-shadow:0 2px 6px rgba(0,0,0,.2);}
+  .ribbon.err{color:var(--err);} .ribbon.warn{color:var(--warn);} .ribbon.info{color:var(--info);} .ribbon.ok{color:var(--ok);} .ribbon.gray{color:var(--gray);}
+  .g1{background-image:linear-gradient(135deg,#7c1d6f,#a21caf 55%,#ec4899);} .g2{background-image:linear-gradient(135deg,#0c4a6e,#0284c7 55%,#22d3ee);}
+  .g3{background-image:linear-gradient(135deg,#7c2d12,#ea580c 55%,#fbbf24);} .g4{background-image:linear-gradient(135deg,#14532d,#16a34a 55%,#a3e635);}
+  .g5{background-image:linear-gradient(135deg,#1e1b4b,#4f46e5 55%,#0ea5e9);} .g6{background-image:linear-gradient(135deg,#1f2937,#475569 55%,#94a3b8);}
+  .cbody{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1;}
+  .cat{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;}
+  .ccard h3{margin:0;font-size:16px;line-height:1.3;}
+  .ccard .desc{color:var(--muted);font-size:13px;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .meta{display:flex;gap:12px;color:var(--muted);font-size:12.5px;flex-wrap:wrap;}
+  .meta span{display:inline-flex;align-items:center;gap:5px;}
+  .cfoot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:6px;}
+  .cfoot .due{font-size:12.5px;color:var(--muted);}
+  .cfoot .due b{color:var(--ink);} .cfoot .due.err,.cfoot .due.err b{color:var(--err);} .cfoot .due.warn b{color:var(--warn);}
+  .rowhead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:24px 2px 10px;}
+  .rowhead h2{margin:0;font-size:15px;color:#e2e8f0;font-weight:700;}
+  .rowhead span{font-size:12.5px;color:#8a9bb8;}
+  /* Estado vacío sobre el lienzo */
+  .allgood{background:#fff;border-radius:var(--r);padding:26px;display:flex;gap:16px;align-items:center;}
+  .allgood .ic{width:48px;height:48px;border-radius:50%;background:var(--ok-bg);color:var(--ok);display:grid;place-items:center;flex:0 0 auto;}
+  .allgood h3{margin:0 0 2px;font-size:17px;} .allgood p{margin:0;color:var(--muted);}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
 </style>
 </head>
 <body>
@@ -315,9 +430,12 @@
       <!-- DASHBOARD -->
       <div id="dashGrid">
         <div class="dash-head">
-          <h1 class="dash-title">Hola, <span id="dashName"></span> 👋</h1>
-          <p class="dash-sub">Este es tu panel. Elige una opción según tu rol.</p>
+          <h1 class="dash-title">Hola, <span id="dashName"></span></h1>
+          <p class="dash-sub" id="dashSub">Este es tu panel.</p>
         </div>
+
+        <!-- Lo que te toca ahora: el curso más urgente del empleado -->
+        <div id="dashHero"></div>
 
         <!-- Estadísticas -->
         <div class="stats" id="dashStats"></div>
@@ -354,16 +472,13 @@
       <!-- SECCIÓN: Tomar -->
       <div class="section hidden" id="sec-take">
         <button class="back-link" onclick="showDash()">← Inicio</button>
-        <div class="card">
-          <h2>Mis adiestramientos</h2>
-          <p class="hint">Te aparecen hasta que los completes con puntuación satisfactoria. Abren en una pestaña aparte, a pantalla completa.</p>
-          <div class="list" id="catalogList"></div>
-        </div>
-        <div class="card hidden" id="repasoCard" style="margin-top:16px">
-          <h2>Disponibles para repaso</h2>
-          <p class="hint">Ya los aprobaste. Puedes abrirlos cuando quieras para consultarlos; no cuentan como intento nuevo.</p>
-          <div class="list" id="repasoList"></div>
-        </div>
+        <div class="pagehead"><div>
+          <h1>Mis adiestramientos</h1>
+          <p>Ordenados por urgencia. Abren en una pestaña aparte, a pantalla completa.</p>
+        </div></div>
+        <div class="chips" id="catFilters" role="toolbar" aria-label="Filtrar adiestramientos"></div>
+        <div id="catalogGrid"></div>
+        <div id="repasoRow"></div>
       </div>
 
       <!-- SECCIÓN: Historial -->
@@ -647,6 +762,216 @@ let matchChoices = [];
 let matchPrompts = [];
 const el = id => document.getElementById(id);
 
+// ===== Componentes reutilizables del sistema visual =====
+// Escapa texto para meterlo en HTML (títulos, nombres, mensajes del servidor).
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+// Iconos SVG inline, todos con el mismo trazo (1.6, redondeado) sobre una rejilla 24×24.
+const ICONS = {
+  book:'<path d="M4 4h6a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h7z"/>',
+  folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2 20a7 7 0 0 1 14 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15 14a5 5 0 0 1 7 5"/>',
+  shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/>',
+  heart:'<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
+  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  doc:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h6"/>',
+  truck:'<path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+  layers:'<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
+  sliders:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+  check:'<path d="M5 12l5 5 9-10"/>',
+  checkCircle:'<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
+  alert:'<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v.01"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>',
+  play:'<path d="M7 4l13 8-13 8z"/>',
+  refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  archive:'<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/>',
+  pencil:'<path d="M4 20h4L20 8l-4-4L4 16z"/><path d="M14 6l4 4"/>',
+  award:'<circle cx="12" cy="9" r="6"/><path d="M8.5 14l-1.5 7 5-3 5 3-1.5-7"/>',
+  building:'<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/>',
+  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>'
+};
+function ic(name, size){
+  const s = size || 20;
+  return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`;
+}
+
+// Aviso emergente breve. kind: ok | err | info.
+let toastTimer = null;
+function toast(msg, kind){
+  let t = el('toast');
+  if(!t){
+    t = document.createElement('div'); t.id = 'toast'; t.className = 'toast';
+    t.setAttribute('role','status'); t.setAttribute('aria-live','polite');
+    document.body.appendChild(t);
+  }
+  const k = kind || 'ok';
+  t.className = 'toast ' + k;
+  t.innerHTML = ic(k==='err' ? 'alert' : k==='info' ? 'info' : 'checkCircle', 18) + `<span>${esc(msg)}</span>`;
+  requestAnimationFrame(()=>t.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), k==='err' ? 4200 : 2600);
+}
+
+// Diálogo propio y reutilizable. Resuelve null si se cancela (botón, Esc o clic fuera),
+// o { action, values } con la acción pulsada y los valores de los campos.
+//   opts.title, opts.text (texto plano), opts.html (HTML propio, ya escapado)
+//   opts.icon, opts.tone ('danger' | 'ok' | ''), opts.code (texto para copiar)
+//   opts.fields: [{ name, label, type, value, placeholder, hint, options, min, max, showIf }]
+//       type: text | password | number | date | email | textarea | switch | radio | select | days
+//       radio/select: options [{ value, label, hint }]; days: options [números], value [números]
+//       showIf(values) → bool: el campo se muestra solo si devuelve true
+//   opts.actions: [{ label, value, kind }] (kind: '' | ghost | danger); por defecto Cancelar/Aceptar
+//   opts.okText, opts.cancelText, opts.noCancel (solo un botón, como alert)
+//   opts.validate(values, action) → mensaje de error o null (no cierra si hay error)
+function dialog(opts){
+  opts = opts || {};
+  return new Promise(resolve => {
+    const prevFocus = document.activeElement;
+    const fields = opts.fields || [];
+    const vals = {};
+    fields.forEach(f => {
+      if(f.type==='switch') vals[f.name] = !!f.value;
+      else if(f.type==='days') vals[f.name] = (f.value||[]).map(Number);
+      else vals[f.name] = f.value==null ? '' : f.value;
+    });
+    const tone = opts.tone || '';
+    const actions = opts.actions || [
+      ...(opts.noCancel ? [] : [{ label: opts.cancelText || 'Cancelar', value: null, kind: 'ghost' }]),
+      { label: opts.okText || 'Aceptar', value: 'ok', kind: tone==='danger' ? 'danger' : '' }
+    ];
+
+    const wrap = document.createElement('div');
+    wrap.className = 'modal dlg';
+    wrap.setAttribute('role','dialog'); wrap.setAttribute('aria-modal','true');
+    const titleId = 'dlgT' + Date.now();
+    wrap.setAttribute('aria-labelledby', titleId);
+    const icono = opts.icon || (tone==='danger' ? 'alert' : tone==='ok' ? 'checkCircle' : 'info');
+    wrap.innerHTML = `<div class="modal-box">
+      <div class="dlg-head"><div class="dlg-ic ${tone}">${ic(icono,20)}</div>
+        <div style="flex:1;min-width:0"><h3 id="${titleId}">${esc(opts.title||'')}</h3>
+        ${opts.text ? `<p class="dlg-text">${esc(opts.text)}</p>` : ''}${opts.html||''}</div></div>
+      ${opts.code ? `<div class="code">${esc(opts.code)}</div>` : ''}
+      <div class="dlg-fields"></div>
+      <p class="dlg-err" role="alert"></p>
+      <div class="modal-actions">${actions.map((a,i)=>
+        `<button type="button" class="btn ${a.kind||''}" data-a="${i}">${esc(a.label)}</button>`).join('')}</div>
+    </div>`;
+    const box = wrap.querySelector('.dlg-fields');
+    const errP = wrap.querySelector('.dlg-err');
+
+    function fieldHtml(f, i){
+      const id = 'dlgF' + i, v = vals[f.name];
+      const lbl = f.label ? `<label for="${id}">${esc(f.label)}</label>` : '';
+      const hint = f.hint ? `<p class="dlg-hint">${esc(f.hint)}</p>` : '';
+      if(f.type==='switch')
+        return `<div class="swrow"><div class="t"><b>${esc(f.label||'')}</b>${f.hint?`<span>${esc(f.hint)}</span>`:''}</div>
+          <button type="button" class="sw ${v?'on':''}" role="switch" aria-checked="${v?'true':'false'}" aria-label="${esc(f.label||'')}" data-sw="${i}"></button></div>`;
+      if(f.type==='radio')
+        return lbl + (f.options||[]).map(o=>`<button type="button" class="radio ${String(o.value)===String(v)?'on':''}" data-radio="${i}" data-v="${esc(o.value)}" aria-pressed="${String(o.value)===String(v)}">
+          <i></i><div><b>${esc(o.label)}</b>${o.hint?`<span>${esc(o.hint)}</span>`:''}</div></button>`).join('') + hint;
+      if(f.type==='select')
+        return lbl + `<select id="${id}" class="field" data-f="${i}">${(f.options||[]).map(o=>
+          `<option value="${esc(o.value)}" ${String(o.value)===String(v)?'selected':''}>${esc(o.label)}</option>`).join('')}</select>` + hint;
+      if(f.type==='days')
+        return lbl + `<div class="inline">${(f.options||[]).map(d=>
+          `<button type="button" class="daychip ${v.includes(d)?'on':''}" data-day="${i}" data-v="${d}" aria-pressed="${v.includes(d)}">${d} d</button>`).join('')}</div>` + hint;
+      if(f.type==='textarea')
+        return lbl + `<textarea id="${id}" class="field" rows="${f.rows||3}" data-f="${i}" placeholder="${esc(f.placeholder||'')}">${esc(v)}</textarea>` + hint;
+      const extra = (f.min!=null?` min="${f.min}"`:'') + (f.max!=null?` max="${f.max}"`:'');
+      return lbl + `<input id="${id}" class="field" type="${f.type||'text'}" data-f="${i}" value="${esc(v)}" placeholder="${esc(f.placeholder||'')}"${extra}
+        ${f.type==='password'?'autocomplete="current-password"':'autocomplete="off"'} style="${f.width?`max-width:${f.width}`:''}" />` + hint;
+    }
+    function render(){
+      box.innerHTML = fields.map((f,i)=> (!f.showIf || f.showIf(vals)) ? `<div data-wrap="${i}">${fieldHtml(f,i)}</div>` : '').join('');
+    }
+    function readInputs(){
+      box.querySelectorAll('[data-f]').forEach(n => {
+        const f = fields[+n.dataset.f];
+        vals[f.name] = f.type==='number' ? (n.value==='' ? '' : Number(n.value)) : n.value;
+      });
+    }
+    render();
+
+    box.addEventListener('click', e => {
+      const sw = e.target.closest('[data-sw]'), rd = e.target.closest('[data-radio]'), dy = e.target.closest('[data-day]');
+      if(!sw && !rd && !dy) return;
+      readInputs();
+      if(sw){ const f = fields[+sw.dataset.sw]; vals[f.name] = !vals[f.name]; }
+      if(rd){ const f = fields[+rd.dataset.radio]; const o = (f.options||[]).find(x=>String(x.value)===rd.dataset.v); vals[f.name] = o ? o.value : rd.dataset.v; }
+      if(dy){ const f = fields[+dy.dataset.day]; const d = Number(dy.dataset.v);
+        vals[f.name] = vals[f.name].includes(d) ? vals[f.name].filter(x=>x!==d) : [...vals[f.name], d].sort((a,b)=>b-a); }
+      render();
+      const again = box.querySelector(sw ? `[data-sw="${sw.dataset.sw}"]` : rd ? `[data-radio="${rd.dataset.radio}"][data-v="${rd.dataset.v}"]` : `[data-day="${dy.dataset.day}"][data-v="${dy.dataset.v}"]`);
+      if(again) again.focus();
+    });
+    box.addEventListener('change', e => { if(e.target.matches('select[data-f]')){ readInputs(); render(); } });
+
+    function close(result){
+      document.removeEventListener('keydown', onKey, true);
+      wrap.remove();
+      if(prevFocus && prevFocus.focus) try{ prevFocus.focus(); }catch{}
+      resolve(result);
+    }
+    function act(i){
+      const a = actions[i];
+      if(a.value === null){ close(null); return; }
+      readInputs();
+      const err = opts.validate ? opts.validate(vals, a.value) : null;
+      if(err){ errP.textContent = err; return; }
+      close({ action: a.value, values: { ...vals } });
+    }
+    function onKey(e){
+      if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); if(!opts.noCancel || actions.length===1) close(null); return; }
+      if(e.key==='Enter' && e.target.matches && e.target.matches('input.field')){
+        e.preventDefault(); act(actions.length-1);
+      }
+      if(e.key==='Tab'){   // el foco no se escapa del diálogo
+        const f = [...wrap.querySelectorAll('button,input,select,textarea')].filter(n=>!n.disabled);
+        if(!f.length) return;
+        if(e.shiftKey && document.activeElement===f[0]){ e.preventDefault(); f[f.length-1].focus(); }
+        else if(!e.shiftKey && document.activeElement===f[f.length-1]){ e.preventDefault(); f[0].focus(); }
+      }
+    }
+    wrap.querySelector('.modal-actions').addEventListener('click', e => {
+      const b = e.target.closest('[data-a]'); if(b) act(+b.dataset.a);
+    });
+    // Clic fuera cierra sólo los avisos sin campos: en un formulario se perdería lo escrito.
+    wrap.addEventListener('mousedown', e => { if(e.target===wrap && !opts.noCancel && !fields.length) close(null); });
+    document.addEventListener('keydown', onKey, true);
+    document.body.appendChild(wrap);
+    const first = box.querySelector('input,textarea,select') || wrap.querySelector(`[data-a="${actions.length-1}"]`);
+    if(first){ first.focus(); if(first.select && first.type!=='date') try{ first.select(); }catch{} }
+  });
+}
+// Pide un texto (reemplaza prompt). Devuelve el texto o null si se cancela.
+async function askModal(title, text, o){
+  o = o || {};
+  const r = await dialog({ title, text, icon:o.icon, tone:o.tone, okText:o.okText || 'Aceptar',
+    fields:[{ name:'v', label:o.label, type:o.type||'text', value:o.value||'', placeholder:o.placeholder, hint:o.hint, rows:o.rows }],
+    validate: o.validate ? (v => o.validate(String(v.v==null?'':v.v))) : null });
+  return r ? String(r.values.v==null?'':r.values.v) : null;
+}
+// Pide confirmación (reemplaza confirm). Devuelve true / false.
+async function confirmModal(title, text, o){
+  o = o || {};
+  const r = await dialog({ title, text, html:o.html, icon:o.icon, tone:o.danger ? 'danger' : (o.tone||''),
+    okText:o.okText || 'Confirmar', cancelText:o.cancelText });
+  return !!r;
+}
+// Aviso que hay que leer con calma (reemplaza alert cuando el toast no basta).
+async function infoModal(title, text, o){
+  o = o || {};
+  await dialog({ title, text, code:o.code, icon:o.icon, tone:o.tone||'', okText:o.okText || 'Entendido', noCancel:true });
+}
+
 async function api(path, method='GET', body=null){
   const headers = { 'Content-Type':'application/json' };
   if (token) headers['Authorization'] = 'Bearer ' + token;
@@ -899,7 +1224,7 @@ function showApp(){
   el('tenantAppView').classList.toggle('hidden', isAdmin);
   if (isAdmin){ loadTenants(); }
   else {
-    el('dashName').textContent = dispName;
+    el('dashName').textContent = user.name ? user.name.trim().split(/\s+/)[0] : dispName;
     buildDashTiles();
     loadDashStats();
     showDash();
@@ -941,7 +1266,7 @@ async function cambiarCompania(tenantId){
     localStorage.setItem('tp_user', JSON.stringify(user));
     closeProfile();
     showApp();
-  }catch(e){ alert(e.message); cargarCompanias(); }
+  }catch(e){ toast(e.message,'err'); cargarCompanias(); }
 }
 function closeProfile(){ el('profileModal').classList.add('hidden'); }
 
@@ -1001,7 +1326,10 @@ async function tfaConfirm(){
 }
 async function tfaDisable(){
   const m = el('tfaMsg'); m.className='msg err'; m.textContent='';
-  const clave = prompt('Para desactivar la verificación en dos pasos, escribe tu contraseña actual:');
+  const clave = await askModal('Desactivar la verificación en dos pasos',
+    'Para confirmar, escribe tu contraseña actual.',
+    { type:'password', label:'Contraseña actual', icon:'lock', tone:'danger', okText:'Desactivar',
+      validate: v => v ? null : 'Escribe tu contraseña.' });
   if(clave === null) return;
   try{
     await api('/me/2fa/disable','POST',{ currentPassword: clave });
@@ -1018,60 +1346,248 @@ function isReviewer(){ return !!user && ['Admin','Author','Moderator'].includes(
 
 function buildDashTiles(){
   const tiles = [];
-  tiles.push({key:'take', icon:'📚', title:'Mis adiestramientos', desc:'Cursos asignados por tomar o completar', badge:'badge-take'});
-  tiles.push({key:'record', icon:'📁', title:'Expediente', desc:'Certificaciones en línea y las tomadas fuera'});
+  tiles.push({key:'take', icon:'book', title:'Mis adiestramientos', desc:'Por tomar, en progreso y por renovar', badge:'badge-take'});
+  tiles.push({key:'record', icon:'folder', title:'Expediente', desc:'Certificaciones en línea y las tomadas fuera'});
   if (isCreator()){
-    tiles.push({key:'manage', icon:'🗂', title:'Adiestramientos', desc:'Crear, editar contenido y publicar'});
-    tiles.push({key:'assign', icon:'⚙', title:'Sets y asignación', desc:'Versiones y quién ve qué'});
+    tiles.push({key:'manage', icon:'layers', title:'Adiestramientos', desc:'Crear, editar contenido y publicar'});
+    tiles.push({key:'assign', icon:'sliders', title:'Sets y asignación', desc:'Versiones y quién ve qué'});
   }
   if (isReviewer()){
-    tiles.push({key:'review', icon:'✅', title:'Revisar', desc:'Calificar y aprobar cancelaciones', badge:'badge-review'});
+    tiles.push({key:'review', icon:'checkCircle', title:'Revisar', desc:'Calificar y aprobar cancelaciones', badge:'badge-review'});
   }
-  tiles.push({key:'history', icon:'🕘', title:'Mi historial', desc:'Tus intentos y resultados'});
-  tiles.push({key:'profile', icon:'👤', title:'Mi perfil', desc:'Tus datos y contraseña'});
+  tiles.push({key:'history', icon:'clock', title:'Mi historial', desc:'Tus intentos y resultados'});
+  tiles.push({key:'profile', icon:'user', title:'Mi perfil', desc:'Correo, contraseña y verificación'});
 
   el('dashTiles').innerHTML = tiles.map(t=>`
-    <div class="tile" onclick="tileGo('${t.key}')">
-      <div class="tile-ic">${t.icon}</div>
-      <div class="t">${t.title}${t.badge?`<span id="${t.badge}" class="badge" style="display:none"></span>`:''}</div>
-      <div class="d">${t.desc}</div>
+    <div class="tile" role="button" tabindex="0" onclick="tileGo('${t.key}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();tileGo('${t.key}')}">
+      <div class="tile-ic">${ic(t.icon,20)}</div>
+      <div><div class="t">${t.title}${t.badge?`<span id="${t.badge}" class="badge" style="display:none"></span>`:''}</div>
+      <div class="d">${t.desc}</div></div>
     </div>`).join('');
   refreshBadges();
 }
 
-function statCard(n, l, accent){ return `<div class="stat${accent?' accent':''}"><div class="n">${n}</div><div class="l">${l}</div></div>`; }
+// Contador del inicio. tone: err | warn | info | ok | gray | accent; filter: abre
+// «Mis adiestramientos» con ese filtro al pulsarlo.
+function statCard(n, l, tone, filter){
+  const cls = 'stat ' + (tone||'') + (filter ? ' go' : '');
+  const act = filter ? ` role="button" tabindex="0" onclick="openCatalogFilter('${filter}')" onkeydown="if(event.key==='Enter')openCatalogFilter('${filter}')"` : '';
+  return `<div class="${cls}"${act}><div class="n">${n}</div><div class="l">${esc(l)}</div></div>`;
+}
 
+// ===== Catálogo del empleado: estado, urgencia y presentación =====
+// /catalog trae el estado ya resuelto por el servidor (CatalogLogic.ResolveAsync):
+// not-started | in-progress | failed | overdue | pending-grading | pending-cancellation |
+// renewal | expired | current | done, con expiresAt (caducidad de la aprobación) y
+// dueAt (fecha límite para completarlo). Aquí sólo se decide cómo se ve y en qué orden.
+let catItems = [];          // último /catalog, en el orden del servidor
+let catMeta = {};           // trainingId → { category, description, cover }
+let catFilter = 'all';      // all | pend | ren | ok
+const DAY_MS = 86400000;
+
+function daysUntil(d){
+  const a = new Date(); a.setHours(0,0,0,0);
+  const b = new Date(d); b.setHours(0,0,0,0);
+  return Math.round((b - a) / DAY_MS);
+}
+function fmtShort(d){
+  const x = new Date(d), o = { day:'numeric', month:'short' };
+  if (x.getFullYear() !== new Date().getFullYear()) o.year = 'numeric';
+  return x.toLocaleDateString('es-PR', o).replace('.', '');
+}
+function fmtLong(d){ return new Date(d).toLocaleDateString('es-PR', { day:'numeric', month:'long', year:'numeric' }); }
+function enDias(n){ return n <= 0 ? 'hoy' : n === 1 ? 'mañana' : `en ${n} días`; }
+
+// Cómo se presenta un curso del catálogo:
+//   tone/label  cinta de estado (rojo vencido, ámbar vence pronto, azul en progreso, gris por tomar, verde aprobado)
+//   due         línea de fecha (HTML con las fechas ya formateadas)
+//   btn/act     botón y qué hace: take (player) | review (repaso) | record (expediente) | null (en espera)
+//   rank        urgencia: 0 vencido (expired/overdue) > 1 vence antes > 2 en progreso > 3 por tomar
+//               > 4 en espera > 9 aprobado; empates por la fecha más próxima (when)
+//   grp         filtro: pend (pendientes) | ren (por renovar) | ok (aprobados)
+function catInfo(c){
+  const s = c.status;
+  const exp = c.expiresAt ? new Date(c.expiresAt) : null;
+  const due = c.dueAt ? new Date(c.dueAt) : null;
+  const aprobado = { tone:'ok', label:'Aprobado', btn: c.canReview ? 'Repasar' : 'Ver expediente',
+                     act: c.canReview ? 'review' : 'record', rank:9, grp:'ok', ghost:true };
+  let r;
+  switch (s){
+    case 'expired':
+      r = { tone:'err', label:'Vencido', due: exp ? `Venció el <b>${fmtShort(exp)}</b>` : 'Certificación vencida',
+            dueTone:'err', btn:'Renovar ▸', act:'take', rank:0, when:exp, grp:'ren' }; break;
+    case 'overdue':
+      r = { tone:'err', label:'Vencido', due: due ? `Límite: <b>${fmtShort(due)}</b>` : 'Fuera de plazo',
+            dueTone:'err', btn:'Tomar ▸', act:'take', rank:0, when:due, grp:'pend' }; break;
+    case 'renewal': {
+      const n = exp ? daysUntil(exp) : null;
+      r = { tone:'warn', label: n != null ? `Vence ${enDias(n)}` : 'Por renovar',
+            due: exp ? `Vence el <b>${fmtShort(exp)}</b>` : 'Ya puedes renovarlo', dueTone:'warn',
+            btn:'Renovar ▸', act:'take', rank:1, when:exp, grp:'ren' }; break;
+    }
+    case 'in-progress': r = { tone:'info', label:'En progreso', btn:'Continuar ▸', act:'take', rank:2, grp:'pend', due:'Continúa donde lo dejaste' }; break;
+    case 'failed':      r = { tone:'info', label:'No aprobado', btn:'Reintentar ▸', act:'take', rank:2, grp:'pend', due:'Puedes intentarlo de nuevo' }; break;
+    case 'not-started': r = { tone:'gray', label:'Por tomar', btn:'Tomar ▸', act:'take', rank:3, grp:'pend', due:'Sin fecha límite' }; break;
+    case 'pending-grading':      r = { tone:'info', label:'En revisión', btn:'En revisión', act:null, rank:4, grp:'pend', due:'Esperando la calificación' }; break;
+    case 'pending-cancellation': r = { tone:'gray', label:'Cancelación pendiente', btn:'Pendiente', act:null, rank:4, grp:'pend', due:'Esperando aprobación' }; break;
+    case 'current': r = { ...aprobado, due: exp ? `Vigente hasta <b>${fmtShort(exp)}</b>` : 'Vigente', when:exp }; break;
+    case 'done':    r = { ...aprobado, due: 'No caduca' }; break;
+    default:        r = { tone:'gray', label: s || '—', btn:'Tomar ▸', act:'take', rank:5, grp:'pend' };
+  }
+  // Pendiente con fecha límite todavía por delante: pasa a «vence antes» y lo dice;
+  // la cinta se vuelve ámbar cuando faltan dos semanas o menos.
+  if (due && (s === 'not-started' || s === 'in-progress' || s === 'failed')){
+    const n = daysUntil(due);
+    r.due = `Límite: <b>${fmtShort(due)}</b> · ${enDias(n)}`;
+    r.when = due; r.rank = 1;
+    if (n <= 14){ r.dueTone = 'warn'; if (s === 'not-started'){ r.tone = 'warn'; r.label = `Vence ${enDias(n)}`; } }
+  }
+  return r;
+}
+function byUrgency(a, b){
+  if (a.k.rank !== b.k.rank) return a.k.rank - b.k.rank;
+  const ta = a.k.when ? +a.k.when : Infinity, tb = b.k.when ? +b.k.when : Infinity;
+  if (ta !== tb) return ta - tb;
+  return (a.c.title || '').localeCompare(b.c.title || '', 'es');
+}
+function catRows(){ return catItems.map((c, i) => ({ c, i, k: catInfo(c) })); }
+
+// Portada: la foto de `presentation.cover` si el curso la tiene; si no, un degradado
+// fijo por categoría (o por título si no tiene) con un ícono según el tema.
+const GRADS = ['g1','g2','g3','g4','g5'];
+function hashStr(s){ let h = 0; for (const ch of String(s||'')) h = (h * 31 + ch.charCodeAt(0)) | 0; return Math.abs(h); }
+function courseIcon(t){
+  t = (t || '').toLowerCase();
+  if (/hipaa|privacidad|datos personales|informaci[oó]n/.test(t)) return 'lock';
+  if (/hostigamiento|cumplimiento|(^|\s)[ée]tica|(^|\s)ley /.test(t)) return 'shield';
+  if (/acoso|equipo|convivencia|diversidad|servicio/.test(t)) return 'users';
+  if (/violencia|salud|bienestar|primeros auxilios/.test(t)) return 'heart';
+  if (/almac[eé]n|montacargas|log[ií]stica|transporte|osha|seguridad/.test(t)) return 'truck';
+  return 'book';
+}
+function courseLook(c){
+  const m = catMeta[c.trainingId] || {};
+  const category = m.category || 'Adiestramiento';
+  const cover = (typeof m.cover === 'string' && /^(https?:\/\/|\/|data:image\/)/i.test(m.cover)) ? m.cover : null;
+  return { category, description: m.description || '', cover,
+           grad: GRADS[hashStr(m.category || c.title) % GRADS.length],
+           icon: courseIcon(c.title + ' ' + (m.category || '')) };
+}
+function coverHtml(look, size, extra){
+  const bg = look.cover ? ` style="background-image:${esc('url("' + look.cover.replace(/["\\\r\n]/g, '') + '")')}"` : '';
+  return `<div class="cover ${look.cover ? 'photo' : look.grad}"${bg}>${ic(look.icon, size)}${extra || ''}</div>`;
+}
+
+// Datos que /catalog no trae (categoría, descripción, portada). /trainings y /categories
+// están abiertos a cualquier usuario de la compañía; si fallan, las tarjetas se ven igual
+// con el degradado y la categoría genérica.
+async function loadCatMeta(){
+  const [trs, cats] = await Promise.allSettled([api('/trainings'), api('/categories')]);
+  const nombres = {};
+  if (cats.status === 'fulfilled' && Array.isArray(cats.value)) cats.value.forEach(x => nombres[x.id] = x.name);
+  const meta = {};
+  if (trs.status === 'fulfilled' && Array.isArray(trs.value)) trs.value.forEach(t => {
+    let cover = null;
+    try { const p = JSON.parse(t.playerConfigJson || '{}'); cover = (p.presentation && p.presentation.cover) || null; } catch {}
+    meta[t.id] = { category: t.categoryId ? (nombres[t.categoryId] || null) : null, description: t.description || '', cover };
+  });
+  catMeta = meta;
+}
+async function fetchCatalog(){
+  const [cat] = await Promise.all([api('/catalog'), loadCatMeta().catch(()=>{})]);
+  catItems = Array.isArray(cat) ? cat : [];
+  return catItems;
+}
+
+// Acción del botón de una tarjeta o de la franja del inicio.
+function catGo(i){
+  const c = catItems[i]; if (!c) return;
+  const k = catInfo(c);
+  if (k.act === 'take') openPlayer(c.versionId, c.title, c.setId || '');
+  else if (k.act === 'review') openRepaso(c.versionId, c.title, c.setId || '');
+  else if (k.act === 'record') showSection('sec-record');
+}
+function openCatalogFilter(f){ catFilter = f || 'all'; showSection('sec-take'); }
+
+// ----- Inicio: saludo, «Lo que te toca ahora» y contadores -----
 async function loadDashStats(){
-  let cards = '';
+  let cards = '', rows = [];
   try{
-    const cat = await api('/catalog');
-    const porTomar = cat.filter(c=>c.status==='not-started').length;
-    const enProgreso = cat.filter(c=>c.status==='in-progress'||c.status==='failed').length;
-    const porRenovar = cat.filter(c=>c.status==='renewal'||c.status==='expired').length;
-    const vigentes = cat.filter(c=>c.status==='current'||c.status==='done').length;
-    cards += statCard(porTomar, 'Por tomar', true)
-           + statCard(enProgreso, 'En progreso / por completar', false)
-           + statCard(porRenovar, 'Por renovar / vencidos', porRenovar>0)
-           + statCard(vigentes, 'Tomados y vigentes', false);
-  }catch(e){}
+    await fetchCatalog();
+    rows = catRows();
+    // Contadores excluyentes por estado (la urgencia decide el orden, no el conteo):
+    // un curso en progreso con fecha límite cuenta como «en progreso».
+    const st = r => r.c.status;
+    const vencidos  = rows.filter(r => r.k.rank === 0).length;
+    const porVencer = rows.filter(r => st(r) === 'renewal' || (st(r) === 'not-started' && r.c.dueAt)).length;
+    const enCurso   = rows.filter(r => st(r) === 'in-progress' || st(r) === 'failed').length;
+    const porTomar  = rows.filter(r => st(r) === 'not-started' && !r.c.dueAt).length;
+    const vigentes  = rows.filter(r => r.k.grp === 'ok').length;
+    cards += statCard(vencidos,  vencidos === 1 ? 'Vencido' : 'Vencidos', vencidos ? 'err' : '', 'all')
+           + statCard(porVencer, 'Por vencer', porVencer ? 'warn' : '', 'all')
+           + statCard(enCurso,   'En progreso', enCurso ? 'info' : '', 'pend')
+           + statCard(porTomar,  'Por tomar', porTomar ? 'gray' : '', 'pend')
+           + statCard(vigentes,  vigentes === 1 ? 'Vigente' : 'Vigentes', vigentes ? 'ok' : '', 'ok');
+    renderHero(rows);
+    paintTakeBadge();
+  }catch(e){ el('dashHero').innerHTML = ''; }
+  const hoy = new Date().toLocaleDateString('es-PR', { weekday:'long', day:'numeric', month:'long' });
+  const atender = rows.filter(r => r.k.act === 'take').length;
+  el('dashSub').textContent = hoy + ' · ' + (atender === 0 ? 'Estás al día con tus adiestramientos'
+    : atender === 1 ? '1 curso requiere tu atención' : `${atender} cursos requieren tu atención`);
   if (isCreator()){
     try{
       const s = await api('/authoring/stats');
-      cards += statCard(s.drafts, 'Borradores', false)
-             + statCard(s.published, 'Publicados', false)
-             + statCard(s.untouched, 'Publicados sin tomar aún', false);
+      cards += `<div class="stats-label">Autoría</div>`
+             + statCard(s.drafts, 'Borradores', '')
+             + statCard(s.published, 'Publicados', '')
+             + statCard(s.untouched, 'Publicados sin tomar aún', s.untouched ? 'accent' : '');
     }catch(e){}
   }
   el('dashStats').innerHTML = cards;
 }
 
+// El curso más urgente: vencido > vence antes > en progreso > por tomar.
+function renderHero(rows){
+  const tomables = rows.filter(r => r.k.act === 'take').sort(byUrgency);
+  if (!tomables.length){
+    el('dashHero').innerHTML = rows.length ? `<div class="allgood" style="margin-bottom:18px">
+        <div class="ic">${ic('check', 24)}</div>
+        <div><h3>Estás al día</h3><p>No tienes adiestramientos pendientes. Te avisaremos cuando toque renovar alguno.</p></div></div>` : '';
+    return;
+  }
+  const { c, i, k } = tomables[0];
+  const look = courseLook(c);
+  const exp = c.expiresAt, due = c.dueAt;
+  const tono = ['err','warn','info'][k.rank] || '';
+  const frase = ({
+    'expired':     exp ? `Tu certificación venció el ${fmtLong(exp)}. Renuévala para mantener tu expediente al día.` : 'Tu certificación venció. Renuévala para mantener tu expediente al día.',
+    'overdue':     due ? `La fecha límite para completarlo fue el ${fmtLong(due)}. Tómalo cuanto antes.` : 'Está fuera de plazo. Tómalo cuanto antes.',
+    'renewal':     exp ? `Tu certificación vence el ${fmtLong(exp)}. Ya puedes renovarla.` : 'Ya puedes renovar tu certificación.',
+    'in-progress': 'Lo dejaste a medias. Continúa donde te quedaste.',
+    'failed':      'No alcanzaste la puntuación para aprobar. Puedes intentarlo de nuevo.',
+    'not-started': 'Lo tienes asignado y aún no lo comienzas.'
+  })[c.status] || '';
+  const limite = (due && c.status !== 'overdue') ? ` Fecha límite: ${fmtLong(due)}.` : '';
+  const otros = tomables.length - 1;
+  const boton = c.status === 'expired' || c.status === 'renewal' ? 'Renovar ahora ▸' : k.btn;
+  el('dashHero').innerHTML = `<div class="hero">
+    <div class="txt">
+      <div class="eyebrow ${tono}">Lo que te toca ahora</div>
+      <h2>${esc(c.title)}</h2>
+      <p>${esc(frase + limite)}</p>
+      <div class="meta"><span>${ic('book', 14)} ${esc(look.category)}</span><span class="st ${k.tone}">${esc(k.label)}</span>
+        ${otros > 0 ? `<span>${otros === 1 ? '1 curso más pendiente' : otros + ' cursos más pendientes'}</span>` : ''}</div>
+      <button class="btn" onclick="catGo(${i})">${esc(boton)}</button>
+      ${otros > 0 ? `<button class="btn ghost" style="margin-left:6px" onclick="openCatalogFilter('all')">Ver todos</button>` : ''}
+    </div>
+    ${coverHtml(look, 108).replace('class="cover', 'class="art cover')}
+  </div>`;
+}
+
 async function refreshBadges(){
-  try{
-    const cat = await api('/catalog');
-    const actionable = ['not-started','in-progress','failed','renewal','expired'];
-    const pend = cat.filter(c=>actionable.includes(c.status)).length;
-    const b = el('badge-take'); if (b && pend>0){ b.textContent = pend; b.style.display='inline-block'; }
-  }catch(e){}
+  // El número de «Mis adiestramientos» sale de la misma carga del inicio (loadDashStats).
+  paintTakeBadge();
   if (isReviewer()){
     try{
       const g = await api('/grading/pending');
@@ -1079,10 +1595,19 @@ async function refreshBadges(){
     }catch(e){}
   }
 }
+function paintTakeBadge(){
+  const b = el('badge-take'); if (!b) return;
+  const rows = catRows();
+  const pend = rows.filter(r => r.k.act === 'take').length;
+  b.textContent = pend;
+  b.style.display = pend > 0 ? 'inline-block' : 'none';
+  b.classList.toggle('err', rows.some(r => r.k.rank === 0));
+}
 
 function tileGo(key){
   if (key==='assign'){ openAssign(); return; }
   if (key==='profile'){ openProfile(); return; }
+  if (key==='take') catFilter = 'all';
   showSection('sec-'+key);
 }
 function showDash(){
@@ -1164,7 +1689,7 @@ async function bajarCertPdf(serial){
     a.href = url; a.download = 'Certificado-'+serial+'.pdf';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 5000);
-  }catch(e){ alert(e.message); }
+  }catch(e){ toast(e.message,'err'); }
 }
 
 async function saveCert(){
@@ -1200,8 +1725,9 @@ async function saveCert(){
 }
 
 async function deleteCert(id){
-  if(!confirm('¿Eliminar esta certificación del expediente?')) return;
-  try{ await api('/certifications/'+id,'DELETE'); loadRecord(); }catch(e){ alert(e.message); }
+  if(!await confirmModal('¿Eliminar esta certificación?', 'Se quita del expediente del empleado. Esta acción no se puede deshacer.',
+    { danger:true, icon:'trash', okText:'Eliminar' })) return;
+  try{ await api('/certifications/'+id,'DELETE'); toast('Certificación eliminada.'); loadRecord(); }catch(e){ toast(e.message,'err'); }
 }
 
 // ===== Admin =====
@@ -1237,20 +1763,23 @@ async function loadTenants(){
 }
 // La política de doble factor la fija la compañía, no cada usuario.
 async function setPolitica2FA(id, nombre, actual){
-  const r = prompt('Verificación en dos pasos de "'+nombre+'"\n\n'
-    + 'Ahora: ' + actual + '\n\n'
-    + 'off      = no se usa\n'
-    + 'optional = quien quiera la activa en su perfil\n'
-    + 'required = obligatoria para todos\n\n'
-    + 'Se hace siempre con app autenticadora (Google Authenticator, Authy, Microsoft Authenticator).', actual);
-  if(r===null) return;
-  try{ await api('/admin/tenants/'+id+'/two-factor','POST',{ policy:r.trim().toLowerCase() }); loadTenants(); }
-  catch(e){ alert(e.message); }
+  const r = await dialog({
+    title: 'Verificación en dos pasos · ' + nombre, icon:'lock', okText:'Guardar',
+    text: 'Se hace siempre con app autenticadora (Google Authenticator, Authy, Microsoft Authenticator).',
+    fields: [{ name:'policy', type:'radio', value: actual, options: [
+      { value:'off',      label:'Apagada',     hint:'No se pide al entrar.' },
+      { value:'optional', label:'Opcional',    hint:'Quien quiera la activa en su perfil.' },
+      { value:'required', label:'Obligatoria', hint:'Todos deben activarla para seguir usando la plataforma.' }
+    ]}]
+  });
+  if(!r) return;
+  try{ await api('/admin/tenants/'+id+'/two-factor','POST',{ policy:r.values.policy }); toast('Política guardada.'); loadTenants(); }
+  catch(e){ toast(e.message,'err'); }
 }
 
 async function toggleTenant(id, status){
   const next = status==='active' ? 'inactive' : 'active';
-  try{ await api('/admin/tenants/'+id+'/status','POST',{status:next}); loadTenants(); }catch(e){ alert(e.message); }
+  try{ await api('/admin/tenants/'+id+'/status','POST',{status:next}); loadTenants(); }catch(e){ toast(e.message,'err'); }
 }
 function tenantNameById(id){ const t=adminTenants.find(x=>x.id===id); return t?t.name:'—'; }
 
@@ -1274,19 +1803,33 @@ async function loadUsers(){
     }).join('') : `<div class="empty">No hay usuarios.</div>`;
   }catch(e){}
 }
-async function changeRole(id, role){ try{ await api('/admin/users/'+id+'/role','POST',{role}); }catch(e){ alert(e.message); loadUsers(); } }
+async function changeRole(id, role){ try{ await api('/admin/users/'+id+'/role','POST',{role}); }catch(e){ toast(e.message,'err'); loadUsers(); } }
 async function resetUserPwd(id, name){
-  const temp = prompt('Contraseña temporal para '+name+' (mín. 6 caracteres). El usuario deberá cambiarla al entrar:', '');
+  const temp = await askModal('Resetear contraseña de '+name, 'El usuario deberá cambiarla al entrar.',
+    { label:'Contraseña temporal', placeholder:'Mínimo 6 caracteres', icon:'key', okText:'Resetear',
+      validate: v => v.length<6 ? 'Mínimo 6 caracteres.' : null });
   if(temp===null) return;
-  if(temp.length<6){ alert('Mínimo 6 caracteres.'); return; }
-  try{ await api('/admin/users/'+id+'/reset-password','POST',{tempPassword:temp}); alert('Contraseña reseteada. Comunícale la temporal:\n\n'+temp); loadUsers(); }catch(e){ alert(e.message); }
+  try{
+    await api('/admin/users/'+id+'/reset-password','POST',{tempPassword:temp});
+    await infoModal('Contraseña reseteada', 'Comunícale a '+name+' la contraseña temporal:', { code:temp, tone:'ok' });
+    loadUsers();
+  }catch(e){ toast(e.message,'err'); }
 }
-async function deleteUser(id, name){ if(!confirm('¿Eliminar a '+name+'? Esta acción no se puede deshacer.')) return; try{ await api('/admin/users/'+id,'DELETE'); loadUsers(); }catch(e){ alert(e.message); } }
+async function deleteUser(id, name){
+  if(!await confirmModal('¿Eliminar a '+name+'?', 'Esta acción no se puede deshacer.', { danger:true, icon:'trash', okText:'Eliminar' })) return;
+  try{ await api('/admin/users/'+id,'DELETE'); toast('Usuario eliminado.'); loadUsers(); }catch(e){ toast(e.message,'err'); }
+}
 el('createUserBtn').onclick = async () => {
   const msg = el('userMsg'); msg.textContent=''; msg.className='msg';
   const email = el('uEmail').value.trim(), name = el('uName').value.trim();
   if(!email || !el('uPass').value){ msg.textContent='Correo y contraseña son requeridos.'; msg.className='msg err'; return; }
-  const sendInvite = confirm('¿Enviar una invitación por correo a '+(name||email)+'?\n\nIncluirá su usuario y la contraseña temporal, y se le pedirá cambiarla al entrar.');
+  const inv = await dialog({ title:'¿Enviar una invitación por correo a '+(name||email)+'?', icon:'mail',
+    text:'Incluirá su usuario y la contraseña temporal, y se le pedirá cambiarla al entrar.',
+    actions:[ { label:'Cancelar', value:null, kind:'ghost' },
+              { label:'Crear sin invitación', value:'no', kind:'ghost' },
+              { label:'Crear y enviar', value:'yes' } ] });
+  if(!inv) return;
+  const sendInvite = inv.action === 'yes';
   try{
     const r = await api('/admin/users','POST',{ email, name,
       password:el('uPass').value, role:el('uRole').value, tenantId:el('uTenant').value || null, sendInvite });
@@ -1314,9 +1857,11 @@ el('addTrBtn').onclick = async () => {
   try{ await api('/trainings','POST',{ title:el('trTitle').value.trim(), description:el('trDesc').value.trim()||null });
     el('trTitle').value=''; el('trDesc').value=''; loadTrainings(); }catch(e){}
 };
+let trCache = [];   // último /trainings (para prellenar la descripción al renombrar)
 async function loadTrainings(){
   try{
     const trs = await api('/trainings');
+    trCache = trs;
     el('trList').innerHTML = trs.length ? trs.map(t=>{
       const fija = t.expiresOn ? String(t.expiresOn).slice(0,10) : null;
       const rec = (t.recurrenceMonths || fija)
@@ -1345,102 +1890,134 @@ async function loadTrainings(){
 }
 // Permitir o no que el learner vuelva a la pantalla anterior mientras toma el curso,
 // dejarlo disponible para repaso tras aprobarlo, y si ve al instante si acertó cada
-// pregunta o solo se entera del resultado al terminar el intento.
+// pregunta o solo se entera del resultado al terminar el intento. El bloque
+// `presentation` no se manda: el servidor conserva el que haya.
 async function setPlayerConfig(id, title){
   try{
     const c = await api('/trainings/'+id+'/player-config');
-    const atras = c.allowBack !== false, repaso = c.reviewAfterPass === true, inmediato = c.immediateFeedback === true;
-    const resp = prompt('Opciones de "'+title+'"\n\n'
-      + '1 = ' + (atras ? 'bloquear' : 'permitir') + ' el botón Anterior (ahora: ' + (atras?'permitido':'bloqueado') + ')\n'
-      + '2 = ' + (repaso ? 'quitar' : 'dejar') + ' disponible para repaso tras aprobarlo (ahora: ' + (repaso?'sí':'no') + ')\n'
-      + '3 = ' + (inmediato ? 'calificar solo al final (recomendado para cumplimiento)' : 'mostrar de inmediato si acertó cada pregunta') + ' (ahora: ' + (inmediato?'inmediato':'al final') + ')\n\n'
-      + 'Escribe 1, 2, 3, o varios separados por coma.', '');
-    if(resp===null) return;
-    const op = resp.split(',').map(x=>x.trim());
-    const cambio = {
-      allowBack: op.includes('1') ? !atras : atras,
-      reviewAfterPass: op.includes('2') ? !repaso : repaso,
-      immediateFeedback: op.includes('3') ? !inmediato : inmediato
-    };
-    await api('/trainings/'+id+'/player-config','PUT',cambio);
+    const r = await dialog({
+      title:'Opciones del reproductor', text:title, icon:'sliders', okText:'Guardar',
+      fields:[
+        { name:'allowBack', type:'switch', value: c.allowBack !== false, label:'Permitir retroceder',
+          hint:'El empleado puede volver a la pantalla anterior mientras toma el curso.' },
+        { name:'reviewAfterPass', type:'switch', value: c.reviewAfterPass === true, label:'Disponible para repaso tras aprobar',
+          hint:'Queda abierto para consulta sin contar como intento nuevo.' },
+        { name:'immediateFeedback', type:'switch', value: c.immediateFeedback === true, label:'Retroalimentación inmediata',
+          hint:'Muestra al instante si acertó cada pregunta. Para cumplimiento se recomienda calificar solo al final.' }
+      ]
+    });
+    if(!r) return;
+    await api('/trainings/'+id+'/player-config','PUT',{
+      allowBack: r.values.allowBack, reviewAfterPass: r.values.reviewAfterPass, immediateFeedback: r.values.immediateFeedback
+    });
+    toast('Opciones guardadas.');
     loadTrainings();
-  }catch(e){ alert(e.message); }
+  }catch(e){ toast(e.message,'err'); }
 }
 
 async function renameTraining(id, title){
-  const nuevo = prompt('Nuevo nombre del adiestramiento:', title);
-  if(nuevo===null) return;
-  if(nuevo.trim().length<3){ alert('El título debe tener al menos 3 caracteres.'); return; }
-  const desc = prompt('Descripción (deja vacío para quitarla):', '');
-  if(desc===null) return;
-  try{ await api('/trainings/'+id,'PUT',{ title:nuevo.trim(), description:desc.trim()||null }); loadTrainings(); }
-  catch(e){ alert(e.message); }
+  const t = (trCache||[]).find(x=>x.id===id);
+  const r = await dialog({
+    title:'Renombrar adiestramiento', icon:'pencil', okText:'Guardar',
+    text:'Los certificados ya emitidos conservan el título con el que se emitieron.',
+    fields:[
+      { name:'title', label:'Nombre', value: t ? t.title : title },
+      { name:'description', type:'textarea', label:'Descripción (opcional)', value: (t && t.description) || '', rows:3 }
+    ],
+    validate: v => String(v.title||'').trim().length<3 ? 'El título debe tener al menos 3 caracteres.' : null
+  });
+  if(!r) return;
+  try{
+    await api('/trainings/'+id,'PUT',{ title:r.values.title.trim(), description:String(r.values.description||'').trim()||null });
+    toast('Adiestramiento actualizado.');
+    loadTrainings();
+  }catch(e){ toast(e.message,'err'); }
 }
-// Archivar = sacarlo del catálogo sin borrar nada. Doble verificación: confirmación
-// explícita y, además, escribir el título exacto (el servidor también lo valida).
+// Archivar = sacarlo del catálogo sin borrar nada. Doble verificación en modal:
+// confirmación explícita y, además, escribir el título exacto (el servidor también lo valida).
 async function archiveTraining(id, title){
-  if(!confirm('¿Archivar "'+title+'"?\n\nDeja de aparecerle a los learners y no se podrán empezar intentos nuevos.\nNo se borra nada: contenido, intentos y certificados quedan intactos, y lo puedes restaurar cuando quieras.')) return;
-  const escrito = prompt('Para confirmar, escribe el nombre exacto del adiestramiento:\n\n'+title, '');
+  const ok = await confirmModal('¿Archivar «'+title+'»?',
+    'Deja de aparecerle a los empleados y no se podrán empezar intentos nuevos.\n'
+    + 'No se borra nada: contenido, intentos y certificados quedan intactos, y lo puedes restaurar cuando quieras.',
+    { danger:true, icon:'archive', okText:'Continuar' });
+  if(!ok) return;
+  const escrito = await askModal('Confirma el archivo', 'Para confirmar, escribe el nombre exacto del adiestramiento:\n' + title,
+    { label:'Nombre del adiestramiento', icon:'archive', tone:'danger', okText:'Archivar',
+      validate: v => v.trim().toLowerCase() !== title.trim().toLowerCase() ? 'El nombre no coincide.' : null });
   if(escrito===null) return;
-  if(escrito.trim().toLowerCase() !== title.trim().toLowerCase()){ alert('El nombre no coincide. No se archivó nada.'); return; }
-  try{ await api('/trainings/'+id+'/archive','POST',{ confirmTitle:escrito.trim() }); loadTrainings(); }
-  catch(e){ alert(e.message); }
+  try{ await api('/trainings/'+id+'/archive','POST',{ confirmTitle:escrito.trim() }); toast('Adiestramiento archivado.'); loadTrainings(); }
+  catch(e){ toast(e.message,'err'); }
 }
 async function unarchiveTraining(id, title){
-  if(!confirm('¿Restaurar "'+title+'"?\n\nVuelve a quedar disponible: publicado si tenía una versión publicada, o en borrador si no.')) return;
-  try{ await api('/trainings/'+id+'/unarchive','POST'); loadTrainings(); }
-  catch(e){ alert(e.message); }
+  if(!await confirmModal('¿Restaurar «'+title+'»?',
+    'Vuelve a quedar disponible: publicado si tenía una versión publicada, o en borrador si no.',
+    { icon:'refresh', okText:'Restaurar' })) return;
+  try{ await api('/trainings/'+id+'/unarchive','POST'); toast('Adiestramiento restaurado.'); loadTrainings(); }
+  catch(e){ toast(e.message,'err'); }
 }
+// Vigencia: tres modos excluyentes. Con fecha fija se puede, además, hacer que ruede
+// cada N meses (2026-12-31 con 12 meses = cada 31 de diciembre).
 async function setRecurrence(id, title, curMonths, curLead, curExpiresOn){
-  const mRaw = prompt('Vigencia de "'+title+'":\n\n¿Cada cuántos MESES caduca desde que cada persona lo aprueba?\n(vacío = no caduca por tiempo)', curMonths==null?'':curMonths);
-  if (mRaw===null) return;
-  let months = null;
-  if (mRaw.trim()!==''){ months = parseInt(mRaw,10); if(isNaN(months)||months<1){ alert('Pon un número de meses (1 o más) o déjalo vacío.'); return; } }
-
-  const fRaw = prompt('¿Vence en una FECHA FIJA para todos? (AAAA-MM-DD, vacío = no)\n\n'
-    + 'Si pones fecha fija Y meses, la fecha rueda cada N meses:\n'
-    + '2026-12-31 con 12 meses = cada 31 de diciembre.', curExpiresOn ? String(curExpiresOn).slice(0,10) : '');
-  if (fRaw===null) return;
-  let expiresOn = null;
-  if (fRaw.trim()!==''){
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(fRaw.trim())){ alert('La fecha va en formato AAAA-MM-DD.'); return; }
-    expiresOn = fRaw.trim();
-  }
-
-  let lead = curLead||30;
-  if (months!==null || expiresOn!==null){
-    const lRaw = prompt('¿Cuántos DÍAS antes del vencimiento debe reabrir para renovar?', String(curLead||30));
-    if (lRaw===null) return;
-    lead = parseInt(lRaw,10); if(isNaN(lead)||lead<0) lead = 30;
-  }
-  try{ await api('/trainings/'+id+'/recurrence','POST',{recurrenceMonths:months, renewLeadDays:lead, expiresOn}); loadTrainings(); }
-  catch(e){ alert(e.message); }
+  const fija = curExpiresOn ? String(curExpiresOn).slice(0,10) : '';
+  const modo = fija ? 'fixed' : (curMonths ? 'months' : 'none');
+  const r = await dialog({
+    title:'Vigencia', text:title, icon:'calendar', okText:'Guardar',
+    fields:[
+      { name:'mode', type:'radio', value: modo, label:'Cuándo caduca la aprobación de cada persona', options:[
+        { value:'none',   label:'No caduca', hint:'Se toma una sola vez.' },
+        { value:'months', label:'Cada N meses desde que cada persona aprueba', hint:'Por ejemplo, cada 12 meses.' },
+        { value:'fixed',  label:'Fecha fija para todos', hint:'Opcionalmente rueda cada N meses (31 de diciembre de cada año).' }
+      ]},
+      { name:'months', type:'number', label:'Meses', value: curMonths || 12, min:1, width:'140px', showIf: v => v.mode==='months' },
+      { name:'date', type:'date', label:'Fecha de vencimiento', value: fija, width:'200px', showIf: v => v.mode==='fixed' },
+      { name:'roll', type:'number', label:'Rueda cada (meses, vacío = no rueda)', value: fija ? (curMonths || '') : '', min:1, width:'140px', showIf: v => v.mode==='fixed' },
+      { name:'lead', type:'number', label:'Días de reapertura antes de vencer', value: curLead==null ? 30 : curLead, min:0, width:'140px',
+        hint:'Durante esos días el curso vuelve a aparecer para renovarlo.', showIf: v => v.mode!=='none' }
+    ],
+    validate: v => {
+      if(v.mode==='months' && !(Number(v.months)>=1)) return 'Pon un número de meses (1 o más).';
+      if(v.mode==='fixed' && !/^\d{4}-\d{2}-\d{2}$/.test(String(v.date||''))) return 'Escoge la fecha de vencimiento.';
+      if(v.mode==='fixed' && v.roll!=='' && !(Number(v.roll)>=1)) return 'Los meses para rodar deben ser 1 o más, o déjalo vacío.';
+      if(v.mode!=='none' && !(Number(v.lead)>=0)) return 'Los días de reapertura deben ser 0 o más.';
+      return null;
+    }
+  });
+  if(!r) return;
+  const v = r.values;
+  const months = v.mode==='months' ? parseInt(v.months,10) : (v.mode==='fixed' && v.roll!=='' ? parseInt(v.roll,10) : null);
+  const expiresOn = v.mode==='fixed' ? v.date : null;
+  const lead = v.mode==='none' ? (curLead||30) : parseInt(v.lead,10);
+  try{ await api('/trainings/'+id+'/recurrence','POST',{recurrenceMonths:months, renewLeadDays:lead, expiresOn}); toast('Vigencia guardada.'); loadTrainings(); }
+  catch(e){ toast(e.message,'err'); }
 }
 
-// Avisos por correo de este curso: encendido/apagado y con cuánta anticipación.
+// Avisos por correo de este curso: encendido/apagado, al abrir, con cuánta anticipación
+// y cada cuántos días se repite mientras siga vencido.
 async function setNotifications(id, title){
   try{
     const c = await api('/trainings/'+id+'/notification-config');
-    const estado = c.enabled ? 'ENCENDIDOS' : 'APAGADOS';
-    const dias = (c.daysBefore||[]).join(', ') || 'ninguno';
-    const resp = prompt('Avisos por correo de "'+title+'"\n\n'
-      + 'Ahora: ' + estado + ' · al abrir: ' + (c.onOpen?'sí':'no') + ' · antes de vencer: ' + dias + ' día(s)\n\n'
-      + 'Escribe los días de anticipación separados por coma (ej. 30,15,5),\n'
-      + '"no" para apagar todos los avisos de este curso,\n'
-      + 'o "solo-vencimiento" para no avisar cuando abre.', dias === 'ninguno' ? '15,5' : dias);
-    if(resp===null) return;
-    const v = resp.trim().toLowerCase();
-
-    let cfg;
-    if(v === 'no') cfg = { enabled:false, onOpen:false, daysBefore:[] };
-    else if(v === 'solo-vencimiento') cfg = { enabled:true, onOpen:false, daysBefore:c.daysBefore||[15,5] };
-    else {
-      const dd = v.split(',').map(x=>parseInt(x.trim(),10)).filter(n=>!isNaN(n) && n>0 && n<=365);
-      cfg = { enabled:true, onOpen:true, daysBefore:dd };
-    }
+    const actuales = (c.daysBefore||[]).map(Number);
+    const opciones = [...new Set([60,30,15,7,5,1, ...actuales])].sort((a,b)=>b-a);
+    const r = await dialog({
+      title:'Avisos al empleado', text:title + '\nPor correo, sin repetir el mismo aviso.', icon:'bell', okText:'Guardar',
+      fields:[
+        { name:'enabled', type:'switch', value: c.enabled !== false, label:'Avisos de este curso', hint:'Apágalo para no enviar ningún correo de este curso.' },
+        { name:'onOpen', type:'switch', value: c.onOpen !== false, label:'Al publicarse una versión', hint:'«Tienes un adiestramiento disponible».', showIf: v => v.enabled },
+        { name:'daysBefore', type:'days', value: actuales, options: opciones, label:'Antes de vencer', hint:'Un aviso por cada anticipación marcada.', showIf: v => v.enabled },
+        { name:'overdue', type:'number', value: c.overdueEveryDays==null ? 14 : c.overdueEveryDays, min:0, max:365, width:'120px',
+          label:'Después de vencer, repetir cada (días)', hint:'Mientras siga vencido. 0 = no avisar.', showIf: v => v.enabled }
+      ],
+      validate: v => (v.enabled && !(Number(v.overdue)>=0 && Number(v.overdue)<=365)) ? 'Los días para repetir van de 0 a 365.' : null
+    });
+    if(!r) return;
+    const v = r.values;
+    // Apagado conserva los días elegidos: `enabled` es lo que corta todos los avisos.
+    const cfg = { enabled:!!v.enabled, onOpen:!!v.onOpen, daysBefore:v.daysBefore,
+                  overdueEveryDays: Math.max(0, parseInt(v.overdue,10)||0) };
     await api('/trainings/'+id+'/notification-config','PUT',cfg);
+    toast('Avisos guardados.');
     loadTrainings();
-  }catch(e){ alert(e.message); }
+  }catch(e){ toast(e.message,'err'); }
 }
 
 // ----- Configuración del certificado por curso -----
@@ -1469,7 +2046,7 @@ async function openCertConfig(id, title, recMonths){
     renderCertLogoPreview();
     renderCertSignPreview();
     el('certModal').classList.remove('hidden');
-  }catch(e){ alert(e.message); }
+  }catch(e){ toast(e.message,'err'); }
 }
 function renderCertLogoPreview(){
   el('certLogoPreview').innerHTML = certLogoData
@@ -1479,7 +2056,7 @@ function renderCertLogoPreview(){
 }
 el('certLogoFile').onchange = e => {
   const f = e.target.files[0]; if(!f) return;
-  if(f.size > 1_000_000){ alert('El logo es demasiado grande (máx. ~1 MB).'); e.target.value=''; return; }
+  if(f.size > 1_000_000){ toast('El logo es demasiado grande (máx. ~1 MB).','err'); e.target.value=''; return; }
   const rd = new FileReader();
   rd.onload = () => { certLogoData = rd.result; renderCertLogoPreview(); };
   rd.readAsDataURL(f);
@@ -1493,7 +2070,7 @@ function renderCertSignPreview(){
 }
 el('certSignFile').onchange = e => {
   const f = e.target.files[0]; if(!f) return;
-  if(f.size > 1_000_000){ alert('La firma es demasiado grande (máx. ~1 MB).'); e.target.value=''; return; }
+  if(f.size > 1_000_000){ toast('La firma es demasiado grande (máx. ~1 MB).','err'); e.target.value=''; return; }
   const rd = new FileReader();
   rd.onload = () => { certSignData = rd.result; renderCertSignPreview(); };
   rd.readAsDataURL(f);
@@ -1637,11 +2214,11 @@ async function moveItem(itemId, dir){
     await reloadContent();
     const gi = contentGroups.findIndex(g=>g.items.some(x=>x.id===itemId));
     if(gi>=0){ activeTab=gi; renderTabs(); }
-  }catch(e){ alert(e.message); }
+  }catch(e){ toast(e.message,'err'); }
 }
 async function toggleActive(itemId, active){
   try{ await api('/items/'+itemId+'/active','POST',{active}); await reloadContent(); }
-  catch(e){ alert(e.message); }
+  catch(e){ toast(e.message,'err'); }
 }
 
 // ----- Modal de edición -----
@@ -1759,14 +2336,25 @@ function gatherOptions(){
 
 function exec(c){ document.execCommand(c,false,null); }
 function execBlock(tag){ document.execCommand('formatBlock',false,tag); }
-function addLink(){
-  const u = prompt('URL del enlace:','https://');
+async function addLink(){
+  // El diálogo se lleva el foco (y la selección): se guarda el rango para volver a él.
+  const sel0 = window.getSelection();
+  const host = document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('blockText')
+    ? document.activeElement
+    : (sel0 && sel0.anchorNode && sel0.anchorNode.parentElement ? sel0.anchorNode.parentElement.closest('.blockText') : null);
+  const rango = (sel0 && sel0.rangeCount) ? sel0.getRangeAt(0).cloneRange() : null;
+  const u = await askModal('Insertar enlace', 'Se abre en una pestaña nueva.',
+    { label:'URL del enlace', value:'https://', type:'url', icon:'link', okText:'Insertar',
+      validate: v => /^(https?:\/\/|mailto:)\S+/i.test(v.trim()) ? null : 'Escribe una dirección que empiece con https:// o mailto:.' });
   if(!u) return;
+  const url = u.trim();
+  if(host){ host.focus(); }
+  if(rango){ const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rango); }
   const sel = window.getSelection();
   if(sel && !sel.isCollapsed){
-    document.execCommand('createLink', false, u);
+    document.execCommand('createLink', false, url);
   } else {
-    document.execCommand('insertHTML', false, `<a href="${u}" title="${u}" target="_blank">${u}</a>`);
+    document.execCommand('insertHTML', false, `<a href="${esc(url)}" title="${esc(url)}" target="_blank">${esc(url)}</a>`);
   }
   syncLinkTitles();
 }
@@ -1791,7 +2379,7 @@ function insertCallout(kind){
   } else {
     const all = document.querySelectorAll('#blocks .blockText');
     d = all[all.length-1];
-    if(!d){ alert('Primero añade un bloque de texto con “+ Texto”.'); return; }
+    if(!d){ toast('Primero añade un bloque de texto con “+ Texto”.','info'); return; }
     d.innerHTML += html;                                // sin cursor: al final del último bloque
   }
   infoBlocks[+d.dataset.i].html = d.innerHTML;           // guarda el cambio
@@ -1943,8 +2531,9 @@ function resetItemForm(){
 }
 
 async function deleteItem(itemId){
-  if(!confirm('¿Eliminar este ítem?')) return;
-  try{ await api('/items/'+itemId,'DELETE'); await reloadContent(); }catch(e){ alert(e.message); }
+  if(!await confirmModal('¿Eliminar este ítem?', 'Se quita del borrador. La versión publicada no cambia hasta que vuelvas a publicar.',
+    { danger:true, icon:'trash', okText:'Eliminar' })) return;
+  try{ await api('/items/'+itemId,'DELETE'); await reloadContent(); toast('Ítem eliminado.'); }catch(e){ toast(e.message,'err'); }
 }
 el('publishBtn').onclick = async () => {
   if(!editingTrainingId) return;
@@ -2000,7 +2589,9 @@ function renderCohorts(){
     </div>`).join('') : `<div class="empty">Sin cohortes.</div>`;
 }
 function toggleCohortMembers(id){ el('mem_'+id).classList.toggle('hidden'); }
-async function deleteCohort(id){ if(!confirm('¿Eliminar la cohorte? Se quitan sus asignaciones.')) return; try{ await api('/user-groups/'+id,'DELETE'); asgCohorts=await api('/user-groups'); renderCohorts(); if(curTraining) loadSets(); }catch(e){ alert(e.message); } }
+async function deleteCohort(id){
+  if(!await confirmModal('¿Eliminar la cohorte?', 'Se quitan sus miembros, su plan y sus asignaciones. Las personas no se borran.', { danger:true, icon:'trash', okText:'Eliminar' })) return;
+  try{ await api('/user-groups/'+id,'DELETE'); asgCohorts=await api('/user-groups'); renderCohorts(); if(curTraining) loadSets(); }catch(e){ toast(e.message,'err'); } }
 async function toggleMember(cohortId, userId, on){
   try{
     if(on) await api('/user-groups/'+cohortId+'/members','POST',{userId});
@@ -2008,7 +2599,7 @@ async function toggleMember(cohortId, userId, on){
     const c=asgCohorts.find(x=>x.id===cohortId);
     if(c){ if(on){ if(!c.memberIds.includes(userId)) c.memberIds.push(userId); } else { c.memberIds=c.memberIds.filter(x=>x!==userId); } }
     renderCohorts(); el('mem_'+cohortId).classList.remove('hidden');
-  }catch(e){ alert(e.message); }
+  }catch(e){ toast(e.message,'err'); }
 }
 
 // --- Sets de un adiestramiento ---
@@ -2090,17 +2681,23 @@ function renderTargetOpts(){
     : asgCohorts.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
 }
 async function createSet(){
-  const name = prompt('Nombre del set (ej. "Set básico"):', 'Set '+(curSets.length+1));
+  const name = await askModal('Nuevo set', 'Un set es una versión del adiestramiento donde eliges qué se enseña.',
+    { label:'Nombre del set', value:'Set '+(curSets.length+1), placeholder:'Set básico', icon:'layers', okText:'Crear',
+      validate: v => v.trim() ? null : 'Ponle un nombre al set.' });
   if(name===null) return;
-  try{ await api('/trainings/'+curTraining+'/sets','POST',{name}); await loadSets(); }catch(e){ amsg(e.message); }
+  try{ await api('/trainings/'+curTraining+'/sets','POST',{name:name.trim()}); await loadSets(); toast('Set creado.'); }catch(e){ amsg(e.message); }
 }
 async function renameSet(id, cur){
-  const name = prompt('Nuevo nombre:', cur);
-  if(name===null||!name.trim()) return;
-  try{ await api('/sets/'+id+'/rename','POST',{name}); await loadSets(); }catch(e){ amsg(e.message); }
+  const name = await askModal('Renombrar set', '', { label:'Nuevo nombre', value:cur, icon:'pencil', okText:'Guardar',
+    validate: v => v.trim() ? null : 'Ponle un nombre al set.' });
+  if(name===null) return;
+  try{ await api('/sets/'+id+'/rename','POST',{name:name.trim()}); await loadSets(); }catch(e){ amsg(e.message); }
 }
 async function makeDefault(id){ try{ await api('/sets/'+id+'/default','POST'); await loadSets(); }catch(e){ amsg(e.message); } }
-async function deleteSet(id){ if(!confirm('¿Eliminar este set?')) return; try{ await api('/sets/'+id,'DELETE'); await loadSets(); }catch(e){ amsg(e.message); } }
+async function deleteSet(id){
+  if(!await confirmModal('¿Eliminar este set?', 'Se quitan sus asignaciones: esas personas verán el set de su cohorte o el set por defecto.', { danger:true, icon:'trash', okText:'Eliminar' })) return;
+  try{ await api('/sets/'+id,'DELETE'); await loadSets(); toast('Set eliminado.'); }catch(e){ amsg(e.message); }
+}
 async function toggleSetItem(setId, stableKey, included){
   try{ await api('/sets/'+setId+'/item','POST',{stableKey, included});
     const s=curSets.find(x=>x.id===setId);
@@ -2116,34 +2713,79 @@ async function addAssignment(){
 async function deleteAssignment(id){ try{ await api('/assignments/'+id,'DELETE'); curAssign=await api('/trainings/'+curTraining+'/assignments'); renderSets(); }catch(e){ amsg(e.message); } }
 
 // ===== Catálogo: abre el reproductor en pestaña nueva =====
-function fmtDate(s){ try{ return new Date(s).toLocaleDateString('es-PR',{year:'numeric',month:'short',day:'numeric'}); }catch{ return ''; } }
+// «Mis adiestramientos»: tarjetas ordenadas por urgencia, con filtros. Los aprobados van
+// al final en su propia fila (con «Repasar» si el curso lo permite).
+const CAT_FILTERS = [
+  { key:'all',  label:'Todos' },
+  { key:'pend', label:'Pendientes' },
+  { key:'ren',  label:'Por renovar' },
+  { key:'ok',   label:'Aprobados' }
+];
 async function loadCatalog(){
   try{
-    const todo = await api('/catalog');
-    const cat = todo.filter(c=>c.status!=='current' && c.status!=='done'); // vigentes no se listan aquí
-    // Aprobados que el curso deja abiertos para consulta (manual del empleado, onboarding).
-    const paraRepaso = todo.filter(c=>(c.status==='current'||c.status==='done') && c.canReview);
-    el('repasoList').innerHTML = paraRepaso.length ? paraRepaso.map(c=>
-      `<div class="item">${c.title} <span class="tag" style="background:#dcfce7;color:#166534">aprobado</span>
-       <span class="sp"><button class="btn sm ghost" onclick="openRepaso('${c.versionId}','${c.title.replace(/'/g,"")}','${c.setId||''}')">Repasar ▸</button></span></div>`
-    ).join('') : '';
-    el('repasoCard').classList.toggle('hidden', paraRepaso.length===0);
-    el('catalogList').innerHTML = cat.length ? cat.map(c=>{
-      const st = ({
-        'not-started':       {tag:'No comenzado', cls:'',                                     btn:'Tomar ▸',     go:true},
-        'in-progress':       {tag:'En progreso',  cls:'background:#fef3c7;color:#92400e',      btn:'Continuar ▸', go:true},
-        'failed':            {tag:'No aprobado',  cls:'background:#fee2e2;color:#991b1b',      btn:'Reintentar ▸',go:true},
-        'renewal':           {tag:'Por renovar'+(c.expiresAt?' · vence '+fmtDate(c.expiresAt):''), cls:'background:#dbeafe;color:#1e40af', btn:'Renovar ▸', go:true},
-        'expired':           {tag:'Vencido'+(c.expiresAt?' · venció '+fmtDate(c.expiresAt):''),     cls:'background:#fee2e2;color:#991b1b', btn:'Renovar ▸', go:true},
-        'pending-grading':   {tag:'En revisión',  cls:'background:#e0e7ff;color:#3730a3',      btn:'En revisión', go:false},
-        'pending-cancellation':{tag:'Cancelación pendiente', cls:'background:#f1f5f9;color:#475569', btn:'Pendiente', go:false}
-      })[c.status] || {tag:'', cls:'', btn:'Tomar ▸', go:true};
-      const btn = st.go
-        ? `<button class="btn sm" onclick="openPlayer('${c.versionId}','${c.title.replace(/'/g,"")}','${c.setId||''}')">${st.btn}</button>`
-        : `<button class="btn sm ghost" disabled style="opacity:.6">${st.btn}</button>`;
-      return `<div class="item">${c.title} <span class="tag" style="${st.cls}">${st.tag}</span><span class="sp">${btn}</span></div>`;
-    }).join('') : `<div class="empty">No tienes adiestramientos pendientes. 🎉</div>`;
-  }catch(e){}
+    await fetchCatalog();
+    paintTakeBadge();
+  }catch(e){
+    el('catFilters').innerHTML = '';
+    el('catalogGrid').innerHTML = `<div class="allgood"><div class="ic" style="background:var(--err-bg);color:var(--err)">${ic('alert',24)}</div>
+      <div><h3>No se pudo cargar</h3><p>${esc(e.message)}</p></div></div>`;
+    el('repasoRow').innerHTML = '';
+    return;
+  }
+  renderCatalog();
+}
+function setCatFilter(f){ catFilter = f; renderCatalog(); }
+function renderCatalog(){
+  const rows = catRows();
+  const cuenta = { all: rows.length, pend: 0, ren: 0, ok: 0 };
+  rows.forEach(r => cuenta[r.k.grp]++);
+  if (!CAT_FILTERS.some(f => f.key === catFilter)) catFilter = 'all';
+  el('catFilters').innerHTML = CAT_FILTERS.map(f =>
+    `<button type="button" class="chip ${f.key===catFilter?'on':''}" aria-pressed="${f.key===catFilter}" onclick="setCatFilter('${f.key}')">${f.label}<span class="n">${cuenta[f.key]}</span></button>`
+  ).join('');
+
+  const pendientes = rows.filter(r => r.k.grp !== 'ok' && (catFilter === 'all' || r.k.grp === catFilter)).sort(byUrgency);
+  const aprobados = rows.filter(r => r.k.grp === 'ok' && (catFilter === 'all' || catFilter === 'ok'))
+    .sort((a, b) => (b.c.canReview ? 1 : 0) - (a.c.canReview ? 1 : 0) || byUrgency(a, b));
+
+  // Estado vacío de la parte principal.
+  let vacio = '';
+  if (!pendientes.length && catFilter !== 'ok'){
+    const txt = catFilter === 'ren'
+      ? ['Nada por renovar', 'Ninguna de tus certificaciones está por vencer.']
+      : rows.length ? ['Estás al día', 'No tienes adiestramientos pendientes. Te avisaremos cuando toque renovar alguno.']
+                    : ['Estás al día', 'Aún no tienes adiestramientos asignados.'];
+    vacio = `<div class="allgood"><div class="ic">${ic('check',24)}</div><div><h3>${txt[0]}</h3><p>${txt[1]}</p></div></div>`;
+  }
+  el('catalogGrid').innerHTML = catFilter === 'ok' ? '' : (vacio || `<div class="cgrid">${pendientes.map(courseCard).join('')}</div>`);
+
+  if (!aprobados.length){
+    el('repasoRow').innerHTML = catFilter === 'ok'
+      ? `<div class="allgood"><div class="ic" style="background:var(--gray-bg);color:var(--gray)">${ic('award',24)}</div>
+          <div><h3>Aún no hay aprobados</h3><p>Cuando apruebes un adiestramiento aparecerá aquí, con su vigencia.</p></div></div>` : '';
+    return;
+  }
+  const conRepaso = aprobados.filter(r => r.c.canReview).length;
+  el('repasoRow').innerHTML = `
+    <div class="rowhead"${catFilter === 'ok' ? ' style="margin-top:0"' : ''}><h2>Aprobados</h2>
+      <span>${conRepaso ? (conRepaso === 1 ? '1 disponible para repaso · no cuenta como intento nuevo' : conRepaso + ' disponibles para repaso · no cuentan como intento nuevo') : 'Vigentes en tu expediente'}</span></div>
+    <div class="cgrid">${aprobados.map(courseCard).join('')}</div>`;
+}
+function courseCard(r){
+  const { c, i, k } = r;
+  const look = courseLook(c);
+  const btn = k.act
+    ? `<button type="button" class="btn sm ${k.ghost ? 'ghost' : ''}" onclick="catGo(${i})">${esc(k.btn)}</button>`
+    : `<button type="button" class="btn sm ghost" disabled>${esc(k.btn)}</button>`;
+  return `<article class="ccard">
+    ${coverHtml(look, 64, `<span class="ribbon ${k.tone}">${esc(k.label)}</span>`)}
+    <div class="cbody">
+      <div class="cat">${esc(look.category)}</div>
+      <h3>${esc(c.title)}</h3>
+      ${look.description ? `<p class="desc">${esc(look.description)}</p>` : ''}
+      <div class="cfoot"><span class="due ${k.dueTone || ''}">${k.due || ''}</span>${btn}</div>
+    </div>
+  </article>`;
 }
 function openPlayer(versionId, title, setId){
   window.open('player.html?v='+encodeURIComponent(versionId)+'&t='+encodeURIComponent(title)+(setId?('&set='+encodeURIComponent(setId)):'')+'&_='+Date.now(), '_blank');
@@ -2180,11 +2822,12 @@ async function loadMyHistory(){
 
 // ===== Cancelaciones =====
 async function requestCancel(id){
-  const c = prompt('¿Por qué quieres cancelar este curso? (obligatorio)', '');
+  const c = await askModal('Solicitar cancelación', 'Un moderador revisará tu solicitud antes de cancelar el intento.',
+    { type:'textarea', label:'¿Por qué quieres cancelar este curso?', placeholder:'Obligatorio', icon:'x', okText:'Enviar solicitud',
+      validate: v => v.trim() ? null : 'El comentario es obligatorio.' });
   if(c===null) return;
-  if(!c.trim()){ alert('El comentario es obligatorio.'); return; }
-  try{ await api('/attempts/'+id+'/request-cancel','POST',{ comment:c.trim() }); loadMyHistory(); loadCatalog(); }
-  catch(e){ alert(e.message); }
+  try{ await api('/attempts/'+id+'/request-cancel','POST',{ comment:c.trim() }); toast('Solicitud enviada.'); loadMyHistory(); loadCatalog(); }
+  catch(e){ toast(e.message,'err'); }
 }
 el('refreshPendBtn').onclick = loadPending;
 async function loadPending(){
@@ -2198,11 +2841,12 @@ async function loadPending(){
   }catch(e){}
 }
 async function approveCancel(id){
-  const c = prompt('Comentario de aprobación (obligatorio)', '');
+  const c = await askModal('Aprobar cancelación', 'El intento queda cancelado y el empleado podrá empezarlo de nuevo.',
+    { type:'textarea', label:'Comentario de aprobación', placeholder:'Obligatorio', icon:'checkCircle', okText:'Aprobar',
+      validate: v => v.trim() ? null : 'El comentario es obligatorio.' });
   if(c===null) return;
-  if(!c.trim()){ alert('El comentario es obligatorio.'); return; }
-  try{ await api('/attempts/'+id+'/approve-cancel','POST',{ comment:c.trim() }); loadPending(); }
-  catch(e){ alert(e.message); }
+  try{ await api('/attempts/'+id+'/approve-cancel','POST',{ comment:c.trim() }); toast('Cancelación aprobada.'); loadPending(); }
+  catch(e){ toast(e.message,'err'); }
 }
 
 // ===== Evaluación de respuestas abiertas =====
@@ -2232,7 +2876,7 @@ async function gradeOpen(btn, attemptId, itemId){
   const pts = parseInt(box.querySelector('.gradePts').value)||0;
   const cmt = box.querySelector('.gradeCmt').value;
   try{ await api('/attempts/'+attemptId+'/grade','POST',{ itemId, points:pts, comment:cmt }); loadGrading(); }
-  catch(e){ alert(e.message); }
+  catch(e){ toast(e.message,'err'); }
 }
 async function loadResults(id, title){
   el('resultsCard').classList.remove('hidden');
