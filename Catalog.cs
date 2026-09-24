@@ -139,6 +139,14 @@ public class UserCompany
     public Guid TenantId { get; set; }
     public string Role { get; set; } = "Learner";   // Admin | Author | Moderator | Learner
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Oficial de cumplimiento de ESTA compañía. No es un rol: se suma al rol que tenga.
+    // Recibe copia de los certificados y los resúmenes de cumplimiento, ve el panel de
+    // cumplimiento y el expediente de cualquier empleado. Para marcar a alguien cuya
+    // compañía principal es esta (AppUser.TenantId) se crea una fila "espejo" de la
+    // principal (mismo rol y misma fecha de alta que la cuenta): la principal sigue
+    // mandando en todo lo demás.
+    public bool IsComplianceOfficer { get; set; }
 }
 
 // Identity + routing live centrally so we know the tenant before connecting to its DB.
@@ -219,6 +227,28 @@ public static class CompanyUsers
 
         return principales.Concat(extras).GroupBy(x => x.Id).Select(g => g.First()).ToList();
     }
+}
+
+// Oficiales de cumplimiento de una compañía (marca UserCompany.IsComplianceOfficer).
+// Consulta directa al catálogo en vez de un claim en el JWT: así quitar la marca
+// surte efecto de inmediato, sin esperar a que venza el token.
+public static class ComplianceOfficers
+{
+    public static async Task<List<CompanyUsers.Miembro>> OfAsync(CatalogDbContext catalog, Guid tenantId)
+    {
+        var lista = await (from m in catalog.UserCompanies
+                           where m.TenantId == tenantId && m.IsComplianceOfficer
+                           join u in catalog.Users on m.UserId equals u.Id
+                           // Si es su compañía principal, el rol que vale es el de la cuenta.
+                           select new CompanyUsers.Miembro(u.Id, u.Email, u.Name, u.TenantId == tenantId ? u.Role : m.Role))
+                          .ToListAsync();
+        return lista.GroupBy(x => x.Id).Select(g => g.First()).ToList();
+    }
+
+    public static Task<bool> EsOficialAsync(CatalogDbContext catalog, Guid? userId, Guid? tenantId)
+        => userId is null || tenantId is null
+            ? Task.FromResult(false)
+            : catalog.UserCompanies.AnyAsync(m => m.UserId == userId && m.TenantId == tenantId && m.IsComplianceOfficer);
 }
 
 public class CatalogDbContext : DbContext

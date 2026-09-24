@@ -382,7 +382,7 @@ public static class CertificateEndpoints
             var attempt = await db.Attempts.FindAsync(attemptId);
             if (attempt is null) return Results.NotFound();
             bool owner = attempt.UserId != null && attempt.UserId == tc.UserId;
-            if (!owner && !CanAuthor(tc.Role)) return Results.Forbid();
+            if (!owner && !await PuedeGestionarAsync(catalog, tc)) return Results.Forbid();
             if (!attempt.Passed) return Results.BadRequest("El intento no está aprobado; no hay certificado.");
 
             var cert = await CertificateService.EnsureIssuedAsync(db, attempt);
@@ -393,13 +393,13 @@ public static class CertificateEndpoints
             return Results.Ok(CertificateService.ToView(cert, cfg, issuer));
         }).RequireAuthorization();
 
-        // ---- El certificado en PDF: lo baja su dueño, un autor o un moderador ----
+        // ---- El certificado en PDF: lo baja su dueño, un autor, un moderador o un oficial de cumplimiento ----
         app.MapGet("/certificates/{serial}/pdf", async (string serial, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             var cert = await db.Certificates.FirstOrDefaultAsync(c => c.Serial == serial);
             if (cert is null) return Results.NotFound();
-            if (cert.UserId != tc.UserId && !CanAuthor(tc.Role)) return Results.Forbid();
+            if (cert.UserId != tc.UserId && !await PuedeGestionarAsync(catalog, tc)) return Results.Forbid();
 
             var cfg = CertificateConfig.Parse(cert.ConfigSnapshotJson);
             if (!cfg.Enabled) return Results.BadRequest("Este curso no emite certificado.");
@@ -613,10 +613,11 @@ public static class CertificateEndpoints
         }).RequireAuthorization();
 
         // ---- Reglas de cumplimiento de la compañía (Tenant.ComplianceConfigJson) ----
+        // Leer: Admin de la compañía u oficial de cumplimiento. Cambiar: solo el Admin.
         app.MapGet("/company/compliance", async (ITenantContext tc, CatalogDbContext catalog) =>
         {
             if (tc.TenantId is null) return Results.BadRequest("No tenant context.");
-            if (!EsAdminEmpresa(tc)) return Results.Forbid();
+            if (!EsAdminEmpresa(tc) && !await ComplianceAccess.EsOficialAsync(catalog, tc)) return Results.Forbid();
             var t = await catalog.Tenants.FindAsync(tc.TenantId);
             if (t is null) return Results.NotFound();
             return Results.Ok(ComplianceConfig.Parse(t.ComplianceConfigJson));
@@ -717,14 +718,11 @@ public static class CertificateRecipients
         return lista;
     }
 
-    // Punto de extensión: oficiales de cumplimiento de la compañía (reciben la copia
-    // del certificado con el nombre del empleado y pueden gestionar sus enlaces).
-    // La marca UserCompany.IsComplianceOfficer llega con la migración
-    // AddComplianceOfficerFlag; mientras la columna no exista no hay oficiales
-    // marcados y la copia de cumplimiento sale por ComplianceConfig.extraEmails.
-    // Con la marca, basta con devolver aquí los miembros de CompanyUsers.OfAsync que la tengan.
+    // Oficiales de cumplimiento de la compañía (marca UserCompany.IsComplianceOfficer):
+    // reciben la copia del certificado con el nombre del empleado y pueden gestionar
+    // sus enlaces. Los correos de ComplianceConfig.extraEmails se suman aparte.
     public static Task<List<CompanyUsers.Miembro>> OficialesDeCumplimientoAsync(CatalogDbContext catalog, Guid tenantId)
-        => Task.FromResult(new List<CompanyUsers.Miembro>());
+        => ComplianceOfficers.OfAsync(catalog, tenantId);
 }
 
 // ============================================================================

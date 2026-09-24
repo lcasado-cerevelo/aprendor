@@ -579,7 +579,7 @@ public static class Phase2Endpoints
             var t = await db.Trainings.FindAsync(id);
             if (t is null) return Results.NotFound();
             var cfg = NotificationConfig.Parse(t.NotificationConfigJson);
-            return Results.Ok(new { cfg.Enabled, cfg.OnOpen, cfg.DaysBefore });
+            return Results.Ok(new { cfg.Enabled, cfg.OnOpen, cfg.DaysBefore, cfg.OverdueEveryDays });
         }).RequireAuthorization();
 
         app.MapPut("/trainings/{id:guid}/notification-config", async (Guid id, NotificationConfig req, ITenantContext tc, IServiceProvider sp) =>
@@ -590,9 +590,10 @@ public static class Phase2Endpoints
             if (t is null) return Results.NotFound();
             req.DaysBefore = (req.DaysBefore ?? new List<int>())
                 .Where(d => d is > 0 and <= 365).Distinct().OrderByDescending(d => d).ToList();
+            req.OverdueEveryDays = Math.Clamp(req.OverdueEveryDays, 0, 365);   // 0 = sin aviso de vencido
             t.NotificationConfigJson = req.ToJson();
             await db.SaveChangesAsync();
-            return Results.Ok(new { req.Enabled, req.OnOpen, req.DaysBefore });
+            return Results.Ok(new { req.Enabled, req.OnOpen, req.DaysBefore, req.OverdueEveryDays });
         }).RequireAuthorization();
 
         // ---------------- Expediente de certificaciones ----------------
@@ -660,11 +661,13 @@ public static class Phase2Endpoints
         }).RequireAuthorization();
 
         // Expediente completo de una persona: lo tomado en la plataforma y lo de fuera,
-        // en una sola lista ordenada. El learner ve el suyo; el autor ve el de cualquiera.
-        app.MapGet("/record/{userId:guid}", async (Guid userId, ITenantContext tc, IServiceProvider sp) =>
+        // en una sola lista ordenada. El learner ve el suyo; el autor y el oficial de
+        // cumplimiento ven el de cualquiera.
+        app.MapGet("/record/{userId:guid}", async (Guid userId, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
-            if (userId != tc.UserId && !CanAuthor(tc.Role)) return Results.Forbid();
+            if (userId != tc.UserId && !CanAuthor(tc.Role) && !await ComplianceAccess.EsOficialAsync(catalog, tc))
+                return Results.Forbid();
 
             var internos = await (from c in db.Certificates
                                   where c.UserId == userId

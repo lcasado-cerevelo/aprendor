@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TrainingPlatform.Catalog;
+using TrainingPlatform.Multitenancy;
 using TrainingPlatform.TenantData;
 
 namespace TrainingPlatform.Notifications;
@@ -142,12 +143,16 @@ public record PendingItem(Guid TrainingId, string Title, Guid VersionId, Guid? S
     DateTime? DueAt = null);
 
 // Avisos por curso. Lectura tolerante: si el blob falta o está corrupto, se
-// comporta como el valor por defecto (avisa al abrir, y 15 y 5 días antes).
+// comporta como el valor por defecto (avisa al abrir, 15 y 5 días antes, y cada
+// 14 días mientras siga vencido).
 public class NotificationConfig
 {
     public bool Enabled { get; set; } = true;
     public bool OnOpen { get; set; } = true;
     public List<int> DaysBefore { get; set; } = new() { 15, 5 };
+    // Cada cuántos días se le repite el aviso al empleado mientras el curso siga
+    // vencido (estado expired u overdue). 0 = apagado.
+    public int OverdueEveryDays { get; set; } = 14;
 
     public static NotificationConfig Parse(string? json)
     {
@@ -163,6 +168,14 @@ public class NotificationConfig
                                     .Where(d => d is > 0 and <= 365).Distinct().OrderByDescending(d => d).ToList();
         }
         catch { return new NotificationConfig(); }
+        // Aparte: un valor ilegible aquí no debe tumbar el resto de la configuración.
+        try
+        {
+            var n = System.Text.Json.Nodes.JsonNode.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json!) as System.Text.Json.Nodes.JsonObject;
+            if (n?["overdueEveryDays"] is System.Text.Json.Nodes.JsonNode od)
+                cfg.OverdueEveryDays = Math.Clamp(od.GetValue<int>(), 0, 365);
+        }
+        catch { }
         return cfg;
     }
 
@@ -170,7 +183,8 @@ public class NotificationConfig
     {
         enabled = Enabled,
         onOpen = OnOpen,
-        daysBefore = DaysBefore
+        daysBefore = DaysBefore,
+        overdueEveryDays = Math.Clamp(OverdueEveryDays, 0, 365)
     });
 }
 
@@ -479,10 +493,29 @@ public static class EmailTemplates
     // Aviso de curso disponible y recordatorios de vencimiento. Con `esLimite` la fecha
     // es la fecha límite para completarlo por primera vez (plan del grupo / onboarding),
     // no la caducidad de una aprobación anterior.
+    // tipo: open | due{N} | overdue (ya vencido: se repite cada OverdueEveryDays días).
     public static string CourseReminder(string name, string title, string tipo, DateTime? expiresAt, string? appUrl,
         bool esLimite = false)
     {
         string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        if (tipo == "overdue")
+        {
+            var cuando = expiresAt is DateTime f ? $" el <b>{f:dd/MM/yyyy}</b>" : "";
+            var cuerpoVencido = esLimite
+                ? $"El plazo para completar el adiestramiento <b>{Enc(title)}</b> terminó{cuando} y todavía no lo has aprobado."
+                : $"Tu aprobación del adiestramiento <b>{Enc(title)}</b> venció{cuando}. Necesitas tomarlo de nuevo para estar al día.";
+            var bodyVencido =
+                Titulo("Tienes un adiestramiento vencido") +
+                $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
+                $"<p style=\"margin:0;\">{cuerpoVencido}</p>" +
+                (expiresAt is DateTime fv
+                    ? Recuadro($"<span style=\"color:#64748b;\">{(esLimite ? "Fecha límite:" : "Venció el:")}</span> " +
+                               $"<b style=\"color:#b91c1c;\">{fv:dd/MM/yyyy}</b>")
+                    : "") +
+                "<p style=\"margin:0;color:#475569;\">Complétalo lo antes posible: tu oficial de cumplimiento recibe el listado de adiestramientos vencidos.</p>" +
+                Boton("Tomar el adiestramiento", appUrl ?? "");
+            return Render(bodyVencido, $"{title} está vencido.");
+        }
         var dias = tipo.StartsWith("due") ? tipo[3..] : null;
         var (encabezado, cuerpo) = dias is null
             ? ("Tienes un adiestramiento disponible",
@@ -575,6 +608,69 @@ public static class EmailTemplates
 
         return Render(body,
             paraArchivo ? $"Certificado: {learnerName} aprobó {trainingTitle}" : $"Tu certificado: {trainingTitle}");
+    }
+
+    // Resumen para el oficial de cumplimiento. Secciones: vencidos nuevos desde el
+    // último aviso, los que siguen vencidos (se repiten cada ExpiredRepeatDays días),
+    // por vencer (ventana dueSoonDays) y sin comenzar. Las secciones vacías no salen.
+    public static string ComplianceDigest(string companyName, List<ComplianceRow> nuevos, List<ComplianceRow> siguen,
+        List<ComplianceRow> porVencer, List<ComplianceRow> sinComenzar, int dueSoonDays, string? appUrl)
+    {
+        string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        var vencidos = nuevos.Count + siguen.Count;
+
+        string Cifra(int n, string etiqueta, string color)
+            => "<td align=\"center\" style=\"padding:12px 6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;\">" +
+               $"<div style=\"font:700 24px/1.1 Segoe UI,Arial,sans-serif;color:{color};\">{n}</div>" +
+               $"<div style=\"font:400 12px/1.4 Segoe UI,Arial,sans-serif;color:#64748b;margin-top:4px;\">{etiqueta}</div></td>";
+
+        // Tabla de una sección. Se corta en 50 filas para que el correo no se vuelva inmanejable.
+        string Seccion(string titulo, string color, string colFecha, List<ComplianceRow> filas)
+        {
+            if (filas.Count == 0) return "";
+            const int max = 50;
+            var sb = new System.Text.StringBuilder();
+            sb.Append($"<div style=\"font:700 15px/1.4 Segoe UI,Arial,sans-serif;color:{color};margin:22px 0 8px;\">{Enc(titulo)} ({filas.Count})</div>");
+            sb.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" " +
+                      "style=\"border:1px solid #e2e8f0;border-radius:10px;border-collapse:separate;font:400 13px/1.45 Segoe UI,Arial,sans-serif;color:#334155;\">");
+            sb.Append("<tr style=\"background:#f8fafc;color:#64748b;font-size:12px;\">" +
+                      "<td style=\"padding:8px 10px;\">Empleado</td><td style=\"padding:8px 10px;\">Grupo</td>" +
+                      $"<td style=\"padding:8px 10px;\">Curso</td><td style=\"padding:8px 10px;\">{Enc(colFecha)}</td>" +
+                      "<td style=\"padding:8px 10px;\" align=\"right\">Días</td></tr>");
+            foreach (var f in filas.Take(max))
+            {
+                var grupo = f.Groups.Count > 0 ? string.Join(", ", f.Groups) : "—";
+                var fecha = f.Date is DateTime d ? d.ToString("dd/MM/yyyy") : "—";
+                var dias = f.Days is int n ? n.ToString() : "—";
+                sb.Append("<tr>" +
+                          $"<td style=\"padding:8px 10px;border-top:1px solid #e2e8f0;\"><b>{Enc(f.Name)}</b></td>" +
+                          $"<td style=\"padding:8px 10px;border-top:1px solid #e2e8f0;\">{Enc(grupo)}</td>" +
+                          $"<td style=\"padding:8px 10px;border-top:1px solid #e2e8f0;\">{Enc(f.Title)}</td>" +
+                          $"<td style=\"padding:8px 10px;border-top:1px solid #e2e8f0;white-space:nowrap;\">{fecha}</td>" +
+                          $"<td style=\"padding:8px 10px;border-top:1px solid #e2e8f0;\" align=\"right\">{dias}</td></tr>");
+            }
+            sb.Append("</table>");
+            if (filas.Count > max)
+                sb.Append($"<div style=\"font:400 12px/1.5 Segoe UI,Arial,sans-serif;color:#64748b;margin-top:6px;\">…y {filas.Count - max} más. Ve la lista completa en Aprendor.</div>");
+            return sb.ToString();
+        }
+
+        var body =
+            Titulo("Resumen de cumplimiento") +
+            $"<p style=\"margin:0 0 4px;\">Estado de los adiestramientos obligatorios en <b>{Enc(companyName)}</b>.</p>" +
+            "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"6\" border=\"0\" style=\"margin:14px 0 4px;\"><tr>" +
+            Cifra(vencidos, "Vencidos", "#b91c1c") +
+            Cifra(porVencer.Count, $"Por vencer ({dueSoonDays} días)", "#b45309") +
+            Cifra(sinComenzar.Count, "Sin comenzar", "#475569") +
+            "</tr></table>" +
+            Seccion("Nuevos desde el último aviso", "#b91c1c", "Venció", nuevos) +
+            Seccion("Siguen vencidos", "#991b1b", "Venció", siguen) +
+            Seccion("Por vencer", "#b45309", "Vence", porVencer) +
+            Seccion("Sin comenzar", "#475569", "Fecha límite", sinComenzar) +
+            "<p style=\"margin:18px 0 0;color:#64748b;font-size:13px;\">En «Vencidos» los días son los que lleva vencido; " +
+            "en las demás secciones, los que faltan para la fecha.</p>" +
+            Boton("Ver en Aprendor", appUrl ?? "");
+        return Render(body, $"Cumplimiento: {vencidos} vencidos, {porVencer.Count} por vencer.");
     }
 
     public static string VerifyEmail(string name, string code, int minutos)
@@ -777,11 +873,76 @@ public static class ReminderRunner
                         }
                         catch { /* el registro ya quedó; no se reintenta para no spamear */ }
                     }
+
+                    // Vencido (expired / overdue): aviso `overdue:{sello}` que se repite cada
+                    // OverdueEveryDays días mientras siga vencido (0 = apagado).
+                    if (reglas.OverdueEveryDays > 0 && OverdueReminder.FechaVencida(p) is DateTime vencio
+                        && await OverdueReminder.ReservarAsync(db, u.Id, p.TrainingId, vencio, reglas.OverdueEveryDays))
+                    {
+                        try
+                        {
+                            await OverdueReminder.EnviarAsync(email, u.Email, u.Name, p, vencio, appUrl);
+                            enviados++;
+                        }
+                        catch { /* la reserva ya quedó; el próximo sale en N días */ }
+                    }
                 }
             }
         }
         return enviados;
     }
+}
+
+// ---- Aviso al empleado con un curso vencido ----
+// Idempotencia con NotificationLog (UserId, TrainingId, Kind = overdue:{yyyyMMdd}). A
+// diferencia de los demás avisos, la fila se RENUEVA (SentAt) cada N días mientras el
+// curso siga vencido. El sello es la fecha de caducidad (expired) o la fecha límite
+// (overdue): si cambia (nuevo plazo, nueva aprobación que vuelve a vencer) es otro aviso.
+public static class OverdueReminder
+{
+    // La fecha que venció, o null si el curso no está vencido.
+    public static DateTime? FechaVencida(PendingItem p) => p.Status switch
+    {
+        "expired" => p.ExpiresAt,
+        "overdue" => p.DueAt,
+        _ => null
+    };
+
+    public static string Kind(DateTime vencio) => $"overdue:{vencio:yyyyMMdd}";
+
+    // Reserva el envío: true si toca mandarlo ahora (fila nueva, o el último hace
+    // `cadaDias` días o más). Con `forzar` (botón «Recordar ahora») se reserva siempre
+    // y la cadencia vuelve a contar desde hoy.
+    public static async Task<bool> ReservarAsync(TenantDbContext db, Guid userId, Guid trainingId, DateTime vencio,
+        int cadaDias, bool forzar = false)
+    {
+        var kind = Kind(vencio);
+        var ahora = DateTime.UtcNow;
+        var fila = await db.NotificationLogs.AsNoTracking()
+            .FirstOrDefaultAsync(n => n.UserId == userId && n.TrainingId == trainingId && n.Kind == kind);
+        if (fila is null)
+        {
+            var nueva = new NotificationLog { UserId = userId, TrainingId = trainingId, Kind = kind, SentAt = ahora };
+            db.NotificationLogs.Add(nueva);
+            try { await db.SaveChangesAsync(); return true; }
+            catch (DbUpdateException)
+            {
+                // Otro proceso la creó primero: ese ya lo mandó.
+                db.Entry(nueva).State = EntityState.Detached;
+                return false;
+            }
+        }
+        if (!forzar && fila.SentAt > ahora.AddDays(-Math.Max(1, cadaDias))) return false;
+
+        // Actualización condicionada: si otro proceso la renovó entretanto, no se repite.
+        var cambiadas = await db.NotificationLogs.Where(n => n.Id == fila.Id && n.SentAt == fila.SentAt)
+            .ExecuteUpdateAsync(s => s.SetProperty(n => n.SentAt, ahora));
+        return cambiadas > 0 || forzar;
+    }
+
+    public static Task EnviarAsync(IEmailSender email, string toEmail, string toName, PendingItem p, DateTime vencio, string? appUrl)
+        => email.SendAsync(toEmail, toName, $"Vencido: {p.Title}",
+            EmailTemplates.CourseReminder(toName, p.Title, "overdue", vencio, appUrl, esLimite: p.Status == "overdue"));
 }
 
 public class ReminderService : BackgroundService
@@ -858,7 +1019,8 @@ public class WeeklyDigestService : BackgroundService
 
     // Si AHORA cae en la ventana de envío, devuelve true y la llave del periodo.
     // La llave identifica cada periodo, así solo se envía una vez por periodo.
-    private static bool TryDigestKey(DateTime now, string freq, int hour,
+    // (También la usa ComplianceDigestService con la cadencia de cada compañía.)
+    internal static bool TryDigestKey(DateTime now, string freq, int hour,
         DayOfWeek dayOfWeek, int dayOfMonth, out string key)
     {
         key = "";
@@ -880,5 +1042,446 @@ public class WeeklyDigestService : BackgroundService
                 key = $"{now.Year}-W{ISOWeek.GetWeekOfYear(now)}";
                 return true;
         }
+    }
+}
+
+// ============================================================================
+//  Cumplimiento: estado de toda la compañía (panel del oficial y su resumen)
+// ============================================================================
+
+// Una persona y un curso en el panel o el resumen de cumplimiento.
+//   Bucket:   overdue (vencido: expired u overdue) | due-soon (por vencer) | not-started
+//   DateKind: expires (caducidad de una aprobación) | due (fecha límite del plan) | null
+//   Days:     en overdue, los días que lleva vencido; en los demás, los que faltan.
+public record ComplianceRow(Guid UserId, string Name, string Email, List<Guid> GroupIds, List<string> Groups,
+    Guid TrainingId, string Title, string Status, string Bucket, DateTime? Date, string? DateKind, int? Days);
+
+public static class ComplianceState
+{
+    // En qué lista cae un pendiente; null = no cuenta (aprobado y lejos de vencer,
+    // esperando calificación o cancelación). Las listas no se pisan: un curso vencido
+    // no sale también como por vencer, ni uno por vencer como sin comenzar.
+    public static (string bucket, DateTime? fecha, string? tipo)? Clasificar(PendingItem p, DateTime ahora, int dueSoonDays)
+    {
+        if (p.Status == "expired") return ("overdue", p.ExpiresAt, "expires");
+        if (p.Status == "overdue") return ("overdue", p.DueAt, "due");
+
+        var fecha = p.ExpiresAt ?? p.DueAt;
+        var tipo = p.ExpiresAt is not null ? "expires" : p.DueAt is not null ? "due" : null;
+        if (p.Status is "current" or "renewal" or "not-started" or "in-progress" or "failed"
+            && fecha is DateTime f && f >= ahora && f <= ahora.AddDays(dueSoonDays))
+            return ("due-soon", fecha, tipo);
+
+        if (p.Status == "not-started") return ("not-started", p.DueAt, p.DueAt is not null ? "due" : null);
+        return null;
+    }
+
+    // Estado de cada miembro de la compañía en cada curso que le toca (mismo resolver
+    // que ve el empleado, con sus grupos y su fecha de ingreso).
+    public static async Task<List<ComplianceRow>> ResolverAsync(CatalogDbContext catalog, TenantDbContext db,
+        Guid tenantId, int dueSoonDays)
+    {
+        var usuarios = await CompanyUsers.OfAsync(catalog, tenantId);
+        var ingresos = await CatalogLogic.FechasIngresoAsync(catalog, tenantId);
+        var membresias = await db.UserGroupMembers.AsNoTracking()
+            .Select(m => new { m.UserId, m.UserGroupId }).ToListAsync();
+        var nombres = await db.UserGroups.AsNoTracking().ToDictionaryAsync(g => g.Id, g => g.Name);
+        var ahora = DateTime.UtcNow;
+
+        var filas = new List<ComplianceRow>();
+        foreach (var u in usuarios.OrderBy(x => x.Name))
+        {
+            var grupos = membresias.Where(m => m.UserId == u.Id).Select(m => m.UserGroupId).Distinct().ToList();
+            List<PendingItem> pendientes;
+            try
+            {
+                pendientes = await CatalogLogic.ResolveAsync(db, u.Id, grupos,
+                    ingresos.TryGetValue(u.Id, out var ingreso) ? ingreso : null);
+            }
+            catch { continue; }
+
+            var nombresGrupos = grupos.Where(nombres.ContainsKey).Select(g => nombres[g]).OrderBy(n => n).ToList();
+            foreach (var p in pendientes)
+            {
+                if (Clasificar(p, ahora, dueSoonDays) is not { } c) continue;
+                int? dias = c.fecha is DateTime f
+                    ? (c.bucket == "overdue" ? (ahora.Date - f.Date).Days : (f.Date - ahora.Date).Days)
+                    : null;
+                filas.Add(new ComplianceRow(u.Id, u.Name, u.Email, grupos, nombresGrupos,
+                    p.TrainingId, p.Title, p.Status, c.bucket, c.fecha, c.tipo, dias));
+            }
+        }
+        return filas;
+    }
+
+    public static object ToJson(ComplianceRow r) => new
+    {
+        userId = r.UserId, name = r.Name, email = r.Email, groupIds = r.GroupIds, groups = r.Groups,
+        trainingId = r.TrainingId, title = r.Title, status = r.Status, bucket = r.Bucket,
+        date = r.Date, dateKind = r.DateKind, days = r.Days
+    };
+}
+
+// Quién puede ver el panel de cumplimiento: el Admin de la compañía activa o un
+// oficial de cumplimiento marcado en ella (la marca no es un rol, se consulta aquí).
+public static class ComplianceAccess
+{
+    public static async Task<bool> PuedeVerAsync(CatalogDbContext catalog, ITenantContext tc)
+        => tc.TenantId is not null
+           && (tc.Role == "Admin" || await ComplianceOfficers.EsOficialAsync(catalog, tc.UserId, tc.TenantId));
+
+    public static Task<bool> EsOficialAsync(CatalogDbContext catalog, ITenantContext tc)
+        => ComplianceOfficers.EsOficialAsync(catalog, tc.UserId, tc.TenantId);
+}
+
+// ---- Resumen para el oficial de cumplimiento ----
+// Destinatarios: oficiales marcados ∪ ComplianceConfig.extraEmails; si no hay ninguno,
+// la compañía se salta. Idempotencia de los vencidos con NotificationLog del tenant:
+// Kind = officer-expired:{trainingId}:{yyyyMMdd de vencimiento o límite}, UserId = el
+// empleado. Sin fila -> «Nuevos» (se crea); fila con SentAt de hace ExpiredRepeatDays
+// días o más -> «Siguen vencidos» (se renueva SentAt); reciente -> no sale.
+public static class ComplianceDigestRunner
+{
+    public record Resultado(Guid TenantId, string Tenant, int Destinatarios, int Enviados,
+        int Nuevos, int Siguen, int PorVencer, int SinComenzar, string? Omitido = null);
+
+    public const string KindPrefix = "officer-expired:";
+
+    // Todas las compañías activas (o solo una), sin mirar la cadencia: eso lo decide
+    // quien llama (el servicio en segundo plano o el endpoint de prueba).
+    public static async Task<List<Resultado>> RunAsync(IServiceProvider sp, IEmailSender email, IConfiguration cfg,
+        Guid? soloTenant = null)
+    {
+        using var scope = sp.CreateScope();
+        var catalog = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+        var q = catalog.Tenants.Where(t => t.Status == "active");
+        if (soloTenant is Guid id) q = q.Where(t => t.Id == id);
+        var tenants = await q.ToListAsync();
+
+        var lista = new List<Resultado>();
+        foreach (var t in tenants)
+        {
+            try { lista.Add(await RunTenantAsync(catalog, email, t, cfg["App:BaseUrl"])); }
+            catch { lista.Add(new Resultado(t.Id, t.Name, 0, 0, 0, 0, 0, 0, "error")); }
+        }
+        return lista;
+    }
+
+    // Una compañía. Con `prueba` el resumen va SOLO a esa persona, sale aunque esté
+    // vacío y no toca NotificationLog: los vencidos nuevos siguen siendo nuevos para el
+    // resumen de verdad (y los ya avisados salen como «Siguen vencidos»).
+    public static async Task<Resultado> RunTenantAsync(CatalogDbContext catalog, IEmailSender email, Tenant tenant,
+        string? appUrl, CompanyUsers.Miembro? prueba = null)
+    {
+        var comp = ComplianceConfig.Parse(tenant.ComplianceConfigJson);
+
+        var destinos = new List<(string Email, string Name)>();
+        void Sumar(string? correo, string nombre)
+        {
+            var c = (correo ?? "").Trim();
+            if (c.Length == 0 || !c.Contains('@')) return;
+            if (destinos.Any(d => string.Equals(d.Email, c, StringComparison.OrdinalIgnoreCase))) return;
+            destinos.Add((c, nombre));
+        }
+        if (prueba is not null) Sumar(prueba.Email, prueba.Name);
+        else
+        {
+            foreach (var o in await ComplianceOfficers.OfAsync(catalog, tenant.Id)) Sumar(o.Email, o.Name);
+            foreach (var c in comp.ExtraEmails) Sumar(c, "");
+        }
+        if (destinos.Count == 0)
+            return new Resultado(tenant.Id, tenant.Name, 0, 0, 0, 0, 0, 0, "sin destinatarios");
+        if (string.IsNullOrWhiteSpace(tenant.ConnectionString))
+            return new Resultado(tenant.Id, tenant.Name, destinos.Count, 0, 0, 0, 0, 0, "sin base de datos");
+
+        var opts = new DbContextOptionsBuilder<TenantDbContext>().UseSqlServer(tenant.ConnectionString).Options;
+        await using var db = new TenantDbContext(opts);
+
+        var filas = await ComplianceState.ResolverAsync(catalog, db, tenant.Id, comp.DueSoonDays);
+        var ahora = DateTime.UtcNow;
+
+        // Vencidos: nuevos o que ya toca repetir.
+        var registros = (await db.NotificationLogs.Where(n => n.Kind.StartsWith(KindPrefix)).ToListAsync())
+            .GroupBy(n => (n.UserId, n.TrainingId, n.Kind)).ToDictionary(g => g.Key, g => g.First());
+        var nuevos = new List<ComplianceRow>();
+        var siguen = new List<ComplianceRow>();
+        foreach (var f in filas.Where(f => f.Bucket == "overdue" && f.Date is not null).OrderBy(f => f.Date))
+        {
+            var kind = $"{KindPrefix}{f.TrainingId}:{f.Date:yyyyMMdd}";
+            if (!registros.TryGetValue((f.UserId, f.TrainingId, kind), out var log))
+            {
+                nuevos.Add(f);
+                if (prueba is null)
+                {
+                    var fila = new NotificationLog { UserId = f.UserId, TrainingId = f.TrainingId, Kind = kind, SentAt = ahora };
+                    db.NotificationLogs.Add(fila);
+                    registros[(f.UserId, f.TrainingId, kind)] = fila;
+                }
+            }
+            else if (prueba is not null || log.SentAt <= ahora.AddDays(-comp.ExpiredRepeatDays))
+            {
+                siguen.Add(f);
+                if (prueba is null) log.SentAt = ahora;
+            }
+        }
+
+        var porVencer = filas.Where(f => f.Bucket == "due-soon").OrderBy(f => f.Date).ThenBy(f => f.Name).ToList();
+        var sinComenzar = comp.IncludeNotStarted
+            ? filas.Where(f => f.Bucket == "not-started").OrderBy(f => f.Date ?? DateTime.MaxValue).ThenBy(f => f.Name).ToList()
+            : new List<ComplianceRow>();
+
+        // Solo se envía si hay algo que contar (salvo la prueba, que muestra el formato).
+        if (prueba is null && nuevos.Count + siguen.Count + porVencer.Count + sinComenzar.Count == 0)
+            return new Resultado(tenant.Id, tenant.Name, destinos.Count, 0, 0, 0, 0, 0, "nada que avisar");
+
+        var vencidos = nuevos.Count + siguen.Count;
+        var asunto = $"Cumplimiento: {vencidos} vencidos, {porVencer.Count} por vencer";
+        if (prueba is not null) asunto = "[Prueba] " + asunto;
+        var html = EmailTemplates.ComplianceDigest(tenant.Name, nuevos, siguen, porVencer, sinComenzar, comp.DueSoonDays, appUrl);
+
+        int enviados = 0;
+        foreach (var d in destinos)
+        {
+            try { await email.SendAsync(d.Email, d.Name, asunto, html); enviados++; }
+            catch { /* seguir con los demás */ }
+        }
+
+        // Si no salió ningún correo no se registra nada: el próximo resumen los vuelve a traer.
+        if (prueba is null && enviados > 0)
+        {
+            db.AuditLogs.Add(new TenantAuditLog
+            {
+                Action = "compliance-digest",
+                Detail = $"{enviados} destinatario(s): {vencidos} vencidos ({nuevos.Count} nuevos), " +
+                         $"{porVencer.Count} por vencer, {sinComenzar.Count} sin comenzar"
+            });
+            try { await db.SaveChangesAsync(); }
+            catch (DbUpdateException) { /* otra corrida registró primero */ }
+        }
+
+        return new Resultado(tenant.Id, tenant.Name, destinos.Count, enviados,
+            nuevos.Count, siguen.Count, porVencer.Count, sinComenzar.Count);
+    }
+}
+
+// Corre el resumen de cumplimiento de cada compañía con SU cadencia
+// (ComplianceConfig.digestFrequency / DayOfWeek / DayOfMonth / Hour). Revisa cada
+// 30 minutos; el marcador App_Data/compliance_digest/{tenant}.txt guarda el último
+// periodo enviado, así cada compañía recibe uno por periodo aunque la app reinicie.
+// Encendido por defecto (sin oficiales ni correos extra no sale nada); se apaga con
+// Email:ComplianceDigestEnabled = false.
+public class ComplianceDigestService : BackgroundService
+{
+    private readonly IServiceProvider _sp;
+    private readonly IEmailSender _email;
+    private readonly IConfiguration _cfg;
+    private readonly IHostEnvironment _env;
+
+    public ComplianceDigestService(IServiceProvider sp, IEmailSender email, IConfiguration cfg, IHostEnvironment env)
+    { _sp = sp; _email = email; _cfg = cfg; _env = env; }
+
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        if (bool.TryParse(_cfg["Email:ComplianceDigestEnabled"], out var en) && !en) return;
+
+        var carpeta = Path.Combine(_env.ContentRootPath, "App_Data", "compliance_digest");
+        try { Directory.CreateDirectory(carpeta); } catch { }
+
+        try { await Task.Delay(TimeSpan.FromMinutes(3), ct); }   // deja arrancar la app
+        catch (OperationCanceledException) { return; }
+
+        while (!ct.IsCancellationRequested)
+        {
+            try { await CicloAsync(carpeta, ct); }
+            catch (OperationCanceledException) { break; }
+            catch { /* reintentar en el próximo ciclo */ }
+
+            try { await Task.Delay(TimeSpan.FromMinutes(30), ct); }
+            catch (OperationCanceledException) { break; }
+        }
+    }
+
+    private async Task CicloAsync(string carpeta, CancellationToken ct)
+    {
+        using var scope = _sp.CreateScope();
+        var catalog = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+        var tenants = await catalog.Tenants.Where(t => t.Status == "active").ToListAsync(ct);
+        var ahora = DateTime.Now;
+
+        foreach (var t in tenants)
+        {
+            var comp = ComplianceConfig.Parse(t.ComplianceConfigJson);
+            var dia = Enum.TryParse<DayOfWeek>(comp.DigestDayOfWeek, true, out var d) ? d : DayOfWeek.Monday;
+            if (!WeeklyDigestService.TryDigestKey(ahora, comp.DigestFrequency, comp.DigestHour, dia, comp.DigestDayOfMonth, out var key))
+                continue;
+
+            var marcador = Path.Combine(carpeta, $"{t.Id:N}.txt");
+            var ultimo = File.Exists(marcador) ? (await File.ReadAllTextAsync(marcador, ct)).Trim() : "";
+            if (ultimo == key) continue;
+
+            try { await ComplianceDigestRunner.RunTenantAsync(catalog, _email, t, _cfg["App:BaseUrl"]); }
+            catch { continue; }   // sin marcador: se reintenta en el próximo ciclo
+            await File.WriteAllTextAsync(marcador, key, ct);
+        }
+    }
+}
+
+// ============================================================================
+//  Endpoints de cumplimiento (Admin de la compañía u oficial de cumplimiento)
+// ============================================================================
+public static class ComplianceEndpoints
+{
+    // Freno para «Recordar ahora»: un aviso por persona y curso por minuto.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<(Guid, Guid, Guid), DateTime> _ultimos = new();
+
+    public static void MapCompliance(this WebApplication app)
+    {
+        // ---- Panel: vencidos, por vencer y sin comenzar, con nombre, grupo, curso, fecha y días ----
+        // Filtros opcionales: ?trainingId=…&groupId=…
+        app.MapGet("/compliance/summary", async (Guid? trainingId, Guid? groupId, ITenantContext tc,
+            IServiceProvider sp, CatalogDbContext catalog) =>
+        {
+            if (tc.TenantId is null) return Results.BadRequest("No tenant context.");
+            if (!await ComplianceAccess.PuedeVerAsync(catalog, tc)) return Results.Forbid();
+            var db = sp.GetRequiredService<TenantDbContext>();
+            var tenant = await catalog.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tc.TenantId);
+            var comp = ComplianceConfig.Parse(tenant?.ComplianceConfigJson);
+
+            var filas = await ComplianceState.ResolverAsync(catalog, db, tc.TenantId.Value, comp.DueSoonDays);
+            if (trainingId is Guid tid) filas = filas.Where(f => f.TrainingId == tid).ToList();
+            if (groupId is Guid gid) filas = filas.Where(f => f.GroupIds.Contains(gid)).ToList();
+
+            var vencidos = filas.Where(f => f.Bucket == "overdue").OrderByDescending(f => f.Days).ThenBy(f => f.Name).ToList();
+            var porVencer = filas.Where(f => f.Bucket == "due-soon").OrderBy(f => f.Date).ThenBy(f => f.Name).ToList();
+            var sinComenzar = filas.Where(f => f.Bucket == "not-started")
+                .OrderBy(f => f.Date ?? DateTime.MaxValue).ThenBy(f => f.Name).ToList();
+
+            return Results.Ok(new
+            {
+                generatedAt = DateTime.UtcNow,
+                dueSoonDays = comp.DueSoonDays,
+                counts = new { overdue = vencidos.Count, dueSoon = porVencer.Count, notStarted = sinComenzar.Count },
+                overdue = vencidos.Select(ComplianceState.ToJson),
+                dueSoon = porVencer.Select(ComplianceState.ToJson),
+                notStarted = sinComenzar.Select(ComplianceState.ToJson)
+            });
+        }).RequireAuthorization();
+
+        // ---- Alertas por curso: cuántos vencidos tiene y desde cuándo el más antiguo ----
+        app.MapGet("/compliance/alerts", async (ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
+        {
+            if (tc.TenantId is null) return Results.BadRequest("No tenant context.");
+            if (!await ComplianceAccess.PuedeVerAsync(catalog, tc)) return Results.Forbid();
+            var db = sp.GetRequiredService<TenantDbContext>();
+            var tenant = await catalog.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tc.TenantId);
+            var comp = ComplianceConfig.Parse(tenant?.ComplianceConfigJson);
+
+            var filas = await ComplianceState.ResolverAsync(catalog, db, tc.TenantId.Value, comp.DueSoonDays);
+            var cursos = filas.GroupBy(f => new { f.TrainingId, f.Title })
+                .Select(g => new
+                {
+                    trainingId = g.Key.TrainingId,
+                    title = g.Key.Title,
+                    overdue = g.Count(f => f.Bucket == "overdue"),
+                    oldest = g.Where(f => f.Bucket == "overdue").Min(f => f.Date),
+                    dueSoon = g.Count(f => f.Bucket == "due-soon")
+                })
+                .Where(c => c.overdue > 0)
+                .OrderByDescending(c => c.overdue).ThenBy(c => c.oldest)
+                .ToList();
+
+            return Results.Ok(new { totalOverdue = cursos.Sum(c => c.overdue), courses = cursos });
+        }).RequireAuthorization();
+
+        // ---- «Recordar ahora»: aviso inmediato al empleado, saltando la cadencia ----
+        // Vencido: variante «vencido» y la cadencia de OverdueEveryDays vuelve a contar
+        // desde hoy. Pendiente sin vencer: recordatorio con los días que le quedan.
+        app.MapPost("/compliance/remind/{userId:guid}/{trainingId:guid}", async (Guid userId, Guid trainingId,
+            ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog, IEmailSender email, IConfiguration config) =>
+        {
+            if (tc.TenantId is null) return Results.BadRequest("No tenant context.");
+            if (!await ComplianceAccess.PuedeVerAsync(catalog, tc)) return Results.Forbid();
+            var db = sp.GetRequiredService<TenantDbContext>();
+
+            var persona = (await CompanyUsers.OfAsync(catalog, tc.TenantId.Value)).FirstOrDefault(u => u.Id == userId);
+            if (persona is null) return Results.NotFound("La persona no pertenece a esta compañía.");
+            if (string.IsNullOrWhiteSpace(persona.Email)) return Results.BadRequest("La persona no tiene un correo registrado.");
+
+            var grupos = await db.UserGroupMembers.Where(m => m.UserId == userId).Select(m => m.UserGroupId).ToListAsync();
+            var ingreso = await CatalogLogic.FechaIngresoAsync(catalog, userId, tc.TenantId);
+            var p = (await CatalogLogic.ResolveAsync(db, userId, grupos, ingreso)).FirstOrDefault(x => x.TrainingId == trainingId);
+            if (p is null) return Results.NotFound("Ese curso no le toca a esta persona.");
+            if (p.Status is "current" or "done" or "pending-grading" or "pending-cancellation")
+                return Results.BadRequest("No tiene nada pendiente en este curso.");
+
+            var clave = (tc.TenantId.Value, userId, trainingId);
+            var ahora = DateTime.UtcNow;
+            if (_ultimos.TryGetValue(clave, out var antes) && ahora - antes < TimeSpan.FromMinutes(1))
+                return Results.Json("Se acaba de enviar; espera un minuto antes de repetirlo.",
+                    statusCode: StatusCodes.Status429TooManyRequests);
+            _ultimos[clave] = ahora;
+
+            var appUrl = config["App:BaseUrl"];
+            string tipo;
+            try
+            {
+                if (OverdueReminder.FechaVencida(p) is DateTime vencio)
+                {
+                    tipo = "overdue";
+                    var reglas = NotificationConfig.Parse(await db.Trainings.Where(t => t.Id == trainingId)
+                        .Select(t => t.NotificationConfigJson).FirstOrDefaultAsync());
+                    await OverdueReminder.ReservarAsync(db, userId, trainingId, vencio, reglas.OverdueEveryDays, forzar: true);
+                    await OverdueReminder.EnviarAsync(email, persona.Email, persona.Name, p, vencio, appUrl);
+                }
+                else
+                {
+                    var fecha = p.ExpiresAt ?? p.DueAt;
+                    var dias = fecha is DateTime f ? (f.Date - ahora.Date).Days : -1;
+                    tipo = dias >= 0 ? $"due{dias}" : "open";
+                    await email.SendAsync(persona.Email, persona.Name, $"Recordatorio: {p.Title}",
+                        EmailTemplates.CourseReminder(persona.Name, p.Title, tipo, fecha, appUrl,
+                            esLimite: p.ExpiresAt is null && p.DueAt is not null));
+                }
+            }
+            catch
+            {
+                _ultimos.TryRemove(clave, out _);
+                return Results.Json(new { sent = false, error = "No se pudo enviar el correo." },
+                    statusCode: StatusCodes.Status502BadGateway);
+            }
+
+            db.AuditLogs.Add(new TenantAuditLog
+            {
+                Action = "compliance-remind",
+                Detail = $"{p.Title} -> {persona.Email} ({p.Status})",
+                UserId = tc.UserId
+            });
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new
+            {
+                sent = true, userId, trainingId, title = p.Title, status = p.Status,
+                email = persona.Email, kind = tipo == "overdue" ? "overdue" : "reminder"
+            });
+        }).RequireAuthorization();
+
+        // ---- Correo de prueba del resumen: solo a quien lo pide, sin tocar el registro ----
+        app.MapPost("/company/compliance/test", async (ITenantContext tc, CatalogDbContext catalog,
+            IEmailSender email, IConfiguration config) =>
+        {
+            if (tc.TenantId is null) return Results.BadRequest("No tenant context.");
+            if (!await ComplianceAccess.PuedeVerAsync(catalog, tc)) return Results.Forbid();
+            var tenant = await catalog.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tc.TenantId);
+            var yo = await catalog.Users.AsNoTracking().Where(u => u.Id == tc.UserId)
+                .Select(u => new CompanyUsers.Miembro(u.Id, u.Email, u.Name, u.Role)).FirstOrDefaultAsync();
+            if (tenant is null || yo is null) return Results.NotFound();
+
+            var r = await ComplianceDigestRunner.RunTenantAsync(catalog, email, tenant, config["App:BaseUrl"], prueba: yo);
+            return Results.Ok(new
+            {
+                sent = r.Enviados > 0, to = yo.Email,
+                overdue = r.Nuevos + r.Siguen, dueSoon = r.PorVencer, notStarted = r.SinComenzar
+            });
+        }).RequireAuthorization();
     }
 }

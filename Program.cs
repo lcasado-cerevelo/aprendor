@@ -43,6 +43,8 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<IEmailSender, BrevoApiEmailSender>();
 builder.Services.AddHostedService<WeeklyDigestService>();
 builder.Services.AddHostedService<ReminderService>();
+// Resumen para los oficiales de cumplimiento, con la cadencia de cada compañía.
+builder.Services.AddHostedService<ComplianceDigestService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
@@ -131,6 +133,7 @@ app.MapPost("/auth/login", async (LoginRequest req, CatalogDbContext catalog, Jw
                      user.TwoFactorMode, emailVerified = user.EmailVerifiedAt is not null,
                      twoFactorPolicy = politica,
                      mustEnroll2fa = politica == "required" && !tiene2fa,
+                     isComplianceOfficer = await ComplianceOfficers.EsOficialAsync(catalog, user.Id, user.TenantId),
                      companies = compañias }
     });
 });
@@ -158,6 +161,7 @@ app.MapPost("/me/switch-company", async (SwitchCompanyRequest req, ITenantContex
                      emailVerified = user.EmailVerifiedAt is not null,
                      twoFactorPolicy = destino.Politica2FA,
                      mustEnroll2fa = false,
+                     isComplianceOfficer = await ComplianceOfficers.EsOficialAsync(catalog, user.Id, destino.TenantId),
                      companies = compañias }
     });
 }).RequireAuthorization();
@@ -401,8 +405,12 @@ app.MapPost("/me/password", async (ChangePasswordRequest req, ITenantContext tc,
     return Results.Ok();
 }).RequireAuthorization();
 
-app.MapGet("/me", (ITenantContext tc) =>
-    Results.Ok(new { tc.UserId, tc.TenantId, tc.Role })).RequireAuthorization();
+// isComplianceOfficer: la marca de oficial de cumplimiento en la compañía activa
+// (se consulta en el catálogo, no va en el token: quitarla surte efecto al instante).
+app.MapGet("/me", async (ITenantContext tc, CatalogDbContext catalog) =>
+    Results.Ok(new { tc.UserId, tc.TenantId, tc.Role,
+                     isComplianceOfficer = await ComplianceOfficers.EsOficialAsync(catalog, tc.UserId, tc.TenantId) }))
+    .RequireAuthorization();
 
 // ---------- Admin: tenants & users (platform admin only) ----------
 app.MapPost("/admin/tenants", async (CreateTenantRequest req, CatalogDbContext catalog) =>
@@ -430,7 +438,7 @@ app.MapGet("/admin/tenants", async (CatalogDbContext catalog) =>
 
 // Dispara el resumen semanal de inmediato (para probar o forzar un envío).
 // Vista previa de las plantillas de correo, para revisar cómo se ven sin enviar nada.
-// /admin/email-preview?kind=reminder|open|invite|reset|2fa|completion|digest|certificate|certificate-officer
+// /admin/email-preview?kind=reminder|open|overdue|invite|reset|2fa|completion|digest|certificate|certificate-officer|compliance
 app.MapGet("/admin/email-preview", (string? kind) =>
 {
     var k = (kind ?? "reminder").ToLowerInvariant();
@@ -447,6 +455,18 @@ app.MapGet("/admin/email-preview", (string? kind) =>
                     "Cumplimiento HIPAA para transporte y logística", "CERT-2026-1A2B3C4D", DateTime.UtcNow,
                     DateTime.UtcNow.AddMonths(12), paraArchivo: k == "certificate-officer",
                     "https://aprendor.advancelogisticspr.com", link: "https://aprendor.advancelogisticspr.com/c/demo", dias: 30),
+        "overdue" => EmailTemplates.CourseReminder("María Rivera", "Cumplimiento HIPAA para transporte y logística",
+                    "overdue", DateTime.UtcNow.AddDays(-9), "https://aprendor.advancelogisticspr.com"),
+        "compliance" => EmailTemplates.ComplianceDigest("Advance Logistics",
+                    new List<ComplianceRow> { new(Guid.NewGuid(), "María Rivera", "", new(), new() { "Choferes" }, Guid.NewGuid(),
+                        "Cumplimiento HIPAA para transporte y logística", "expired", "overdue", DateTime.UtcNow.AddDays(-3), "expires", 3) },
+                    new List<ComplianceRow> { new(Guid.NewGuid(), "José Torres", "", new(), new() { "Almacén" }, Guid.NewGuid(),
+                        "Hostigamiento sexual en el empleo", "overdue", "overdue", DateTime.UtcNow.AddDays(-20), "due", 20) },
+                    new List<ComplianceRow> { new(Guid.NewGuid(), "Ana López", "", new(), new(), Guid.NewGuid(),
+                        "Seguridad de la Información para Empleados", "renewal", "due-soon", DateTime.UtcNow.AddDays(12), "expires", 12) },
+                    new List<ComplianceRow> { new(Guid.NewGuid(), "Luis Pérez", "", new(), new() { "Nuevos ingresos" }, Guid.NewGuid(),
+                        "Ética Empresarial y Prevención de Fraude", "not-started", "not-started", DateTime.UtcNow.AddDays(5), "due", 5) },
+                    30, "https://aprendor.advancelogisticspr.com"),
         "digest" => EmailTemplates.Digest("María Rivera",
                     new List<PendingItem> { new(Guid.NewGuid(), "Ética Empresarial y Prevención de Fraude", Guid.NewGuid(), null, "not-started", null) },
                     new List<PendingItem> { new(Guid.NewGuid(), "Seguridad de la Información para Empleados", Guid.NewGuid(), null, "in-progress", null) }),
@@ -461,6 +481,27 @@ app.MapPost("/admin/run-reminders", async (IServiceProvider sp, IEmailSender ema
 {
     var n = await ReminderRunner.RunAsync(sp, email, configuracion);
     return Results.Ok(new { sent = n });
+}).RequireAuthorization("Admin");
+
+// Dispara el resumen de cumplimiento de inmediato, sin mirar la cadencia ni el marcador
+// (para probar o forzar un envío). Respeta la idempotencia de los vencidos: uno ya
+// avisado hace poco no se repite. El Admin de una compañía solo corre la suya.
+app.MapPost("/admin/run-compliance-digest", async (Guid? tenantId, ITenantContext tc, IServiceProvider sp,
+    IEmailSender email, IConfiguration configuracion) =>
+{
+    var soloTenant = tc.TenantId ?? tenantId;
+    var r = await ComplianceDigestRunner.RunAsync(sp, email, configuracion, soloTenant);
+    return Results.Ok(new
+    {
+        ran = true,
+        sent = r.Sum(x => x.Enviados),
+        tenants = r.Select(x => new
+        {
+            tenantId = x.TenantId, tenant = x.Tenant, recipients = x.Destinatarios, sent = x.Enviados,
+            newOverdue = x.Nuevos, stillOverdue = x.Siguen, dueSoon = x.PorVencer, notStarted = x.SinComenzar,
+            skipped = x.Omitido
+        })
+    });
 }).RequireAuthorization("Admin");
 
 app.MapPost("/admin/run-digest", async (IServiceProvider sp, IEmailSender email) =>
@@ -508,7 +549,31 @@ app.MapGet("/admin/users", async (Guid? tenantId, CatalogDbContext catalog) =>
     var users = await q.OrderBy(u => u.Name)
         .Select(u => new { u.Id, u.Email, u.Name, u.Role, u.TenantId, u.MustChangePassword })
         .ToListAsync();
-    return Results.Ok(users);
+
+    // Membresías (UserCompany) de esos usuarios, con la marca de oficial de cumplimiento.
+    var ids = users.Select(u => u.Id).ToList();
+    var membresias = await catalog.UserCompanies.Where(m => ids.Contains(m.UserId))
+        .Select(m => new { m.Id, m.UserId, m.TenantId, m.Role, m.IsComplianceOfficer }).ToListAsync();
+
+    return Results.Ok(users.Select(u =>
+    {
+        var compañia = tenantId ?? u.TenantId;
+        var suyas = membresias.Where(m => m.UserId == u.Id).ToList();
+        return new
+        {
+            u.Id, u.Email, u.Name, u.Role, u.TenantId, u.MustChangePassword,
+            // Oficial de cumplimiento en la compañía filtrada (o, sin filtro, en su principal).
+            isComplianceOfficer = suyas.Any(m => m.TenantId == compañia && m.IsComplianceOfficer),
+            memberships = suyas.Select(m => new
+            {
+                membershipId = m.Id,
+                tenantId = m.TenantId,
+                role = m.TenantId == u.TenantId ? u.Role : m.Role,
+                principal = m.TenantId == u.TenantId,
+                isComplianceOfficer = m.IsComplianceOfficer
+            })
+        };
+    }));
 }).RequireAuthorization("Admin");
 
 // Cambiar el rol de un usuario.
@@ -519,6 +584,10 @@ app.MapPost("/admin/users/{id:guid}/role", async (Guid id, RoleRequest req, Cata
     var user = await catalog.Users.FindAsync(id);
     if (user is null) return Results.NotFound();
     user.Role = req.Role;
+    // La fila "espejo" de la compañía principal (la que guarda la marca de oficial de
+    // cumplimiento) sigue el rol de la cuenta.
+    foreach (var espejo in await catalog.UserCompanies.Where(m => m.UserId == id && m.TenantId == user.TenantId).ToListAsync())
+        espejo.Role = req.Role;
     await catalog.SaveChangesAsync();
     return Results.Ok();
 }).RequireAuthorization("Admin");
@@ -579,6 +648,51 @@ app.MapPost("/admin/user-companies", async (CompanyMembershipRequest req, Catalo
     catalog.UserCompanies.Add(new UserCompany { UserId = req.UserId, TenantId = req.TenantId, Role = req.Role });
     await catalog.SaveChangesAsync();
     return Results.Ok(new { req.UserId, req.TenantId, req.Role });
+}).RequireAuthorization("Admin");
+
+// Marcar o desmarcar a un oficial de cumplimiento en una compañía. Cuerpo { "isOfficer": true|false,
+// "tenantId": opcional }. {id} es el Id de la membresía (UserCompany); también se acepta el
+// Id del usuario, y entonces vale para la compañía de body.tenantId, la del admin que
+// llama o la principal del usuario, en ese orden. Si la compañía es su principal y no
+// tiene fila en UserCompany, se crea una "espejo" (mismo rol y fecha de alta que la
+// cuenta) solo para guardar la marca. El Admin de una compañía solo gestiona la suya.
+app.MapPost("/admin/user-companies/{id:guid}/compliance-officer", async (Guid id, ComplianceOfficerRequest req,
+    ITenantContext tc, CatalogDbContext catalog) =>
+{
+    var m = await catalog.UserCompanies.FirstOrDefaultAsync(x => x.Id == id);
+    if (m is null)
+    {
+        var user = await catalog.Users.FindAsync(id);
+        if (user is null) return Results.NotFound("Membresía o usuario no encontrado.");
+        var compañia = req.TenantId ?? tc.TenantId ?? user.TenantId;
+        if (compañia is null) return Results.BadRequest("Indica la compañía (tenantId).");
+        if (tc.TenantId is not null && compañia != tc.TenantId) return Results.Forbid();
+
+        m = await catalog.UserCompanies.FirstOrDefaultAsync(x => x.UserId == user.Id && x.TenantId == compañia);
+        if (m is null)
+        {
+            if (user.TenantId != compañia) return Results.BadRequest("El usuario no pertenece a esa compañía.");
+            if (!req.IsOfficer)   // no hay marca que quitar
+                return Results.Ok(new { membershipId = (Guid?)null, userId = user.Id, tenantId = compañia, isComplianceOfficer = false });
+            m = new UserCompany { UserId = user.Id, TenantId = compañia.Value, Role = user.Role, CreatedAt = user.CreatedAt };
+            catalog.UserCompanies.Add(m);
+        }
+    }
+    if (tc.TenantId is not null && m.TenantId != tc.TenantId) return Results.Forbid();
+
+    m.IsComplianceOfficer = req.IsOfficer;
+    var datos = await (from u in catalog.Users
+                       where u.Id == m.UserId
+                       from t in catalog.Tenants.Where(t => t.Id == m.TenantId).DefaultIfEmpty()
+                       select new { u.Email, Compañia = t != null ? t.Name : "" }).FirstOrDefaultAsync();
+    catalog.AuditLogs.Add(new CatalogAuditLog
+    {
+        Action = req.IsOfficer ? "compliance-officer-on" : "compliance-officer-off",
+        Detail = $"{datos?.Email} @ {datos?.Compañia}",
+        UserId = tc.UserId
+    });
+    await catalog.SaveChangesAsync();
+    return Results.Ok(new { membershipId = (Guid?)m.Id, userId = m.UserId, tenantId = (Guid?)m.TenantId, isComplianceOfficer = m.IsComplianceOfficer });
 }).RequireAuthorization("Admin");
 
 app.MapDelete("/admin/user-companies", async (Guid userId, Guid tenantId, CatalogDbContext catalog) =>
@@ -645,6 +759,7 @@ app.MapPost("/trainings", async (CreateTrainingRequest req, ITenantContext tc, I
 
 app.MapPhase2();
 app.MapCertificates();
+app.MapCompliance();
 
 app.Run();
 
@@ -845,5 +960,6 @@ record TwoFactorConfirmRequest(string Mode, string Code, Guid? ChallengeId);
 record SwitchCompanyRequest(Guid TenantId);
 record TwoFactorPolicyRequest(string Policy);
 record CompanyMembershipRequest(Guid UserId, Guid TenantId, string Role);
+record ComplianceOfficerRequest(bool IsOfficer, Guid? TenantId = null);
 record DisableTwoFactorRequest(string CurrentPassword);
 record StatusRequest(string Status);
