@@ -79,3 +79,72 @@ docker run -p 8080:8080 \
 - `Database.Migrate()` crea la base del cliente si no existe.
 - Construido sobre tecnología propia (Background Technology); el motor genérico se mantiene
   separable del contenido específico de cada cliente.
+
+## Cambios de septiembre 2026
+
+### Migraciones nuevas
+Después de traer esta rama hay que aplicar el esquema en el catálogo y en **cada** base de cliente:
+```bash
+dotnet run -- migrate
+```
+- Catálogo: `AddCertificateLinksAndComplianceConfig` (tabla `CertificateLink` y columna
+  `Tenant.ComplianceConfigJson`) y `AddComplianceOfficerFlag` (`UserCompany.IsComplianceOfficer`).
+- Cliente: `AddGroupPlansAndOnboarding` (`Training.Audience`/`OnboardingDays`, `UserGroup.OnboardingDays`,
+  `UserGroupMember.JoinedAt` y tabla `GroupCourse`).
+
+### Modo presentación (`Training.PlayerConfigJson`)
+El bloque `presentation` enciende el reproductor 16:9 (escenario 1280×720 escalado, láminas
+`cover`/`dark`/`split`/`photo-left`). Se lee y escribe con `GET/PUT /trainings/{id}/player-config`
+y el player lo recibe en `GET /versions/{id}/config`. Sin `enabled` el reproductor es el clásico.
+```json
+{
+  "allowBack": true, "reviewAfterPass": true, "immediateFeedback": false,
+  "presentation": {
+    "enabled": true,
+    "theme": { "bg": "#0d0d0d", "accent": "#f97316", "panel": true, "panelTitle": "HOSTIGAMIENTO SEXUAL EN EL EMPLEO" },
+    "transition": "cover"
+  }
+}
+```
+En el `PUT`, `presentation` es opcional: si no viene se conserva lo guardado; si viene se normaliza
+(colores `#rgb`/`#rrggbb`, transición `cover|fade|none`, `panelTitle` hasta 120 caracteres).
+El curso de Hostigamiento ya lo trae en `content/hostigamiento-sexual/course.mjs`
+(`seed.mjs` y `tools/Seed-Curso.ps1` lo envían al sembrar).
+
+### Reglas de cumplimiento por compañía (`Tenant.ComplianceConfigJson`)
+JSON tolerante (`ComplianceConfig` en `Catalog.cs`), editable con `GET/PUT /company/compliance`
+(el Admin de la compañía escribe; los oficiales sólo leen). Valores por defecto:
+```json
+{
+  "extraEmails": [], "dueSoonDays": 30,
+  "digestFrequency": "weekly", "digestDayOfWeek": "Monday", "digestDayOfMonth": 1, "digestHour": 8,
+  "expiredRepeatDays": 14, "includeNotStarted": true,
+  "certificateDelivery": "link", "linkDays": 30
+}
+```
+- `certificateDelivery`: `link` manda un enlace con vencimiento (`linkDays`); `attachment` adjunta el PDF como antes.
+- `extraEmails`: correos que reciben copia de los certificados y el resumen de cumplimiento,
+  además de los oficiales marcados.
+- El resumen lo manda `ComplianceDigestService` (revisa cada 30 min con la cadencia de cada compañía);
+  para probarlo: `POST /admin/run-compliance-digest` (admin) o `POST /company/compliance/test` (sólo a quien llama).
+
+### Enlace público del certificado: `GET /c/{token}`
+Único endpoint anónimo. El correo lleva `https://<host>/c/<token>`; en base sólo se guarda el hash
+SHA-256 (`CertificateLink`). Sirve el PDF inline mientras el enlace esté vigente y no revocado, con
+`Cache-Control: no-store`, `Referrer-Policy: no-referrer` y límite de 60 peticiones por IP cada 10 min.
+Si venció o no existe responde 410 con una página sin datos personales y un botón «Entrar a Aprendor»
+(`App:BaseUrl` o el origen de la petición). Gestión autenticada por folio:
+`POST /certificates/{serial}/resend` (enlace nuevo), `POST /certificates/{serial}/revoke` y
+`GET /certificates/{serial}/links` (accesos). Cada envío, reenvío y revocación queda en `AuditLogs` del cliente.
+
+### Marcar un oficial de cumplimiento
+Es una marca en la membresía (`UserCompany.IsComplianceOfficer`), no un rol: se suma al rol que ya tenga.
+- Desde la UI: pantalla de usuarios del admin de plataforma (casilla «Oficial de cumplimiento») o, para
+  el Admin de la compañía, la lista de oficiales en la sección **Cumplimiento**.
+- Por API (rol Admin): `POST /admin/user-companies/{id}/compliance-officer` con
+  `{ "isOfficer": true, "tenantId": "<guid>" }`; `{id}` es el Id de la membresía o el Id del usuario
+  (si la compañía es la principal del usuario, se crea la membresía espejo). `GET /admin/users` y `GET /me`
+  exponen `isComplianceOfficer`.
+- El oficial recibe copia de los certificados y el resumen, ve **Cumplimiento** (`/compliance/summary`,
+  `/compliance/alerts`, «Recordar ahora») y puede leer el expediente de cualquier empleado. No obtiene
+  permisos de edición.
