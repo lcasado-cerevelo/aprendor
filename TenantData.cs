@@ -28,6 +28,14 @@ public class Training
     public DateTime? ExpiresOn { get; set; }
     public int RenewLeadDays { get; set; } = 30;   // días antes del vencimiento en que reabre para renovar
 
+    // A quién se le exige el curso:
+    //   everyone -> a todos los usuarios de la compañía (como siempre)
+    //   groups   -> sólo a quienes pertenecen a un grupo que lo tiene en su plan (GroupCourse)
+    public string Audience { get; set; } = "everyone";
+    // Sólo para `everyone`: plazo en días desde que la persona ingresó a la compañía
+    // (UserCompany.CreatedAt) para completarlo. null = sin fecha límite.
+    public int? OnboardingDays { get; set; }
+
     // Avisos por correo de este curso: { "enabled": true, "onOpen": true, "daysBefore": [15,5] }
     public string NotificationConfigJson { get; set; } = "{}";
     // Plantilla del certificado ESPECÍFICA de este curso: firmante, entidad emisora, leyenda,
@@ -216,11 +224,17 @@ public class TrainingSetExclusion
     public Guid StableKey { get; set; }             // TrainingItem.StableKey excluido
 }
 
-// Cohorte: grupo de usuarios.
+// Grupo de usuarios (en la UI se llama «Grupo»). Además de decidir qué set ve
+// cada quien, un grupo tiene un plan de onboarding: los cursos que se exigen a
+// sus miembros y el plazo por defecto para completarlos.
 public class UserGroup
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = "";
+    // Plazo por defecto (días) para completar cada curso del plan, contado desde
+    // que la persona entró al grupo o desde que el curso se añadió al plan, lo
+    // que sea más tarde. Cada curso del plan puede sobrescribirlo (GroupCourse.DueDays).
+    public int OnboardingDays { get; set; } = 7;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
@@ -229,9 +243,23 @@ public class UserGroupMember
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid UserGroupId { get; set; }
     public Guid UserId { get; set; }   // AppUser.Id (catálogo)
+    // Cuándo entró al grupo: desde aquí corre el plazo del plan. Las filas que ya
+    // existían al añadir la columna reciben la fecha de la migración.
+    public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
 }
 
-// Qué set ve un usuario o una cohorte para un maestro.
+// Un curso del plan de onboarding de un grupo: obligatorio para sus miembros,
+// con plazo propio opcional (DueDays) que sobrescribe UserGroup.OnboardingDays.
+public class GroupCourse
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserGroupId { get; set; }
+    public Guid TrainingId { get; set; }            // maestro
+    public int? DueDays { get; set; }               // null = usa el plazo del grupo
+    public DateTime AddedAt { get; set; } = DateTime.UtcNow;   // cuándo entró al plan
+}
+
+// Qué set ve un usuario o un grupo para un maestro.
 public class Assignment
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -261,6 +289,7 @@ public class TenantDbContext : DbContext
     public DbSet<UserGroup> UserGroups => Set<UserGroup>();
     public DbSet<UserGroupMember> UserGroupMembers => Set<UserGroupMember>();
     public DbSet<Assignment> Assignments => Set<Assignment>();
+    public DbSet<GroupCourse> GroupCourses => Set<GroupCourse>();
     public DbSet<NotificationLog> NotificationLogs => Set<NotificationLog>();
     public DbSet<ExternalCertification> ExternalCertifications => Set<ExternalCertification>();
 
@@ -282,6 +311,7 @@ public class TenantDbContext : DbContext
         b.Entity<UserGroup>().ToTable("UserGroup");
         b.Entity<UserGroupMember>().ToTable("UserGroupMember");
         b.Entity<Assignment>().ToTable("Assignment");
+        b.Entity<GroupCourse>().ToTable("GroupCourse");
         b.Entity<NotificationLog>().ToTable("NotificationLog");
         b.Entity<ExternalCertification>().ToTable("ExternalCertification");
 
@@ -302,7 +332,13 @@ public class TenantDbContext : DbContext
         b.Entity<Session>().HasIndex(s => s.Code);
         b.Entity<TrainingSet>().HasIndex(s => s.TrainingId);
         b.Entity<TrainingSetExclusion>().HasIndex(e => e.SetId);
+        b.Entity<Training>().Property(t => t.Audience).HasDefaultValue("everyone");
+        b.Entity<UserGroup>().Property(g => g.OnboardingDays).HasDefaultValue(7);
         b.Entity<UserGroupMember>().HasIndex(m => new { m.UserGroupId, m.UserId }).IsUnique();
+        // Los miembros que ya existían al añadir la columna reciben la fecha de la migración.
+        b.Entity<UserGroupMember>().Property(m => m.JoinedAt).HasDefaultValueSql("GETUTCDATE()");
+        b.Entity<GroupCourse>().HasIndex(c => new { c.UserGroupId, c.TrainingId }).IsUnique();
+        b.Entity<GroupCourse>().HasIndex(c => c.TrainingId);
         b.Entity<Assignment>().HasIndex(a => a.TrainingId);
         b.Entity<NotificationLog>().HasIndex(n => new { n.UserId, n.TrainingId, n.Kind }).IsUnique();
         b.Entity<ExternalCertification>().HasIndex(c => c.UserId);

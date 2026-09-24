@@ -133,9 +133,13 @@ public class BrevoApiEmailSender : IEmailSender
 // ---- Resolución del catálogo / pendientes de un usuario ----
 // Un curso "sale" mientras el usuario NO lo tenga aprobado y vigente. Estados:
 // not-started | in-progress | pending-grading | pending-cancellation | failed |
+// overdue (sin aprobar y con la fecha límite pasada) |
 // renewal (vigente pero reabierto para renovar) | expired (venció) |
 // current (aprobado y vigente) | done (aprobado, sin caducidad).
-public record PendingItem(Guid TrainingId, string Title, Guid VersionId, Guid? SetId, string Status, DateTime? ExpiresAt);
+// ExpiresAt = cuándo caduca la aprobación que ya tiene; DueAt = fecha límite para
+// completarlo por primera vez (plan del grupo u onboarding de la compañía).
+public record PendingItem(Guid TrainingId, string Title, Guid VersionId, Guid? SetId, string Status, DateTime? ExpiresAt,
+    DateTime? DueAt = null);
 
 // Avisos por curso. Lectura tolerante: si el blob falta o está corrupto, se
 // comporta como el valor por defecto (avisa al abrir, y 15 y 5 días antes).
@@ -172,13 +176,63 @@ public class NotificationConfig
 
 public static class CatalogLogic
 {
-    public static async Task<List<PendingItem>> ResolveAsync(TenantDbContext db, Guid? userId, List<Guid> cohortIds)
+    // Fecha de ingreso de una persona a la compañía: la de su membresía en UserCompany
+    // o, si la compañía es su principal (AppUser.TenantId), la de creación de la cuenta.
+    // Es el punto de partida del plazo de onboarding de los cursos `everyone`.
+    public static async Task<DateTime?> FechaIngresoAsync(CatalogDbContext catalog, Guid? userId, Guid? tenantId)
+    {
+        if (userId is null || tenantId is null) return null;
+        var extra = await catalog.UserCompanies.Where(m => m.UserId == userId && m.TenantId == tenantId)
+            .Select(m => (DateTime?)m.CreatedAt).FirstOrDefaultAsync();
+        if (extra is not null) return extra;
+        return await catalog.Users.Where(u => u.Id == userId && u.TenantId == tenantId)
+            .Select(u => (DateTime?)u.CreatedAt).FirstOrDefaultAsync();
+    }
+
+    // Lo mismo para todos los miembros de una compañía de una vez (para los procesos
+    // que recorren usuario por usuario: recordatorios, resúmenes).
+    public static async Task<Dictionary<Guid, DateTime>> FechasIngresoAsync(CatalogDbContext catalog, Guid tenantId)
+    {
+        var fechas = await catalog.Users.Where(u => u.TenantId == tenantId)
+            .Select(u => new { u.Id, Fecha = u.CreatedAt }).ToListAsync();
+        var extras = await catalog.UserCompanies.Where(m => m.TenantId == tenantId)
+            .Select(m => new { Id = m.UserId, Fecha = m.CreatedAt }).ToListAsync();
+        var d = new Dictionary<Guid, DateTime>();
+        foreach (var f in fechas.Concat(extras)) d.TryAdd(f.Id, f.Fecha);
+        return d;
+    }
+
+    // Qué cursos le tocan a una persona y en qué estado está cada uno.
+    //
+    // Obligatoriedad: un curso publicado sale si `Training.Audience == everyone` o si
+    // algún grupo del usuario lo tiene en su plan (GroupCourse). Un curso `groups` que
+    // no está en los planes del usuario sólo sale si ya lo tomó (para que conserve su
+    // historial y sus aprobados), y nunca con fecha límite.
+    //
+    // Fecha límite (DueAt), sólo mientras el curso NO esté aprobado y vigente:
+    //   - por grupo:  max(JoinedAt del miembro, AddedAt del curso en el plan)
+    //                 + (GroupCourse.DueDays ?? UserGroup.OnboardingDays) días;
+    //                 si está en varios grupos, la más temprana.
+    //   - `everyone` con Training.OnboardingDays: fechaIngreso + OnboardingDays
+    //                 (fechaIngreso = UserCompany.CreatedAt; si no se pasa, sin límite).
+    //   - si aplican ambas, la más temprana.
+    // Quien ya tenía el curso aprobado y vigente al entrar al grupo no lo vuelve a
+    // deber: DueAt queda en null y el estado sigue siendo current/done.
+    // Estado `overdue`: not-started / in-progress / failed con DueAt ya pasado.
+    // ExpiresAt sigue siendo la caducidad de una aprobación (renewal/expired/current).
+    //
+    // `cohortIds` son los grupos del usuario (se mantienen por compatibilidad con quien
+    // ya llama; JoinedAt se lee aquí). `fechaIngreso` es opcional: sin ella los cursos
+    // `everyone` no llevan fecha límite.
+    public static async Task<List<PendingItem>> ResolveAsync(TenantDbContext db, Guid? userId, List<Guid> cohortIds,
+        DateTime? fechaIngreso = null)
     {
         var published = await (from v in db.TrainingVersions
                                where v.Status == "published"
                                join t in db.Trainings on v.TrainingId equals t.Id
                                where t.Status != "archived"   // archivado = fuera del catálogo, sin borrar nada
-                               select new { trainingId = t.Id, t.Title, t.RecurrenceMonths, t.ExpiresOn, t.RenewLeadDays, versionId = v.Id, v.VersionNumber })
+                               select new { trainingId = t.Id, t.Title, t.RecurrenceMonths, t.ExpiresOn, t.RenewLeadDays,
+                                            t.Audience, t.OnboardingDays, versionId = v.Id, v.VersionNumber })
                               .ToListAsync();
 
         var latest = published.GroupBy(x => x.trainingId)
@@ -193,13 +247,40 @@ public static class CatalogLogic
         var assigns = await db.Assignments.ToListAsync();
         var now = DateTime.UtcNow;
 
+        // Plan de los grupos del usuario: por curso, la fecha límite más temprana.
+        var limitesPorGrupo = new Dictionary<Guid, DateTime>();
+        var enPlan = new HashSet<Guid>();
+        if (userId is not null && cohortIds.Count > 0)
+        {
+            var membresias = await db.UserGroupMembers
+                .Where(m => m.UserId == userId && cohortIds.Contains(m.UserGroupId))
+                .Select(m => new { m.UserGroupId, m.JoinedAt }).ToListAsync();
+            var grupos = await db.UserGroups.Where(g => cohortIds.Contains(g.Id))
+                .Select(g => new { g.Id, g.OnboardingDays }).ToDictionaryAsync(g => g.Id, g => g.OnboardingDays);
+            var plan = await db.GroupCourses.Where(c => cohortIds.Contains(c.UserGroupId)).ToListAsync();
+            foreach (var c in plan)
+            {
+                enPlan.Add(c.TrainingId);
+                var desde = membresias.FirstOrDefault(m => m.UserGroupId == c.UserGroupId)?.JoinedAt ?? now;
+                if (c.AddedAt > desde) desde = c.AddedAt;
+                var dias = c.DueDays ?? (grupos.TryGetValue(c.UserGroupId, out var d) ? d : 7);
+                var limite = desde.AddDays(Math.Max(0, dias));
+                if (!limitesPorGrupo.TryGetValue(c.TrainingId, out var actual) || limite < actual)
+                    limitesPorGrupo[c.TrainingId] = limite;
+            }
+        }
+
         var result = new List<PendingItem>();
         foreach (var kv in latest)
         {
             var tId = kv.Key; var v = kv.Value;
             var att = myAttempts.Where(x => x.TrainingId == tId).ToList();
 
-            string status; DateTime? expiresAt = null;
+            // Obligatorio para esta persona: para todos, o por el plan de alguno de sus grupos.
+            var obligatorio = v.Audience != "groups" || enPlan.Contains(tId);
+            if (!obligatorio && att.Count == 0) continue;   // ni le toca ni lo ha tomado
+
+            string status; DateTime? expiresAt = null; DateTime? dueAt = null;
 
             if (att.Any(x => x.Status == "in-progress")) status = "in-progress";
             else if (att.Any(x => x.Status == "cancellation-requested")) status = "pending-cancellation";
@@ -224,6 +305,18 @@ public static class CatalogLogic
                 else status = "not-started";
             }
 
+            // Fecha límite sólo mientras no lo tenga aprobado (ver regla arriba).
+            if (obligatorio && status is "not-started" or "in-progress" or "failed")
+            {
+                if (limitesPorGrupo.TryGetValue(tId, out var porGrupo)) dueAt = porGrupo;
+                if (v.Audience != "groups" && v.OnboardingDays is int od && fechaIngreso is DateTime ingreso)
+                {
+                    var porIngreso = ingreso.AddDays(Math.Max(0, od));
+                    if (dueAt is null || porIngreso < dueAt) dueAt = porIngreso;
+                }
+                if (dueAt is DateTime limite && now >= limite) status = "overdue";
+            }
+
             Guid? setId = null;
             var tSets = sets.Where(s => s.TrainingId == tId).ToList();
             if (tSets.Count > 0)
@@ -238,7 +331,7 @@ public static class CatalogLogic
                     setId = ga != null ? ga.SetId : (tSets.FirstOrDefault(x => x.IsDefault)?.Id ?? tSets.First().Id);
                 }
             }
-            result.Add(new PendingItem(tId, v.Title, v.versionId, setId, status, expiresAt));
+            result.Add(new PendingItem(tId, v.Title, v.versionId, setId, status, expiresAt, dueAt));
         }
         return result;
     }
@@ -383,18 +476,24 @@ public static class EmailTemplates
         return Render(body, "Enlace para crear una contraseña nueva.");
     }
 
-    // Aviso de curso disponible y recordatorios de vencimiento.
-    public static string CourseReminder(string name, string title, string tipo, DateTime? expiresAt, string? appUrl)
+    // Aviso de curso disponible y recordatorios de vencimiento. Con `esLimite` la fecha
+    // es la fecha límite para completarlo por primera vez (plan del grupo / onboarding),
+    // no la caducidad de una aprobación anterior.
+    public static string CourseReminder(string name, string title, string tipo, DateTime? expiresAt, string? appUrl,
+        bool esLimite = false)
     {
         string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
         var dias = tipo.StartsWith("due") ? tipo[3..] : null;
         var (encabezado, cuerpo) = dias is null
             ? ("Tienes un adiestramiento disponible",
                $"El adiestramiento <b>{Enc(title)}</b> ya está disponible para que lo tomes.")
+            : esLimite
+            ? ($"Te quedan {dias} días",
+               $"Tu plazo para completar el adiestramiento <b>{Enc(title)}</b> termina en <b>{dias} días</b>.")
             : ($"Te quedan {dias} días",
                $"El adiestramiento <b>{Enc(title)}</b> vence en <b>{dias} días</b> y todavía no lo has completado.");
         var vence = expiresAt is DateTime d
-            ? Recuadro($"<span style=\"color:#64748b;\">Fecha de vencimiento:</span> <b>{d:dd/MM/yyyy}</b>")
+            ? Recuadro($"<span style=\"color:#64748b;\">{(esLimite ? "Fecha límite:" : "Fecha de vencimiento:")}</span> <b>{d:dd/MM/yyyy}</b>")
             : "";
         var body =
             Titulo(encabezado) +
@@ -559,15 +658,18 @@ public static class DigestRunner
             await using var db = new TenantDbContext(opts);
 
             var users = await CompanyUsers.OfAsync(catalog, t.Id);
+            var ingresos = await CatalogLogic.FechasIngresoAsync(catalog, t.Id);
 
             foreach (var u in users)
             {
                 var cohortIds = await db.UserGroupMembers.Where(m => m.UserId == u.Id)
                     .Select(m => m.UserGroupId).ToListAsync();
-                var pending = await CatalogLogic.ResolveAsync(db, u.Id, cohortIds);
+                var pending = await CatalogLogic.ResolveAsync(db, u.Id, cohortIds,
+                    ingresos.TryGetValue(u.Id, out var ingreso) ? ingreso : null);
                 var notStarted = pending.Where(p => p.Status == "not-started").ToList();
                 var inProgress = pending.Where(p => p.Status == "in-progress" || p.Status == "failed"
-                                                 || p.Status == "renewal" || p.Status == "expired").ToList();
+                                                 || p.Status == "renewal" || p.Status == "expired"
+                                                 || p.Status == "overdue").ToList();
                 if (notStarted.Count == 0 && inProgress.Count == 0) continue;
 
                 try
@@ -601,6 +703,7 @@ public static class ReminderRunner
         {
             var usuarios = await CompanyUsers.OfAsync(catalog, tenant.Id);
             if (usuarios.Count == 0) continue;
+            var ingresos = await CatalogLogic.FechasIngresoAsync(catalog, tenant.Id);
 
             var opts = new DbContextOptionsBuilder<TenantDbContext>().UseSqlServer(tenant.ConnectionString).Options;
             await using var db = new TenantDbContext(opts);
@@ -611,16 +714,17 @@ public static class ReminderRunner
                 List<PendingItem> pendientes;
                 try
                 {
-                    var cohortes = await db.UserGroupMembers.Where(m => m.UserId == u.Id)
+                    var grupos = await db.UserGroupMembers.Where(m => m.UserId == u.Id)
                         .Select(m => m.UserGroupId).ToListAsync();
-                    pendientes = await CatalogLogic.ResolveAsync(db, u.Id, cohortes);
+                    pendientes = await CatalogLogic.ResolveAsync(db, u.Id, grupos,
+                        ingresos.TryGetValue(u.Id, out var ingreso) ? ingreso : null);
                 }
                 catch { continue; }
 
                 foreach (var p in pendientes)
                 {
                     // Solo lo que el learner puede tomar ahora y no ha completado.
-                    var tomable = p.Status is "not-started" or "renewal" or "expired" or "failed";
+                    var tomable = p.Status is "not-started" or "renewal" or "expired" or "failed" or "overdue";
                     if (!tomable) continue;
 
                     // Cada curso decide si avisa y con cuánta anticipación.
@@ -635,7 +739,9 @@ public static class ReminderRunner
                     if (reglas.OnOpen) avisos.Add(($"open:{p.VersionId}", "open"));
 
                     // Vencimiento: un aviso por cada anticipación configurada, la más cercana que aplique.
-                    if (p.ExpiresAt is DateTime vence && reglas.DaysBefore.Count > 0)
+                    // Sin caducidad de una aprobación previa, cuenta la fecha límite del plan (DueAt).
+                    var esLimite = p.ExpiresAt is null && p.DueAt is not null;
+                    if ((p.ExpiresAt ?? p.DueAt) is DateTime vence && reglas.DaysBefore.Count > 0)
                     {
                         var dias = (vence.Date - hoy.Date).TotalDays;
                         var sello = vence.ToString("yyyyMMdd");
@@ -666,7 +772,7 @@ public static class ReminderRunner
                                 ? $"Adiestramiento disponible: {p.Title}"
                                 : $"Te quedan {tipo[3..]} días: {p.Title}";
                             await email.SendAsync(u.Email, u.Name, asunto,
-                                EmailTemplates.CourseReminder(u.Name, p.Title, tipo, p.ExpiresAt, appUrl));
+                                EmailTemplates.CourseReminder(u.Name, p.Title, tipo, p.ExpiresAt ?? p.DueAt, appUrl, esLimite));
                             enviados++;
                         }
                         catch { /* el registro ya quedó; no se reintenta para no spamear */ }

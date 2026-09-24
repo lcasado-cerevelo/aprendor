@@ -266,12 +266,14 @@ public static class Phase2Endpoints
         }).RequireAuthorization();
 
         // ---------------- Taking (self-paced, registered learner) ----------------
-        app.MapGet("/catalog", async (ITenantContext tc, IServiceProvider sp) =>
+        app.MapGet("/catalog", async (ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
-            var cohortIds = await db.UserGroupMembers.Where(m => m.UserId == tc.UserId)
+            var groupIds = await db.UserGroupMembers.Where(m => m.UserId == tc.UserId)
                 .Select(m => m.UserGroupId).ToListAsync();
-            var pending = await CatalogLogic.ResolveAsync(db, tc.UserId, cohortIds);
+            // La fecha de ingreso a la compañía marca el plazo de onboarding de los cursos `everyone`.
+            var ingreso = await CatalogLogic.FechaIngresoAsync(catalog, tc.UserId, tc.TenantId);
+            var pending = await CatalogLogic.ResolveAsync(db, tc.UserId, groupIds, ingreso);
 
             // Cursos marcados como "disponibles para repaso": el learner puede volver a
             // abrirlos después de aprobados (manual del empleado, onboarding).
@@ -283,7 +285,7 @@ public static class Phase2Endpoints
             return Results.Ok(pending.Select(p => new
             {
                 trainingId = p.TrainingId, title = p.Title, versionId = p.VersionId,
-                setId = p.SetId, status = p.Status, expiresAt = p.ExpiresAt,
+                setId = p.SetId, status = p.Status, expiresAt = p.ExpiresAt, dueAt = p.DueAt,
                 canReview = puedeRepasar.TryGetValue(p.TrainingId, out var r) && r
             }));
         }).RequireAuthorization();
@@ -841,16 +843,19 @@ public static class Phase2Endpoints
             return Results.Ok(users);
         }).RequireAuthorization();
 
-        // ---- Cohortes ----
+        // ---- Grupos ----
         app.MapGet("/user-groups", async (ITenantContext tc, IServiceProvider sp) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             if (!CanAuthor(tc.Role)) return Results.Forbid();
             var groups = await db.UserGroups.OrderBy(g => g.Name).ToListAsync();
             var members = await db.UserGroupMembers.ToListAsync();
+            var plan = await db.GroupCourses.ToListAsync();
             return Results.Ok(groups.Select(g => new {
-                g.Id, g.Name,
-                memberIds = members.Where(m => m.UserGroupId == g.Id).Select(m => m.UserId).ToList()
+                g.Id, g.Name, g.OnboardingDays,
+                memberIds = members.Where(m => m.UserGroupId == g.Id).Select(m => m.UserId).ToList(),
+                members = members.Where(m => m.UserGroupId == g.Id).Select(m => new { userId = m.UserId, joinedAt = m.JoinedAt }).ToList(),
+                courseCount = plan.Count(c => c.UserGroupId == g.Id)
             }));
         }).RequireAuthorization();
 
@@ -872,18 +877,110 @@ public static class Phase2Endpoints
             if (g is null) return Results.NotFound();
             db.UserGroupMembers.RemoveRange(await db.UserGroupMembers.Where(m => m.UserGroupId == id).ToListAsync());
             db.Assignments.RemoveRange(await db.Assignments.Where(a => a.TargetType == "group" && a.TargetId == id).ToListAsync());
+            db.GroupCourses.RemoveRange(await db.GroupCourses.Where(c => c.UserGroupId == id).ToListAsync());
             db.UserGroups.Remove(g); await db.SaveChangesAsync();
             return Results.Ok();
         }).RequireAuthorization();
 
+        // Añadir un miembro: queda registrada la fecha de ingreso al grupo (JoinedAt),
+        // desde la que corre el plazo del plan de onboarding.
         app.MapPost("/user-groups/{id:guid}/members", async (Guid id, UserRefRequest req, ITenantContext tc, IServiceProvider sp) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             if (!CanAuthor(tc.Role)) return Results.Forbid();
             if (!await db.UserGroups.AnyAsync(g => g.Id == id)) return Results.NotFound();
-            if (!await db.UserGroupMembers.AnyAsync(m => m.UserGroupId == id && m.UserId == req.UserId))
-            { db.UserGroupMembers.Add(new UserGroupMember { UserGroupId = id, UserId = req.UserId }); await db.SaveChangesAsync(); }
-            return Results.Ok();
+            var m = await db.UserGroupMembers.FirstOrDefaultAsync(m => m.UserGroupId == id && m.UserId == req.UserId);
+            if (m is null)
+            {
+                m = new UserGroupMember { UserGroupId = id, UserId = req.UserId, JoinedAt = DateTime.UtcNow };
+                db.UserGroupMembers.Add(m); await db.SaveChangesAsync();
+            }
+            return Results.Ok(new { userId = m.UserId, joinedAt = m.JoinedAt });
+        }).RequireAuthorization();
+
+        // ---- Plan de onboarding del grupo ----
+        // Cursos obligatorios para los miembros del grupo, con su plazo. Ver la regla
+        // de la fecha límite en CatalogLogic.ResolveAsync (Notifications.cs).
+        app.MapGet("/groups/{id:guid}/plan", async (Guid id, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            var g = await db.UserGroups.FindAsync(id);
+            if (g is null) return Results.NotFound();
+            return Results.Ok(await PlanDeGrupoAsync(db, g));
+        }).RequireAuthorization();
+
+        // Reemplaza el plan completo: los cursos que ya estaban conservan su AddedAt
+        // (para no reiniciar el plazo a quienes ya lo tenían), los nuevos entran hoy y
+        // los que faltan en la lista salen del plan.
+        app.MapPut("/groups/{id:guid}/plan", async (Guid id, GroupPlanRequest req, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            var g = await db.UserGroups.FindAsync(id);
+            if (g is null) return Results.NotFound();
+
+            if (req.OnboardingDays is int od)
+            {
+                if (od is < 0 or > 3650) return Results.BadRequest("El plazo del grupo debe estar entre 0 y 3650 días.");
+                g.OnboardingDays = od;
+            }
+
+            if (req.Courses is not null)
+            {
+                var pedidos = req.Courses.Where(c => c.TrainingId != Guid.Empty)
+                    .GroupBy(c => c.TrainingId).Select(gr => gr.Last()).ToList();
+                if (pedidos.Any(c => c.DueDays is < 0 or > 3650))
+                    return Results.BadRequest("El plazo por curso debe estar entre 0 y 3650 días (o vacío para usar el del grupo).");
+
+                var ids = pedidos.Select(c => c.TrainingId).ToList();
+                var existentes = await db.Trainings.Where(t => ids.Contains(t.Id) && t.Status != "archived")
+                    .Select(t => t.Id).ToListAsync();
+                var desconocidos = ids.Except(existentes).ToList();
+                if (desconocidos.Count > 0) return Results.BadRequest("Hay cursos que no existen o están archivados en el plan.");
+
+                var actuales = await db.GroupCourses.Where(c => c.UserGroupId == id).ToListAsync();
+                foreach (var c in actuales.Where(c => !ids.Contains(c.TrainingId))) db.GroupCourses.Remove(c);
+                foreach (var p in pedidos)
+                {
+                    var c = actuales.FirstOrDefault(x => x.TrainingId == p.TrainingId);
+                    if (c is null) db.GroupCourses.Add(new GroupCourse { UserGroupId = id, TrainingId = p.TrainingId, DueDays = p.DueDays });
+                    else c.DueDays = p.DueDays;
+                }
+            }
+
+            db.AuditLogs.Add(new TenantAuditLog
+            {
+                Action = "group-plan",
+                Detail = $"{g.Name}: {(req.Courses is null ? "cursos sin cambios" : $"{req.Courses.Count} curso(s)")}, plazo {g.OnboardingDays} días",
+                UserId = tc.UserId
+            });
+            await db.SaveChangesAsync();
+            return Results.Ok(await PlanDeGrupoAsync(db, g));
+        }).RequireAuthorization();
+
+        // ---- Audiencia de un curso ----
+        // everyone: obligatorio para toda la compañía (con plazo opcional desde el ingreso);
+        // groups: sólo para los grupos que lo tengan en su plan.
+        app.MapPut("/trainings/{id:guid}/audience", async (Guid id, AudienceRequest req, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            var t = await db.Trainings.FindAsync(id);
+            if (t is null) return Results.NotFound();
+            var audiencia = (req.Audience ?? "").Trim().ToLowerInvariant();
+            if (audiencia is not ("everyone" or "groups")) return Results.BadRequest("audience debe ser 'everyone' o 'groups'.");
+            if (req.OnboardingDays is < 0 or > 3650) return Results.BadRequest("El plazo de onboarding debe estar entre 0 y 3650 días (o vacío).");
+            t.Audience = audiencia;
+            t.OnboardingDays = audiencia == "everyone" ? req.OnboardingDays : null;   // sólo aplica a `everyone`
+            db.AuditLogs.Add(new TenantAuditLog
+            {
+                Action = "training-audience",
+                Detail = $"{t.Title}: {t.Audience}" + (t.OnboardingDays is int d ? $", {d} días desde el ingreso" : ""),
+                UserId = tc.UserId
+            });
+            await db.SaveChangesAsync();
+            return Results.Ok(new { t.Id, audience = t.Audience, onboardingDays = t.OnboardingDays });
         }).RequireAuthorization();
 
         app.MapDelete("/user-groups/{id:guid}/members/{userId:guid}", async (Guid id, Guid userId, ITenantContext tc, IServiceProvider sp) =>
@@ -986,7 +1083,7 @@ public static class Phase2Endpoints
             return Results.Ok();
         }).RequireAuthorization();
 
-        // ---- Asignaciones (usuario/cohorte -> set) ----
+        // ---- Asignaciones (usuario/grupo -> set) ----
         app.MapGet("/trainings/{id:guid}/assignments", async (Guid id, ITenantContext tc, IServiceProvider sp) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
@@ -1021,6 +1118,31 @@ public static class Phase2Endpoints
     }
 
     // ---------------- helpers ----------------
+
+    // Plan de onboarding de un grupo tal como lo devuelven GET/PUT /groups/{id}/plan:
+    // plazo del grupo, cursos con su plazo propio y el set del grupo para cada curso
+    // (Assignment de tipo group, si lo hay).
+    private static async Task<object> PlanDeGrupoAsync(TenantDbContext db, UserGroup g)
+    {
+        var cursos = await (from c in db.GroupCourses
+                            where c.UserGroupId == g.Id
+                            join t in db.Trainings on c.TrainingId equals t.Id
+                            orderby c.AddedAt
+                            select new { c.TrainingId, t.Title, t.Status, t.Audience, c.DueDays, c.AddedAt }).ToListAsync();
+        var sets = await db.Assignments.Where(a => a.TargetType == "group" && a.TargetId == g.Id)
+            .ToDictionaryAsync(a => a.TrainingId, a => a.SetId);
+        var miembros = await db.UserGroupMembers.CountAsync(m => m.UserGroupId == g.Id);
+        return new
+        {
+            g.Id, g.Name, g.OnboardingDays, members = miembros,
+            courses = cursos.Select(c => new
+            {
+                trainingId = c.TrainingId, title = c.Title, status = c.Status, audience = c.Audience,
+                dueDays = c.DueDays, effectiveDays = c.DueDays ?? g.OnboardingDays, addedAt = c.AddedAt,
+                setId = sets.TryGetValue(c.TrainingId, out var s) ? s : (Guid?)null
+            })
+        };
+    }
 
     // Tope por hueco: si entre dos latidos pasaron más de esto, la salida no cuenta (5 min).
     private const int HeartbeatGapCapSeconds = 300;
@@ -1281,6 +1403,10 @@ public record NameRequest(string Name);
 public record UserRefRequest(Guid UserId);
 public record SetItemRequest(Guid StableKey, bool Included);
 public record AssignRequest(Guid SetId, string TargetType, Guid TargetId);
+// Plan de onboarding de un grupo: OnboardingDays null = no cambiar; Courses null = no tocar la lista.
+public record GroupPlanRequest(int? OnboardingDays, List<GroupPlanCourseRequest>? Courses);
+public record GroupPlanCourseRequest(Guid TrainingId, int? DueDays = null);
+public record AudienceRequest(string Audience, int? OnboardingDays = null);
 public record RecurrenceRequest(int? RecurrenceMonths, int? RenewLeadDays, DateTime? ExpiresOn = null);
 public record ExternalCertRequest(Guid UserId, string Title, string? Issuer, string? CredentialId,
     DateTime IssuedOn, DateTime? ExpiresOn, Guid? MediaAssetId, string? ExternalSource, string? ExternalRef,
