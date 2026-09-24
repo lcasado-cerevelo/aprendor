@@ -209,6 +209,146 @@
   .allgood{background:#fff;border-radius:var(--r);padding:26px;display:flex;gap:16px;align-items:center;}
   .allgood .ic{width:48px;height:48px;border-radius:50%;background:var(--ok-bg);color:var(--ok);display:grid;place-items:center;flex:0 0 auto;}
   .allgood h3{margin:0 0 2px;font-size:17px;} .allgood p{margin:0;color:var(--muted);}
+  /* ===== Autor: cursos en tarjetas y ficha del curso ===== */
+  .btn.dim{background:transparent;color:#cbd5e1;border:1px solid #334155;box-shadow:none;} .btn.dim:hover{background:#141f3a;}
+  .linkbtn{background:none;border:0;padding:0;color:var(--brand);font-weight:600;text-decoration:underline;font-size:inherit;}
+  .tcard{cursor:pointer;}
+  .tcard .kpis{display:flex;gap:14px;font-size:12.5px;color:var(--muted);}
+  .tcard .kpis b{font:800 15px var(--display);display:block;color:var(--ink);}
+  .tcard .kpis .o b{color:var(--ok);} .tcard .kpis .e b{color:var(--err);}
+  .more{background:transparent;border:1px solid var(--line);border-radius:8px;width:30px;height:30px;color:var(--muted);padding:0;line-height:1;font-size:16px;}
+  .more:hover{background:var(--brand-soft);color:var(--brand);}
+  /* Menú «⋯» */
+  .popmenu{position:absolute;z-index:150;background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--lift);padding:6px;min-width:190px;}
+  .popmenu button{display:flex;gap:10px;align-items:center;width:100%;background:none;border:0;padding:9px 10px;border-radius:8px;text-align:left;color:var(--ink);font-size:14px;}
+  .popmenu button:hover,.popmenu button:focus-visible{background:var(--brand-soft);outline:none;}
+  .popmenu button.danger{color:var(--err);} .popmenu button.danger:hover,.popmenu button.danger:focus-visible{background:var(--err-bg);}
+  /* Ficha */
+  .ficha{background:#fff;border-radius:var(--r);box-shadow:var(--lift);overflow:hidden;}
+  .fhead{display:grid;grid-template-columns:220px 1fr;gap:20px;padding:20px;border-bottom:1px solid var(--line);}
+  .fhead .cover{border-radius:var(--r);overflow:hidden;align-self:start;}
+  .fhead .cover svg{width:52px;height:52px;}
+  .fhead h2{font-size:22px;margin:8px 0 6px;}
+  .fhead p{color:var(--muted);margin:0 0 12px;max-width:70ch;}
+  .fhead .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .fhead .ml{margin-left:auto;}
+  .ftabs{display:flex;gap:2px;padding:0 12px;border-bottom:1px solid var(--line);overflow-x:auto;}
+  .ftab{background:transparent;border:none;border-bottom:2px solid transparent;padding:12px 14px;color:var(--muted);font-weight:600;white-space:nowrap;}
+  .ftab:hover{color:var(--ink);} .ftab.on{color:var(--brand);border-bottom-color:var(--brand);}
+  .ftab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+  .ftab .b{background:var(--warn-bg);color:var(--warn);border-radius:999px;padding:1px 7px;font-size:11px;margin-left:6px;}
+  .pane{padding:22px;} .pane[hidden]{display:none;}
+  .pane h3{font-size:15px;margin:0 0 4px;color:var(--ink);}
+  .pane .hint{color:var(--muted);font-size:13px;margin:0 0 14px;}
+  .pane .list{margin-top:6px;}
+  .panefoot{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid var(--line);}
+  .panefoot .hint,.hint.dirty{margin:0;color:var(--warn);}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+  @media (max-width:760px){.two{grid-template-columns:1fr;}.fhead{grid-template-columns:1fr;}}
+  .li{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line);}
+  .li .av{width:32px;height:32px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:700;font-size:12px;flex:0 0 auto;}
+  .li .t{flex:1;min-width:0;} .li .t small{display:block;color:var(--muted);font-size:12.5px;}
+  .li .r{text-align:right;font-size:12.5px;color:var(--muted);} .li .r b{display:block;color:var(--ink);}
+  .kpi3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+  .kpi{background:var(--panel2);border-radius:var(--r);padding:14px 16px;}
+  .kpi .n{font:800 28px/1 var(--display);font-variant-numeric:tabular-nums;} .kpi .l{color:var(--muted);font-size:12.5px;margin-top:6px;}
+  .kpi.ok .n{color:var(--ok);} .kpi.warn .n{color:var(--warn);} .kpi.err .n{color:var(--err);}
+  @media (max-width:520px){.kpi3{grid-template-columns:1fr;}}
+  .sectionhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0 8px;}
+  .sectionhead h4{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+  .swatches{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .swatch{width:28px;height:28px;border-radius:8px;border:2px solid transparent;padding:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);}
+  .swatch.on{border-color:var(--ink);}
+  .swatch-pick{width:36px;height:30px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff;cursor:pointer;}
+  .colorf{height:40px;padding:4px;}
+  .kbd{display:inline-block;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 6px;font-size:11.5px;background:var(--panel2);}
+  .radio .sub{margin-top:8px;}
+  .off-block{opacity:.5;}
+  /* Filas de contenido */
+  .crow{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line);}
+  .crow.off{opacity:.55;} .crow.grouped{border-left:3px solid #818cf8;padding-left:10px;}
+  .crow-ic{width:34px;height:34px;border-radius:10px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;flex:0 0 auto;}
+  .crow .t{flex:1;min-width:0;font-weight:600;overflow-wrap:anywhere;} .crow .t small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;}
+  .crow-pills{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+  .crow-acts{display:flex;gap:4px;align-items:center;}
+  .ibtn{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--muted);display:grid;place-items:center;padding:0;}
+  .ibtn:hover:not(:disabled){background:var(--brand-soft);color:var(--brand);} .ibtn:disabled{opacity:.35;cursor:default;}
+  .ibtn.danger:hover:not(:disabled){background:var(--err-bg);color:var(--err);}
+  @media (max-width:700px){.crow{flex-wrap:wrap;}.crow-acts{width:100%;justify-content:flex-end;}}
+  /* Portada y foto de lámina */
+  .coverrow{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:var(--r);padding:10px;}
+  .coverrow .t{flex:1;min-width:0;} .coverrow small{display:block;color:var(--muted);font-size:12.5px;}
+  .thumb{width:96px;aspect-ratio:16/9;border-radius:8px;background:#0d0d0d center/cover no-repeat;flex:0 0 auto;display:grid;place-items:center;color:#fff;overflow:hidden;}
+  .thumb svg{width:26px;height:26px;}
+  .slidebox{border:1px solid var(--line);border-radius:var(--r);padding:2px 14px 14px;margin-top:14px;background:var(--panel2);}
+
+  /* ===== Lámina 16:9 (vista previa y medición de desborde) =====
+     Copia de las medidas de wwwroot/player.html (.sl*) con prefijo .psl: se dibuja a
+     1280×720 y se escala con --k. Si cambian allá, hay que ajustarlas aquí. */
+  .pstage{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:10px;background:#0d0d0d;box-shadow:0 6px 18px rgba(0,0,0,.18);}
+  .pstage>.psl{position:absolute;left:0;top:0;transform:scale(var(--k,.4));transform-origin:0 0;}
+  .psl{position:relative;width:1280px;height:720px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:#fff;background:var(--pbg,#0d0d0d);line-height:1.25;text-align:left;}
+  .psl *{box-sizing:border-box;}
+  .psl .sl-body{position:absolute;overflow:hidden;}
+  .psl .sl-body p{margin:0 0 14px;}
+  .psl .sl-body ul{margin:0 0 10px;padding-left:32px;} .psl .sl-body li{margin:0 0 10px;}
+  .psl .sl-body ul ul{margin:8px 0 0;list-style:disc;} .psl .sl-body li li{margin:0 0 6px;font-size:.92em;}
+  .psl .sl-body h2{font-size:30px;font-weight:700;margin:0 0 16px;line-height:1.15;letter-spacing:0;font-family:inherit;}
+  .psl .sl-body h3{font-size:28px;font-weight:700;text-transform:uppercase;margin:0 0 12px;line-height:1.2;letter-spacing:0;font-family:inherit;}
+  .psl .sl-body a{color:var(--pacc);}
+  .psl .sl-body img,.psl .sl-body video{max-width:100%;max-height:360px;margin:10px 0;}
+  .psl .row2{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:0;} .psl .row2>div{flex:1 1 220px;min-width:220px;}
+  .psl h1{font-family:inherit;letter-spacing:0;}
+  .psl .sl-kicker{margin:0;}
+  .psl .ctr{position:absolute;right:22px;bottom:14px;font-size:18px;color:#8a8a8a;}
+  .psl.sl-cover .cover-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .psl.sl-cover .cover-band{position:absolute;left:0;right:0;top:548px;height:96px;background:rgba(255,255,255,.86);border-top:2px solid #2a2a2a;border-bottom:2px solid #2a2a2a;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 60px;}
+  .psl.sl-cover .cover-band h1{margin:0;font-size:44px;font-weight:700;color:#111;line-height:1.1;}
+  .psl.sl-cover .sl-body{left:90px;right:90px;top:660px;bottom:0;font-size:18px;}
+  .psl.sl-dark .sl-kicker{position:absolute;left:100px;right:90px;top:44px;font-size:52px;font-weight:700;text-transform:uppercase;line-height:1.08;}
+  .psl.sl-dark .sl-rule{position:absolute;left:88px;right:88px;top:190px;border-top:2px solid var(--pacc);}
+  .psl.sl-dark .sl-body{left:96px;right:88px;top:216px;bottom:36px;font-size:24px;}
+  .psl.sl-dark .sl-body h3{border-bottom:2px solid rgba(255,255,255,.45);padding-bottom:4px;margin-bottom:14px;}
+  .psl.sl-dark.sl-mod .sl-kicker{top:250px;font-size:56px;} .psl.sl-dark.sl-mod .sl-rule{top:400px;} .psl.sl-dark.sl-mod .sl-body{top:420px;font-size:26px;color:#cfcfcf;}
+  .psl.sl-q .sl-frame{position:absolute;inset:12px;border:2px solid var(--pacc);}
+  .psl.sl-q .sl-kicker{position:absolute;left:100px;top:118px;font-size:64px;font-weight:400;text-transform:uppercase;line-height:1;}
+  .psl.sl-q .sl-rule{position:absolute;left:14px;width:550px;top:212px;border-top:2px solid var(--pacc);}
+  .psl.sl-q .sl-body{left:160px;right:90px;top:250px;bottom:36px;font-size:30px;}
+  .psl.sl-q .qwrap+.qwrap{border-top:1px solid #333;margin-top:18px;padding-top:18px;}
+  .psl.sl-q .qwrap>b{display:block;font-size:30px;font-weight:700;margin-bottom:26px;}
+  .psl.sl-q .qopt{padding:6px 12px 6px 58px;margin:2px 0;font-size:30px;line-height:1.25;}
+  .psl.sl-q .qmatch{display:flex;gap:12px;align-items:center;margin:8px 0;font-size:24px;font-weight:600;min-height:40px;}
+  .psl.sl-q .qopen{height:170px;border:1px solid #4a4a4a;background:#1c1c1c;}
+  .psl.sl-split{background:#fff;color:#111;}
+  .psl.sl-split .panel{position:absolute;left:0;top:0;width:494px;height:720px;background:#1f1f1f;overflow:hidden;}
+  .psl.sl-split .panel::before{content:"";position:absolute;inset:0;background:#2e2e2e;clip-path:polygon(18% 0,100% 0,100% 100%,69% 100%);}
+  .psl.sl-split .ptitle{position:absolute;left:98px;width:340px;top:50%;transform:translateY(-50%);margin:0;font-size:34px;font-weight:700;text-transform:uppercase;color:#fff;line-height:1.15;z-index:2;}
+  .psl.sl-split .sl-body{left:575px;right:80px;top:50px;bottom:36px;font-size:24px;display:flex;flex-direction:column;}
+  .psl.sl-split .sl-fit{margin:auto 0;}
+  .psl.sl-split .sl-body p{margin-bottom:10px;} .psl.sl-split .sl-body li{margin-bottom:8px;}
+  .psl.sl-split .sl-body h2{font-size:30px;margin-bottom:14px;}
+  .psl.sl-split .sl-body h3{font-size:26px;text-transform:none;margin:4px 0 8px;}
+  .psl.sl-split.right .panel{left:auto;right:0;width:960px;background:transparent;}
+  .psl.sl-split.right .panel::before{background:#6a6a6a;clip-path:polygon(31% 0,100% 0,100% 100%,0 100%);}
+  .psl.sl-split.right .panel::after{content:"";position:absolute;inset:0;background:#262626;clip-path:polygon(34.5% 0,100% 0,100% 100%,3.6% 100%);}
+  .psl.sl-split.right .ptitle{color:#111;width:380px;left:100px;}
+  .psl.sl-split.right .sl-body{left:655px;right:50px;top:36px;bottom:24px;color:#fff;font-size:23px;}
+  .psl.sl-split.right .sl-body li{margin-bottom:6px;}
+  .psl.sl-split.lines{background:var(--pbg);color:#fff;}
+  .psl.sl-split.lines .panel{width:520px;background:transparent;}
+  .psl.sl-split.lines .panel::before{background:transparent;clip-path:none;left:105px;right:0;top:150px;bottom:150px;border-top:2px solid var(--pacc);border-bottom:2px solid var(--pacc);}
+  .psl.sl-split.lines .ptitle{left:118px;width:400px;font-size:40px;}
+  .psl.sl-split.lines .sl-body{left:655px;right:80px;font-size:30px;}
+  .psl.sl-split.lines .sl-body h2{font-size:38px;}
+  .psl.sl-split.no-panel .panel,.psl.sl-split.no-panel .ptitle{display:none;}
+  .psl.sl-split.no-panel .sl-body{left:90px;right:90px;top:70px;}
+  .psl.sl-split.no-panel .sl-kicker{position:absolute;left:90px;top:28px;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;}
+  .psl.sl-photo{background:#fff;color:#111;}
+  .psl.sl-photo .photo{position:absolute;left:0;top:0;width:486px;height:720px;object-fit:cover;object-position:var(--ppos,50% 50%);background:#d6d9df;}
+  .psl.sl-photo .sl-kicker{position:absolute;left:535px;right:85px;top:100px;font-size:34px;font-weight:700;text-transform:uppercase;line-height:1.15;}
+  .psl.sl-photo .sl-rule{position:absolute;left:535px;right:85px;top:218px;border-top:3px solid var(--pacc);}
+  .psl.sl-photo .sl-body{left:535px;right:85px;top:255px;bottom:40px;font-size:24px;}
+  .psl.sl-photo .sl-body h2{font-size:30px;}
   @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
 </style>
 </head>
@@ -444,28 +584,102 @@
         <div id="dashTiles" class="tiles"></div>
       </div>
 
-      <!-- SECCIÓN: Adiestramientos (crear/editar/publicar) -->
+      <!-- SECCIÓN: Adiestramientos del autor (tarjetas → ficha del curso) -->
       <div class="section hidden" id="sec-manage">
-        <button class="back-link" onclick="showDash()">← Inicio</button>
-        <div class="card">
-          <h2>Categorías</h2>
-          <div class="row"><div><input id="cName" class="field" placeholder="Seguridad" /></div>
-            <button class="btn sm" id="addCatBtn">Añadir</button></div>
-          <div class="list" id="catList"></div>
-        </div>
-        <div class="card">
-          <h2>Adiestramientos</h2>
-          <p class="hint">Crea un adiestramiento, edita su contenido y publícalo.</p>
-          <div class="row">
-            <div><input id="trTitle" class="field" placeholder="Inducción de seguridad" /></div>
-            <div><input id="trDesc" class="field" placeholder="Descripción (opcional)" /></div>
-            <button class="btn sm" id="addTrBtn">Crear</button>
+        <!-- Lista de cursos en tarjetas -->
+        <div id="mgList">
+          <button class="back-link" onclick="showDash()">← Inicio</button>
+          <div class="pagehead">
+            <div><h1>Adiestramientos</h1><p>Clic en una tarjeta para abrir su ficha.</p></div>
+            <div class="inline">
+              <button type="button" class="btn dim" onclick="openCategories()">Categorías</button>
+              <button type="button" class="btn" onclick="newTraining()">+ Nuevo adiestramiento</button>
+            </div>
           </div>
-          <div class="list" id="trList"></div>
+          <div class="chips" id="trFilters" role="toolbar" aria-label="Filtrar adiestramientos"></div>
+          <div id="trGrid"></div>
         </div>
-        <div class="card hidden" id="resultsCard">
-          <h2>Resultados — <span id="resultsTitle"></span></h2>
-          <div class="list" id="resultsList"></div>
+
+        <!-- Ficha del curso -->
+        <div id="mgFicha" class="hidden">
+          <button class="back-link" onclick="closeFicha()">← Adiestramientos</button>
+          <div class="ficha">
+            <div class="fhead" id="fHead"></div>
+            <div class="ftabs" id="fTabs" role="tablist" aria-label="Secciones del curso">
+              <button type="button" class="ftab on" role="tab" aria-selected="true" data-t="resumen" onclick="setFichaTab('resumen')">Resumen</button>
+              <button type="button" class="ftab" role="tab" aria-selected="false" data-t="contenido" onclick="setFichaTab('contenido')">Contenido</button>
+              <button type="button" class="ftab" role="tab" aria-selected="false" data-t="presentacion" onclick="setFichaTab('presentacion')">Presentación</button>
+              <button type="button" class="ftab" role="tab" aria-selected="false" data-t="opciones" onclick="setFichaTab('opciones')">Opciones</button>
+              <button type="button" class="ftab" role="tab" aria-selected="false" data-t="vigencia" onclick="setFichaTab('vigencia')">Vigencia y avisos</button>
+              <button type="button" class="ftab" role="tab" aria-selected="false" data-t="certificado" onclick="setFichaTab('certificado')">Certificado</button>
+              <button type="button" class="ftab" role="tab" aria-selected="false" data-t="resultados" onclick="setFichaTab('resultados')">Resultados<span class="b num hidden" id="resBadge" title="Intentos esperando calificación"></span></button>
+            </div>
+
+            <div class="pane" role="tabpanel" data-p="resumen" id="pResumen"></div>
+
+            <!-- Contenido: la pantalla de módulos e ítems del borrador, embebida -->
+            <div class="pane" role="tabpanel" data-p="contenido" hidden>
+              <div class="sectionhead" style="margin-top:0">
+                <div><h3>Contenido</h3><p class="hint" style="margin:0">Módulos e ítems del borrador. Cada pantalla muestra su composición de lámina y avisa si no cabe en 16:9. <span id="contentStatus"></span></p></div>
+                <div class="inline">
+                  <button type="button" class="btn sm" id="addItemTop">+ Añadir ítem</button>
+                  <button type="button" class="btn sm ghost" id="previewBtn">Vista previa</button>
+                </div>
+              </div>
+              <div class="tabs" id="contentTabs"></div>
+              <div class="list" id="contentItems" style="margin-top:4px"></div>
+              <p class="msg" id="contentMsg"></p>
+            </div>
+
+            <div class="pane" role="tabpanel" data-p="presentacion" id="pPres" hidden></div>
+            <div class="pane" role="tabpanel" data-p="opciones" id="pOpc" hidden></div>
+            <div class="pane" role="tabpanel" data-p="vigencia" id="pVig" hidden></div>
+
+            <!-- Certificado: el formulario de siempre + cómo se entrega (lo decide la empresa) -->
+            <div class="pane" role="tabpanel" data-p="certificado" id="pCert" hidden>
+              <div class="two">
+                <div>
+                  <h3>Certificado</h3>
+                  <p class="hint">Plantilla común a todos los cursos; aquí solo defines los datos propios de este curso. El título del curso y la fecha se completan solos.</p>
+                  <div class="swrow" style="padding-top:0"><div class="t"><b>Emitir certificado al aprobar</b><span>Si lo apagas, el curso no emite certificado.</span></div>
+                    <label class="opt" style="margin:0"><input type="checkbox" id="certEnabled" checked /> Activo</label></div>
+                  <label for="certIssuer">Entidad emisora</label><input id="certIssuer" class="field" placeholder="(por defecto: nombre de la compañía)" />
+                  <div class="row">
+                    <div><label for="certSignName">Firmante</label><input id="certSignName" class="field" placeholder="Ej. María Pérez" /></div>
+                    <div><label for="certSignTitle">Cargo del firmante</label><input id="certSignTitle" class="field" placeholder="Ej. Directora de Cumplimiento" /></div>
+                  </div>
+                  <label for="certStatement">Leyenda / texto legal (opcional)</label>
+                  <textarea id="certStatement" class="field" rows="3" placeholder="Ej. En cumplimiento de la política interna y la normativa aplicable…"></textarea>
+                  <label for="certRecipients">Destinatarios adicionales (además del empleado y del oficial de cumplimiento)</label>
+                  <input id="certRecipients" class="field" placeholder="opcional, separados por coma" />
+                  <p class="hint" style="margin:4px 0 0">Reciben una copia al aprobar, igual que el oficial. No tiene que ser quien firma.</p>
+                  <div class="row" style="margin-top:4px">
+                    <label class="opt" style="flex:1"><input type="checkbox" id="certShowScore" checked /> Mostrar calificación (%)</label>
+                    <label class="opt" style="flex:1"><input type="checkbox" id="certShowValidity" checked /> Mostrar vigencia</label>
+                  </div>
+                  <div class="row">
+                    <div style="max-width:140px"><label for="certAccent">Color de acento</label><input id="certAccent" type="color" class="field colorf" value="#1e3a8a" /></div>
+                    <div><label for="certLogoFile">Logo (imagen, opcional)</label>
+                      <input id="certLogoFile" type="file" accept="image/*" class="field" style="padding:8px" />
+                      <div id="certLogoPreview" style="margin-top:6px"></div>
+                    </div>
+                  </div>
+                  <label for="certSignFile">Firma escaneada (imagen, opcional)</label>
+                  <input id="certSignFile" type="file" accept="image/*" class="field" style="padding:8px" />
+                  <p class="hint" style="margin:4px 0 0">PNG con fondo transparente se ve mejor. Se muestra sobre la línea de firma.</p>
+                  <div id="certSignPreview" style="margin-top:6px"></div>
+                </div>
+                <div>
+                  <div id="certDelivery"></div>
+                  <div style="margin-top:14px"><button type="button" class="btn sm ghost" id="certPreviewBtn">Ver muestra del certificado</button></div>
+                </div>
+              </div>
+              <p class="msg" id="certMsg"></p>
+              <div class="panefoot"><button type="button" class="btn sm" id="certSaveBtn" disabled>Guardar</button><span class="hint dirty" id="certDirtyNote"></span></div>
+            </div>
+
+            <div class="pane" role="tabpanel" data-p="resultados" id="pRes" hidden></div>
+          </div>
         </div>
       </div>
 
@@ -553,24 +767,6 @@
   </div>
 </div>
 
-<!-- PANTALLA DE CONTENIDO (se abre desde "Contenido") -->
-<div id="contentView" class="screen hidden">
-  <div class="screen-bar">
-    <button class="btn sm ghost" id="backFromContent" style="color:#cbd5e1;border-color:#334155">← Volver</button>
-    <div style="margin-left:4px"><b id="contentTitle"></b> <span class="tag" id="contentStatus"></span></div>
-    <span style="margin-left:auto;display:flex;gap:8px">
-      <button class="btn sm" id="addItemTop">+ Añadir ítem</button>
-      <button class="btn sm ghost" id="previewBtn" style="color:#cbd5e1;border-color:#334155">Vista previa</button>
-      <button class="btn sm ok" id="publishBtn">Publicar</button>
-    </span>
-  </div>
-  <div class="screen-body">
-    <div class="tabs" id="contentTabs"></div>
-    <div class="list" id="contentItems"></div>
-    <p class="msg" id="contentMsg"></p>
-  </div>
-</div>
-
 <!-- PANTALLA DE VERSIONES Y ASIGNACIÓN -->
 <div id="assignView" class="screen hidden">
   <div class="screen-bar">
@@ -643,6 +839,35 @@
         <button type="button" class="btn sm ghost" id="addMediaBlockBtn">+ Imagen / audio / video / documento</button>
         <input type="file" id="blockFile" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" style="display:none" />
       </div>
+      <!-- Lámina del modo presentación: composición, variante, rótulo y foto -->
+      <div class="slidebox">
+        <div class="row">
+          <div><label for="infoLayout">Composición de la lámina (modo presentación)</label>
+            <select id="infoLayout" class="field" onchange="syncLayoutFields()">
+              <option value="">Sin definir (fondo oscuro)</option>
+              <option value="cover">Portada · foto a sangre y banda con el título</option>
+              <option value="dark">Fondo oscuro · rótulo arriba y línea de acento</option>
+              <option value="split">Panel diagonal · contenido sobre blanco</option>
+              <option value="photo-left">Foto a la izquierda</option>
+            </select></div>
+          <div id="infoVariantRow"><label for="infoVariant">Variante del panel</label>
+            <select id="infoVariant" class="field">
+              <option value="">Panel oscuro a la izquierda</option>
+              <option value="right">Panel claro, contenido sobre oscuro</option>
+              <option value="lines">Fondo oscuro con líneas de acento</option>
+            </select></div>
+          <div id="infoKickerRow"><label for="infoKicker">Rótulo superior (opcional)</label>
+            <input id="infoKicker" class="field" placeholder="Por defecto, el título del panel" /></div>
+        </div>
+        <div id="infoPhotoRow">
+          <label>Foto de la lámina</label>
+          <div class="inline"><div class="thumb" id="infoPhotoPrev"></div>
+            <button type="button" class="btn sm ghost" onclick="el('infoPhotoFile').click()">Elegir foto…</button>
+            <button type="button" class="btn sm ghost" id="infoPhotoDel" onclick="setInfoPhoto(null)">Quitar</button>
+            <input type="file" id="infoPhotoFile" accept="image/*" style="display:none" /></div>
+          <p class="hint" style="margin:4px 0 0">Se guarda dentro de la lámina (máx. ~2 MB). Solo se ve en modo presentación.</p>
+        </div>
+      </div>
     </div>
 
     <div id="form_Question" class="itform hidden">
@@ -696,57 +921,6 @@
   </div>
 </div>
 
-<!-- ===== Configuración del certificado (por curso) ===== -->
-<div id="certModal" class="modal hidden">
-  <div class="modal-box">
-    <h3>Certificado — <span id="certCourseTitle"></span></h3>
-    <p class="hint">La estructura del certificado es común a todos los cursos de cumplimiento; aquí solo defines los datos propios de este curso. El título del curso y la fecha se completan solos.</p>
-
-    <label class="opt optrow"><input type="checkbox" id="certEnabled" checked /> Emitir certificado al aprobar este curso</label>
-
-    <div class="row" style="margin-top:10px">
-      <div><label>Entidad emisora</label><input id="certIssuer" class="field" placeholder="(por defecto: nombre de la compañía)" /></div>
-    </div>
-    <div class="row">
-      <div><label>Firmante</label><input id="certSignName" class="field" placeholder="Ej. María Pérez" /></div>
-      <div><label>Cargo del firmante</label><input id="certSignTitle" class="field" placeholder="Ej. Directora de Cumplimiento" /></div>
-      <div style="grid-column:1/-1">
-        <label>Enviar copia del certificado a</label>
-        <input id="certRecipients" class="field" placeholder="rrhh@empresa.com, supervisor@empresa.com" />
-        <p class="hint" style="margin:4px 0 0">Al aprobar, el PDF se envía al empleado y a estos correos (quien lo archiva en el expediente). No tiene que ser quien firma. Separa varios con coma.</p>
-      </div>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <div><label>Firma escaneada (imagen, opcional)</label>
-        <input id="certSignFile" type="file" accept="image/*" class="field" style="padding:8px" />
-        <p class="hint" style="margin:4px 0 0">PNG con fondo transparente se ve mejor. Se muestra sobre la línea de firma.</p>
-        <div id="certSignPreview" style="margin-top:6px"></div>
-      </div>
-    </div>
-    <label style="margin-top:10px">Leyenda / texto legal (opcional)</label>
-    <textarea id="certStatement" class="field" rows="2" placeholder="Ej. En cumplimiento de la política interna y la normativa aplicable…"></textarea>
-
-    <div class="row" style="margin-top:10px">
-      <label class="opt optrow" style="flex:1"><input type="checkbox" id="certShowScore" checked /> Mostrar calificación (%)</label>
-      <label class="opt optrow" style="flex:1"><input type="checkbox" id="certShowValidity" checked /> Mostrar vigencia (según recurrencia)</label>
-    </div>
-    <div class="row">
-      <div><label>Color de acento</label><input id="certAccent" type="color" class="field" value="#1e3a8a" style="height:44px;padding:4px" /></div>
-      <div><label>Logo (imagen, opcional)</label>
-        <input id="certLogoFile" type="file" accept="image/*" class="field" style="padding:8px" />
-        <div id="certLogoPreview" style="margin-top:6px"></div>
-      </div>
-    </div>
-
-    <p class="msg" id="certMsg"></p>
-    <div class="modal-actions">
-      <button type="button" class="btn ghost" onclick="el('certModal').classList.add('hidden')">Cancelar</button>
-      <button type="button" class="btn ghost" id="certPreviewBtn">👁️ Vista previa</button>
-      <button type="button" class="btn" id="certSaveBtn">Guardar</button>
-    </div>
-  </div>
-</div>
-
 <script>
 const API = '';
 let token = localStorage.getItem('tp_token') || null;
@@ -796,7 +970,11 @@ const ICONS = {
   pencil:'<path d="M4 20h4L20 8l-4-4L4 16z"/><path d="M14 6l4 4"/>',
   award:'<circle cx="12" cy="9" r="6"/><path d="M8.5 14l-1.5 7 5-3 5 3-1.5-7"/>',
   building:'<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/>',
-  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>'
+  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  up:'<path d="M6 15l6-6 6 6"/>',
+  down:'<path d="M6 9l6 6 6-6"/>',
+  help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17v.01"/>',
+  image:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M21 16l-5-5-8 8"/>'
 };
 function ic(name, size){
   const s = size || 20;
@@ -1619,7 +1797,7 @@ function showDash(){
 function showSection(id){
   el('dashGrid').classList.add('hidden');
   SECTIONS.forEach(s=>el(s).classList.toggle('hidden', s!==id));
-  if (id==='sec-manage'){ loadCategories(); loadTrainings(); }
+  if (id==='sec-manage'){ fichaId=null; el('mgFicha').classList.add('hidden'); el('mgList').classList.remove('hidden'); loadTrainings(); }
   else if (id==='sec-take'){ loadCatalog(); }
   else if (id==='sec-history'){ loadMyHistory(); }
   else if (id==='sec-review'){ loadGrading(); loadPending(); }
@@ -1842,196 +2020,1098 @@ el('createUserBtn').onclick = async () => {
   }catch(e){ msg.textContent=e.message; msg.className='msg err'; }
 };
 
-// ===== Categorías =====
-el('addCatBtn').onclick = async () => {
-  try{ await api('/categories','POST',{ name:el('cName').value.trim() }); el('cName').value=''; loadCategories(); }catch(e){}
-};
-async function loadCategories(){
-  try{ const c = await api('/categories');
-    el('catList').innerHTML = c.length ? c.map(x=>`<div class="item">${x.name}</div>`).join('') : `<div class="empty">Sin categorías.</div>`;
-  }catch(e){}
+// ===== Adiestramientos del autor: tarjetas y ficha del curso =====
+// La lista muestra cada curso como tarjeta (portada, estado, vigencia y cuántas personas
+// lo tienen vigente, por vencer o vencido). La tarjeta abre la ficha del curso con sus
+// pestañas: Resumen, Contenido, Presentación, Opciones, Vigencia y avisos, Certificado y
+// Resultados. Todo se guarda con los endpoints de siempre (/trainings/{id}/player-config,
+// /recurrence, /audience, /notification-config, /certificate-config, /draft, /publish…).
+let trCache = [];          // último /trainings
+let catNames = {};         // categoryId → nombre
+let trFilter = null;       // published | draft | archived (null = el primero que tenga cursos)
+let trStats = {};          // trainingId → { ok, soon, exp, lastPass, source }
+let compSummary = null;    // /compliance/summary si el usuario puede verlo (Admin u oficial)
+let compDenied = false;    // ya se sabe que no puede: no volver a pedirlo
+let compDueSoon = 30;      // ventana de «por vencer» (la de la empresa si se pudo leer)
+let coverCache = {};       // trainingId → foto de la lámina de portada (cuando ya se abrió su ficha)
+
+const TR_FILTERS = [
+  { key:'published', label:'Publicados' },
+  { key:'draft',     label:'Borradores' },
+  { key:'archived',  label:'Archivados' }
+];
+const TR_PILL = { published:['ok','Publicado'], draft:['gray','Borrador'], archived:['warn','Archivado'] };
+
+function pj(s){ try{ return JSON.parse(s) || {}; }catch{ return {}; } }
+function trStatus(t){ return t.status === 'archived' ? 'archived' : t.status === 'published' ? 'published' : 'draft'; }
+function stateBox(icon, tone, title, text){
+  const bg = tone === 'err' ? 'background:var(--err-bg);color:var(--err)' : tone === 'gray' ? 'background:var(--gray-bg);color:var(--gray)' : '';
+  return `<div class="allgood"><div class="ic" style="${bg}">${ic(icon,24)}</div><div><h3>${esc(title)}</h3><p>${esc(text)}</p></div></div>`;
+}
+function loadingHtml(txt){ return `<div class="empty">${esc(txt || 'Cargando…')}</div>`; }
+function swRow(key, on, title, hint, onclick){
+  return `<div class="swrow"><div class="t"><b>${esc(title)}</b>${hint ? `<span>${esc(hint)}</span>` : ''}</div>
+    <button type="button" class="sw ${on?'on':''}" role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(title)}" data-k="${key}" onclick="${onclick}"></button></div>`;
 }
 
-// ===== Adiestramientos =====
-el('addTrBtn').onclick = async () => {
-  try{ await api('/trainings','POST',{ title:el('trTitle').value.trim(), description:el('trDesc').value.trim()||null });
-    el('trTitle').value=''; el('trDesc').value=''; loadTrainings(); }catch(e){}
-};
-let trCache = [];   // último /trainings (para prellenar la descripción al renombrar)
-async function loadTrainings(){
-  try{
-    const trs = await api('/trainings');
-    trCache = trs;
-    el('trList').innerHTML = trs.length ? trs.map(t=>{
-      const fija = t.expiresOn ? String(t.expiresOn).slice(0,10) : null;
-      const rec = (t.recurrenceMonths || fija)
-        ? `<span class="tag" style="background:#dbeafe;color:#1e40af">🔁 ${fija ? ('vence ' + fija + (t.recurrenceMonths ? ` · rueda cada ${t.recurrenceMonths} mes(es)` : '')) : ('cada ' + t.recurrenceMonths + ' mes(es)')} · reabre ${t.renewLeadDays}d antes</span>`
-        : `<span class="tag">una sola vez</span>`;
-      const arch = t.status === 'archived';
-      const est = arch
-        ? `<span class="tag" style="background:#fef3c7;color:#92400e">📦 archivado</span>`
-        : `<span class="tag">${t.status}</span>`;
-      const acciones = arch
-        ? `<button class="btn sm ghost" onclick="unarchiveTraining('${t.id}','${t.title.replace(/'/g,"")}')">Restaurar</button>`
-        : `<button class="btn sm ghost" onclick="setPlayerConfig('${t.id}','${t.title.replace(/'/g,"")}')">Opciones</button>
-           <button class="btn sm ghost" onclick="setRecurrence('${t.id}','${t.title.replace(/'/g,"")}',${t.recurrenceMonths||'null'},${t.renewLeadDays},${fija?`'${fija}'`:'null'})">Vigencia</button>
-           <button class="btn sm ghost" onclick="setNotifications('${t.id}','${t.title.replace(/'/g,"")}')">Avisos</button>
-           <button class="btn sm ghost" onclick="openCertConfig('${t.id}','${t.title.replace(/'/g,"")}',${t.recurrenceMonths||'null'})">Certificado</button>
-           <button class="btn sm ghost" onclick="openContent('${t.id}','${t.title.replace(/'/g,"")}')">Contenido</button>
-           <button class="btn sm ghost" onclick="loadResults('${t.id}','${t.title.replace(/'/g,"")}')">Resultados</button>
-           <button class="btn sm ghost" onclick="archiveTraining('${t.id}','${t.title.replace(/'/g,"")}')">Archivar</button>`;
-      return `<div class="item" style="flex-wrap:wrap${arch?';opacity:.65':''}">${t.title} ${est} ${rec}
-        <span class="sp">
-          <button class="btn sm ghost" onclick="renameTraining('${t.id}','${t.title.replace(/'/g,"")}')">Renombrar</button>
-          ${acciones}
-        </span></div>`;
-    }).join('') : `<div class="empty">Sin adiestramientos.</div>`;
-  }catch(e){}
+// ----- Vigencia: textos y la misma regla de caducidad del servidor -----
+function mesesTxt(n){ return n===12 ? 'anual' : n===24 ? 'cada 2 años' : n===6 ? 'semestral' : n===1 ? 'mensual' : `cada ${n} meses`; }
+// ExpiresOn es una fecha de calendario: «2026-12-31» se lee en hora local, sin que la zona la corra un día.
+function diaLocal(s){ const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s); }
+function vigShort(t){
+  if (t.expiresOn) return `vence ${fmtShort(diaLocal(t.expiresOn))}` + (t.recurrenceMonths ? `, ${mesesTxt(t.recurrenceMonths)}` : '');
+  if (t.recurrenceMonths) return mesesTxt(t.recurrenceMonths);
+  return 'no caduca';
 }
-// Permitir o no que el learner vuelva a la pantalla anterior mientras toma el curso,
-// dejarlo disponible para repaso tras aprobarlo, y si ve al instante si acertó cada
-// pregunta o solo se entera del resultado al terminar el intento. El bloque
-// `presentation` no se manda: el servidor conserva el que haya.
-async function setPlayerConfig(id, title){
+function vigLong(t){
+  const s = vigShort(t), cap = s.charAt(0).toUpperCase() + s.slice(1);
+  return (t.expiresOn || t.recurrenceMonths) ? `${cap} · reabre ${t.renewLeadDays} días antes` : cap;
+}
+function addMonths(d, n){
+  const x = new Date(d), dia = x.getDate();
+  x.setDate(1); x.setMonth(x.getMonth() + n);
+  x.setDate(Math.min(dia, new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate()));   // 31 ene + 1 = 28/29 feb, como .NET
+  return x;
+}
+// Copia de CatalogLogic.VigenciaDe (Notifications.cs): cuándo caduca una aprobación.
+function vigenciaDe(fija, meses, aprobado, ahora){
+  if (!fija && !meses) return null;
+  if (!fija) return addMonths(aprobado, meses);
+  let corte = new Date(fija);
+  if (!meses) return corte;
+  const paso = Math.max(1, meses);
+  while (corte <= aprobado) corte = addMonths(corte, paso);
+  while (corte <= ahora) corte = addMonths(corte, paso);
+  return corte;
+}
+function cuandoTxt(d){
+  const n = -daysUntil(d);
+  return n <= 0 ? 'hoy' : n === 1 ? 'ayer' : fmtShort(d);
+}
+function fmtFecha(d){
+  if (!d) return '—';
+  const x = new Date(d);
+  return x.toLocaleDateString('es-PR', { day:'numeric', month:'short', year:'numeric' }).replace('.', '') + ' · '
+       + x.toLocaleTimeString('es-PR', { hour:'numeric', minute:'2-digit' });
+}
+
+// Vigentes / por vencer / vencidos de un curso. /trainings/{id}/attempts no trae el id
+// del usuario, así que se agrupa por nombre: la última aprobación de cada persona y su
+// caducidad. Si el usuario puede ver /compliance/summary (Admin u oficial), «por vencer»
+// y «vencidos» salen de ahí, que además cuenta a quien nunca lo empezó y pasó su límite.
+function courseStats(t, attempts){
+  const ahora = new Date(), lim = new Date(ahora.getTime() + compDueSoon * DAY_MS);
+  const porPersona = {};
+  let lastPass = null;
+  (attempts || []).forEach(a => {
+    if (!(a.passed && a.completedAt)) return;
+    const d = new Date(a.completedAt);
+    if (!lastPass || d > lastPass) lastPass = d;
+    const k = (a.learnerName || '').trim().toLowerCase() || a.id;
+    if (!porPersona[k] || d > porPersona[k]) porPersona[k] = d;
+  });
+  let ok = 0, soon = 0, exp = 0;
+  Object.values(porPersona).forEach(d => {
+    const v = vigenciaDe(t.expiresOn ? diaLocal(t.expiresOn) : null, t.recurrenceMonths, d, ahora);
+    if (!v || v > ahora){ ok++; if (v && v <= lim) soon++; } else exp++;
+  });
+  if (compSummary){
+    soon = (compSummary.dueSoon || []).filter(r => r.trainingId === t.id).length;
+    exp = (compSummary.overdue || []).filter(r => r.trainingId === t.id).length;
+  }
+  return { ok, soon, exp, lastPass, source: compSummary ? 'compliance' : 'attempts' };
+}
+async function loadCompSummary(){
+  if (compDenied) return null;
+  if (compSummary && Date.now() - compSummary._at < 60000) return compSummary;
   try{
-    const c = await api('/trainings/'+id+'/player-config');
-    const r = await dialog({
-      title:'Opciones del reproductor', text:title, icon:'sliders', okText:'Guardar',
-      fields:[
-        { name:'allowBack', type:'switch', value: c.allowBack !== false, label:'Permitir retroceder',
-          hint:'El empleado puede volver a la pantalla anterior mientras toma el curso.' },
-        { name:'reviewAfterPass', type:'switch', value: c.reviewAfterPass === true, label:'Disponible para repaso tras aprobar',
-          hint:'Queda abierto para consulta sin contar como intento nuevo.' },
-        { name:'immediateFeedback', type:'switch', value: c.immediateFeedback === true, label:'Retroalimentación inmediata',
-          hint:'Muestra al instante si acertó cada pregunta. Para cumplimiento se recomienda calificar solo al final.' }
-      ]
-    });
-    if(!r) return;
-    await api('/trainings/'+id+'/player-config','PUT',{
-      allowBack: r.values.allowBack, reviewAfterPass: r.values.reviewAfterPass, immediateFeedback: r.values.immediateFeedback
-    });
-    toast('Opciones guardadas.');
-    loadTrainings();
+    compSummary = await api('/compliance/summary');
+    compSummary._at = Date.now();
+    compDueSoon = compSummary.dueSoonDays || 30;
+  }catch(e){ compSummary = null; compDenied = true; }
+  return compSummary;
+}
+
+// ----- Categorías -----
+async function loadCategories(){
+  try{
+    const c = await api('/categories');
+    catNames = {}; (c || []).forEach(x => catNames[x.id] = x.name);
+    return c || [];
+  }catch(e){ return []; }
+}
+async function openCategories(){
+  const cats = await loadCategories();
+  const r = await dialog({
+    title:'Categorías', icon:'layers', okText:'Añadir', cancelText:'Cerrar',
+    html: cats.length ? `<div class="inline" style="margin-top:10px">${cats.map(c=>`<span class="st gray">${esc(c.name)}</span>`).join('')}</div>`
+                      : `<p class="dlg-text">Aún no hay categorías. La categoría da el color de la portada y agrupa los cursos.</p>`,
+    fields:[{ name:'name', label:'Nueva categoría', placeholder:'Seguridad' }],
+    validate: v => String(v.name||'').trim().length < 2 ? 'Escribe el nombre de la categoría.' : null
+  });
+  if (!r) return;
+  try{ await api('/categories','POST',{ name:r.values.name.trim() }); toast('Categoría añadida.'); await loadCategories(); renderTrainings(); }
+  catch(e){ toast(e.message,'err'); }
+}
+
+// ----- Lista de cursos en tarjetas -----
+async function newTraining(){
+  const cats = await loadCategories();
+  const r = await dialog({
+    title:'Nuevo adiestramiento', icon:'layers', okText:'Crear',
+    text:'Después armas su contenido y lo publicas desde su ficha.',
+    fields:[
+      { name:'title', label:'Título', placeholder:'Inducción de seguridad' },
+      { name:'description', type:'textarea', label:'Descripción (opcional)', rows:3 },
+      ...(cats.length ? [{ name:'categoryId', type:'select', label:'Categoría', value:'',
+          options:[{ value:'', label:'Sin categoría' }, ...cats.map(c=>({ value:c.id, label:c.name }))] }] : [])
+    ],
+    validate: v => String(v.title||'').trim().length < 3 ? 'El título debe tener al menos 3 caracteres.' : null
+  });
+  if (!r) return;
+  try{
+    const t = await api('/trainings','POST',{ title:r.values.title.trim(),
+      description:String(r.values.description||'').trim() || null, categoryId:r.values.categoryId || null });
+    toast('Adiestramiento creado.');
+    await refreshTrainings();
+    openFicha(t.id, 'contenido');
   }catch(e){ toast(e.message,'err'); }
 }
+async function loadTrainings(){
+  try{
+    const [trs] = await Promise.all([api('/trainings'), loadCategories()]);
+    trCache = Array.isArray(trs) ? trs : [];
+  }catch(e){
+    el('trFilters').innerHTML = '';
+    el('trGrid').innerHTML = stateBox('alert','err','No se pudo cargar', e.message);
+    return;
+  }
+  renderTrainings();
+  loadTrainingStats();
+}
+async function refreshTrainings(){
+  try{ const trs = await api('/trainings'); trCache = Array.isArray(trs) ? trs : trCache; }catch(e){}
+  renderTrainings();
+  if (fichaId) renderFichaHead();
+}
+// Números de las tarjetas: se piden después de pintar la lista para no demorarla.
+async function loadTrainingStats(){
+  const ids = trCache.filter(t => trStatus(t) !== 'draft').map(t => t.id);
+  const res = await Promise.allSettled([loadCompSummary(), ...ids.map(id => api('/trainings/'+id+'/attempts'))]);
+  ids.forEach((id, i) => {
+    const t = trCache.find(x => x.id === id), r = res[i+1];
+    if (t) trStats[id] = courseStats(t, r.status === 'fulfilled' ? r.value : []);
+  });
+  renderTrainings();
+}
+function setTrFilter(f){ trFilter = f; renderTrainings(); }
+function renderTrainings(){
+  if (!el('trFilters')) return;
+  const cuenta = { published:0, draft:0, archived:0 };
+  trCache.forEach(t => cuenta[trStatus(t)]++);
+  if (!trFilter) trFilter = TR_FILTERS.map(f => f.key).find(k => cuenta[k]) || 'published';
+  el('trFilters').innerHTML = TR_FILTERS.map(f =>
+    `<button type="button" class="chip ${f.key===trFilter?'on':''}" aria-pressed="${f.key===trFilter}" onclick="setTrFilter('${f.key}')">${f.label}<span class="n">${cuenta[f.key]}</span></button>`
+  ).join('');
+  const lista = trCache.filter(t => trStatus(t) === trFilter).sort((a, b) => a.title.localeCompare(b.title, 'es'));
+  if (!lista.length){
+    const txt = {
+      published:['Nada publicado todavía', 'Abre un borrador, arma su contenido y publícalo para que aparezca en el catálogo.'],
+      draft:['Sin borradores', 'Crea un adiestramiento con «+ Nuevo adiestramiento».'],
+      archived:['Nada archivado', 'Archivar saca un curso del catálogo sin borrar nada; se puede restaurar cuando quieras.']
+    }[trFilter];
+    el('trGrid').innerHTML = stateBox('layers', 'gray', txt[0], txt[1]);
+    return;
+  }
+  el('trGrid').innerHTML = `<div class="cgrid">${lista.map(trCard).join('')}</div>`;
+}
+function trLook(t){
+  const cat = (t.categoryId && catNames[t.categoryId]) || null;
+  const cover = coverCache[t.id] || null;
+  return { category: cat || 'Adiestramiento', cover, grad: GRADS[hashStr(cat || t.title) % GRADS.length],
+           icon: courseIcon(t.title + ' ' + (cat || '')) };
+}
+function trCard(t){
+  const look = trLook(t), st = trStatus(t), s = trStats[t.id], rib = TR_PILL[st];
+  const n = v => `<b class="num">${s ? v : '—'}</b>`;
+  const pie = st === 'draft' ? 'Sin publicar todavía'
+            : !s ? '' : s.lastPass ? `Última aprobación <b>${cuandoTxt(s.lastPass)}</b>` : 'Sin aprobaciones aún';
+  const kpis = st === 'draft' ? '' :
+    `<div class="kpis"><div class="o">${n(s && s.ok)}vigentes</div><div>${n(s && s.soon)}por vencer</div><div class="e">${n(s && s.exp)}vencidos</div></div>`;
+  return `<article class="ccard tcard" role="button" tabindex="0" aria-label="Abrir la ficha de ${esc(t.title)}"
+      onclick="openFicha('${t.id}')" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();openFicha('${t.id}')}">
+    ${coverHtml(look, 64, `<span class="ribbon ${rib[0]}">${rib[1]}</span>`)}
+    <div class="cbody">
+      <div class="cat">${esc(look.category)} · ${esc(vigShort(t))}</div>
+      <h3>${esc(t.title)}</h3>
+      ${kpis}
+      <div class="cfoot"><span class="due">${pie}</span>
+        <button type="button" class="more" aria-label="Más acciones" aria-haspopup="menu" onclick="event.stopPropagation();trMenu(this,'${t.id}')">⋯</button></div>
+    </div>
+  </article>`;
+}
 
-async function renameTraining(id, title){
-  const t = (trCache||[]).find(x=>x.id===id);
+// ----- Menú «⋯» (Renombrar · Archivar / Restaurar) -----
+// No hay «Duplicar»: el servidor no tiene cómo copiar un curso.
+let menuOpen = null;
+function closeMenu(){
+  if (!menuOpen) return;
+  const { node, anchor, onDoc, onKey } = menuOpen;
+  node.remove();
+  document.removeEventListener('mousedown', onDoc, true);
+  document.removeEventListener('keydown', onKey, true);
+  anchor.setAttribute('aria-expanded', 'false');
+  menuOpen = null;
+}
+function openMenu(anchor, items){
+  const reabrir = !menuOpen || menuOpen.anchor !== anchor;
+  closeMenu();
+  if (!reabrir) return;
+  const node = document.createElement('div');
+  node.className = 'popmenu'; node.setAttribute('role', 'menu');
+  node.innerHTML = items.map((it, i) =>
+    `<button type="button" role="menuitem" class="${it.danger ? 'danger' : ''}" data-i="${i}">${ic(it.icon, 16)}<span>${esc(it.label)}</span></button>`).join('');
+  document.body.appendChild(node);
+  const r = anchor.getBoundingClientRect();
+  const left = Math.max(8, Math.min(r.right - node.offsetWidth, window.innerWidth - node.offsetWidth - 8));
+  node.style.left = (left + window.scrollX) + 'px';
+  node.style.top = (r.bottom + window.scrollY + 6) + 'px';
+  const botones = [...node.querySelectorAll('button')];
+  const onDoc = e => { if (!node.contains(e.target) && e.target !== anchor) closeMenu(); };
+  const onKey = e => {
+    if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); closeMenu(); anchor.focus(); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+      e.preventDefault();
+      const i = botones.indexOf(document.activeElement);
+      botones[(i + (e.key === 'ArrowDown' ? 1 : botones.length - 1)) % botones.length].focus();
+    }
+    if (e.key === 'Tab') closeMenu();
+  };
+  node.addEventListener('click', e => {
+    const b = e.target.closest('[data-i]'); if (!b) return;
+    closeMenu(); items[+b.dataset.i].run();
+  });
+  document.addEventListener('mousedown', onDoc, true);
+  document.addEventListener('keydown', onKey, true);
+  anchor.setAttribute('aria-expanded', 'true');
+  menuOpen = { node, anchor, onDoc, onKey };
+  if (botones[0]) botones[0].focus();
+}
+function trMenu(btn, id){
+  const t = trCache.find(x => x.id === id); if (!t) return;
+  openMenu(btn, [
+    { icon:'pencil', label:'Renombrar', run:() => renameTraining(id) },
+    trStatus(t) === 'archived'
+      ? { icon:'refresh', label:'Restaurar', run:() => unarchiveTraining(id) }
+      : { icon:'archive', label:'Archivar', danger:true, run:() => archiveTraining(id) }
+  ]);
+}
+async function renameTraining(id){
+  const t = trCache.find(x => x.id === id); if (!t) return;
   const r = await dialog({
     title:'Renombrar adiestramiento', icon:'pencil', okText:'Guardar',
     text:'Los certificados ya emitidos conservan el título con el que se emitieron.',
     fields:[
-      { name:'title', label:'Nombre', value: t ? t.title : title },
-      { name:'description', type:'textarea', label:'Descripción (opcional)', value: (t && t.description) || '', rows:3 }
+      { name:'title', label:'Nombre', value:t.title },
+      { name:'description', type:'textarea', label:'Descripción (opcional)', value:t.description || '', rows:3 }
     ],
-    validate: v => String(v.title||'').trim().length<3 ? 'El título debe tener al menos 3 caracteres.' : null
+    validate: v => String(v.title||'').trim().length < 3 ? 'El título debe tener al menos 3 caracteres.' : null
   });
-  if(!r) return;
+  if (!r) return;
   try{
-    await api('/trainings/'+id,'PUT',{ title:r.values.title.trim(), description:String(r.values.description||'').trim()||null });
+    await api('/trainings/'+id,'PUT',{ title:r.values.title.trim(), description:String(r.values.description||'').trim() || null });
     toast('Adiestramiento actualizado.');
-    loadTrainings();
+    await refreshTrainings();
   }catch(e){ toast(e.message,'err'); }
 }
 // Archivar = sacarlo del catálogo sin borrar nada. Doble verificación en modal:
 // confirmación explícita y, además, escribir el título exacto (el servidor también lo valida).
-async function archiveTraining(id, title){
-  const ok = await confirmModal('¿Archivar «'+title+'»?',
+async function archiveTraining(id){
+  const t = trCache.find(x => x.id === id); if (!t) return;
+  const ok = await confirmModal('¿Archivar «'+t.title+'»?',
     'Deja de aparecerle a los empleados y no se podrán empezar intentos nuevos.\n'
     + 'No se borra nada: contenido, intentos y certificados quedan intactos, y lo puedes restaurar cuando quieras.',
     { danger:true, icon:'archive', okText:'Continuar' });
-  if(!ok) return;
-  const escrito = await askModal('Confirma el archivo', 'Para confirmar, escribe el nombre exacto del adiestramiento:\n' + title,
+  if (!ok) return;
+  const escrito = await askModal('Confirma el archivo', 'Para confirmar, escribe el nombre exacto del adiestramiento:\n' + t.title,
     { label:'Nombre del adiestramiento', icon:'archive', tone:'danger', okText:'Archivar',
-      validate: v => v.trim().toLowerCase() !== title.trim().toLowerCase() ? 'El nombre no coincide.' : null });
-  if(escrito===null) return;
-  try{ await api('/trainings/'+id+'/archive','POST',{ confirmTitle:escrito.trim() }); toast('Adiestramiento archivado.'); loadTrainings(); }
-  catch(e){ toast(e.message,'err'); }
-}
-async function unarchiveTraining(id, title){
-  if(!await confirmModal('¿Restaurar «'+title+'»?',
-    'Vuelve a quedar disponible: publicado si tenía una versión publicada, o en borrador si no.',
-    { icon:'refresh', okText:'Restaurar' })) return;
-  try{ await api('/trainings/'+id+'/unarchive','POST'); toast('Adiestramiento restaurado.'); loadTrainings(); }
-  catch(e){ toast(e.message,'err'); }
-}
-// Vigencia: tres modos excluyentes. Con fecha fija se puede, además, hacer que ruede
-// cada N meses (2026-12-31 con 12 meses = cada 31 de diciembre).
-async function setRecurrence(id, title, curMonths, curLead, curExpiresOn){
-  const fija = curExpiresOn ? String(curExpiresOn).slice(0,10) : '';
-  const modo = fija ? 'fixed' : (curMonths ? 'months' : 'none');
-  const r = await dialog({
-    title:'Vigencia', text:title, icon:'calendar', okText:'Guardar',
-    fields:[
-      { name:'mode', type:'radio', value: modo, label:'Cuándo caduca la aprobación de cada persona', options:[
-        { value:'none',   label:'No caduca', hint:'Se toma una sola vez.' },
-        { value:'months', label:'Cada N meses desde que cada persona aprueba', hint:'Por ejemplo, cada 12 meses.' },
-        { value:'fixed',  label:'Fecha fija para todos', hint:'Opcionalmente rueda cada N meses (31 de diciembre de cada año).' }
-      ]},
-      { name:'months', type:'number', label:'Meses', value: curMonths || 12, min:1, width:'140px', showIf: v => v.mode==='months' },
-      { name:'date', type:'date', label:'Fecha de vencimiento', value: fija, width:'200px', showIf: v => v.mode==='fixed' },
-      { name:'roll', type:'number', label:'Rueda cada (meses, vacío = no rueda)', value: fija ? (curMonths || '') : '', min:1, width:'140px', showIf: v => v.mode==='fixed' },
-      { name:'lead', type:'number', label:'Días de reapertura antes de vencer', value: curLead==null ? 30 : curLead, min:0, width:'140px',
-        hint:'Durante esos días el curso vuelve a aparecer para renovarlo.', showIf: v => v.mode!=='none' }
-    ],
-    validate: v => {
-      if(v.mode==='months' && !(Number(v.months)>=1)) return 'Pon un número de meses (1 o más).';
-      if(v.mode==='fixed' && !/^\d{4}-\d{2}-\d{2}$/.test(String(v.date||''))) return 'Escoge la fecha de vencimiento.';
-      if(v.mode==='fixed' && v.roll!=='' && !(Number(v.roll)>=1)) return 'Los meses para rodar deben ser 1 o más, o déjalo vacío.';
-      if(v.mode!=='none' && !(Number(v.lead)>=0)) return 'Los días de reapertura deben ser 0 o más.';
-      return null;
-    }
-  });
-  if(!r) return;
-  const v = r.values;
-  const months = v.mode==='months' ? parseInt(v.months,10) : (v.mode==='fixed' && v.roll!=='' ? parseInt(v.roll,10) : null);
-  const expiresOn = v.mode==='fixed' ? v.date : null;
-  const lead = v.mode==='none' ? (curLead||30) : parseInt(v.lead,10);
-  try{ await api('/trainings/'+id+'/recurrence','POST',{recurrenceMonths:months, renewLeadDays:lead, expiresOn}); toast('Vigencia guardada.'); loadTrainings(); }
-  catch(e){ toast(e.message,'err'); }
-}
-
-// Avisos por correo de este curso: encendido/apagado, al abrir, con cuánta anticipación
-// y cada cuántos días se repite mientras siga vencido.
-async function setNotifications(id, title){
+      validate: v => v.trim().toLowerCase() !== t.title.trim().toLowerCase() ? 'El nombre no coincide.' : null });
+  if (escrito === null) return;
   try{
-    const c = await api('/trainings/'+id+'/notification-config');
-    const actuales = (c.daysBefore||[]).map(Number);
-    const opciones = [...new Set([60,30,15,7,5,1, ...actuales])].sort((a,b)=>b-a);
-    const r = await dialog({
-      title:'Avisos al empleado', text:title + '\nPor correo, sin repetir el mismo aviso.', icon:'bell', okText:'Guardar',
-      fields:[
-        { name:'enabled', type:'switch', value: c.enabled !== false, label:'Avisos de este curso', hint:'Apágalo para no enviar ningún correo de este curso.' },
-        { name:'onOpen', type:'switch', value: c.onOpen !== false, label:'Al publicarse una versión', hint:'«Tienes un adiestramiento disponible».', showIf: v => v.enabled },
-        { name:'daysBefore', type:'days', value: actuales, options: opciones, label:'Antes de vencer', hint:'Un aviso por cada anticipación marcada.', showIf: v => v.enabled },
-        { name:'overdue', type:'number', value: c.overdueEveryDays==null ? 14 : c.overdueEveryDays, min:0, max:365, width:'120px',
-          label:'Después de vencer, repetir cada (días)', hint:'Mientras siga vencido. 0 = no avisar.', showIf: v => v.enabled }
-      ],
-      validate: v => (v.enabled && !(Number(v.overdue)>=0 && Number(v.overdue)<=365)) ? 'Los días para repetir van de 0 a 365.' : null
-    });
-    if(!r) return;
-    const v = r.values;
-    // Apagado conserva los días elegidos: `enabled` es lo que corta todos los avisos.
-    const cfg = { enabled:!!v.enabled, onOpen:!!v.onOpen, daysBefore:v.daysBefore,
-                  overdueEveryDays: Math.max(0, parseInt(v.overdue,10)||0) };
-    await api('/trainings/'+id+'/notification-config','PUT',cfg);
-    toast('Avisos guardados.');
-    loadTrainings();
+    await api('/trainings/'+id+'/archive','POST',{ confirmTitle:escrito.trim() });
+    toast('Adiestramiento archivado.');
+    if (!fichaId) trFilter = 'archived';
+    await refreshTrainings();
   }catch(e){ toast(e.message,'err'); }
 }
+async function unarchiveTraining(id){
+  const t = trCache.find(x => x.id === id); if (!t) return;
+  if (!await confirmModal('¿Restaurar «'+t.title+'»?',
+    'Vuelve a quedar disponible: publicado si tenía una versión publicada, o en borrador si no.',
+    { icon:'refresh', okText:'Restaurar' })) return;
+  try{ await api('/trainings/'+id+'/unarchive','POST'); toast('Adiestramiento restaurado.'); await refreshTrainings(); }
+  catch(e){ toast(e.message,'err'); }
+}
 
-// ----- Configuración del certificado por curso -----
+// ===== Ficha del curso =====
+let fichaId = null;
+let fichaTab = 'resumen';
+let F = {};                // datos de la ficha: draft, pub, player, notif, attempts, cert, comp, groups, plans
+let P = null, presDirty = false, presPage = null;   // pestaña Presentación (copia editable)
+let V = null, vigDirty = false;                     // pestaña Vigencia y avisos
+let certDirty = false;
+let optBusy = false;
+let resFilter = 'all';
+let overflowIds = new Set();   // ítems cuya lámina no cabe en 1280×720
+let measureRun = 0;
+
+function fichaT(){ return trCache.find(t => t.id === fichaId) || null; }
+function fichaDirty(){ return presDirty || vigDirty || certDirty; }
+
+async function openFicha(id, tab){
+  if (!trCache.some(t => t.id === id)) await refreshTrainings();
+  fichaId = id; editingTrainingId = id;
+  F = {}; P = null; V = null; presPage = null; presDirty = vigDirty = certDirty = false; overflowIds = new Set(); resFilter = 'all';
+  draftVersionId = null; draftItems = []; contentGroups = []; activeTab = 0;
+  el('contentTabs').innerHTML = ''; el('contentItems').innerHTML = loadingHtml(); el('contentMsg').textContent = '';
+  el('mgList').classList.add('hidden');
+  el('mgFicha').classList.remove('hidden');
+  window.scrollTo({ top:0 });
+  renderFichaHead();
+  setFichaTab(tab || 'resumen');
+  ['pResumen','pPres','pOpc','pVig','pRes'].forEach(p => el(p).innerHTML = loadingHtml());
+  el('certDelivery').innerHTML = '';
+  loadFicha();
+}
+async function closeFicha(){
+  if (fichaDirty() && !await confirmModal('¿Salir sin guardar?', 'Hay cambios sin guardar en esta ficha. Si sales, se pierden.',
+      { danger:true, icon:'alert', okText:'Salir sin guardar', cancelText:'Seguir editando' })) return;
+  fichaId = null; editingTrainingId = null; F = {}; presDirty = vigDirty = certDirty = false;
+  el('mgFicha').classList.add('hidden');
+  el('mgList').classList.remove('hidden');
+  loadTrainings();
+}
+function setFichaTab(k){
+  fichaTab = k;
+  document.querySelectorAll('#fTabs .ftab').forEach(b => {
+    const on = b.dataset.t === k;
+    b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('#mgFicha .pane').forEach(p => p.hidden = p.dataset.p !== k);
+  if (k === 'presentacion') fitStages();
+}
+
+// Todo en paralelo; cada pestaña se pinta en cuanto llega lo suyo.
+function loadFicha(){
+  const id = fichaId;
+  const vivo = () => id === fichaId;
+  reloadContent();
+  api('/trainings/'+id+'/sets').then(r => { if (vivo()){ F.pub = r; renderFichaHead(); renderResumen(); } }).catch(() => {});
+  api('/trainings/'+id+'/player-config').then(r => {
+    if (!vivo()) return;
+    F.player = r; renderPresentacion(); renderOpciones(); renderTabItems(); measureOverflow(); renderFichaHead();
+  }).catch(e => { if (vivo()){ el('pPres').innerHTML = el('pOpc').innerHTML = stateBox('alert','err','No se pudo cargar', e.message); } });
+  api('/trainings/'+id+'/notification-config').then(r => { if (vivo()){ F.notif = r; renderVigencia(); renderResumen(); } })
+    .catch(e => { if (vivo()) el('pVig').innerHTML = stateBox('alert','err','No se pudo cargar', e.message); });
+  Promise.all([api('/trainings/'+id+'/attempts'), loadCompSummary()]).then(([a]) => {
+    if (!vivo()) return;
+    F.attempts = Array.isArray(a) ? a : [];
+    const t = fichaT(); if (t) trStats[id] = courseStats(t, F.attempts);
+    renderResumen(); renderResultados();
+  }).catch(e => { if (vivo()) el('pRes').innerHTML = stateBox('alert','err','No se pudo cargar', e.message); });
+  loadCertPane();
+  api('/company/compliance').then(c => { if (vivo()){ F.comp = c; renderCertDelivery(); } })
+    .catch(() => { if (vivo()){ F.comp = null; renderCertDelivery(); } });
+  loadFichaGroups();
+}
+async function loadFichaGroups(){
+  const id = fichaId;
+  try{
+    const gs = await api('/user-groups');
+    const planes = await Promise.all((gs || []).map(g => api('/groups/'+g.id+'/plan').catch(() => null)));
+    if (id !== fichaId) return;
+    F.groups = gs || []; F.plans = {};
+    F.groups.forEach((g, i) => { if (planes[i]) F.plans[g.id] = planes[i]; });
+  }catch(e){ if (id === fichaId){ F.groups = []; F.plans = {}; } }
+  if (V && !vigDirty) V.groups = new Set(planGroupsOf(fichaId));
+  renderVigencia(); renderResumen();
+}
+function planGroupsOf(tid){
+  return Object.keys(F.plans || {}).filter(gid => (F.plans[gid].courses || []).some(c => c.trainingId === tid));
+}
+
+// ----- Encabezado de la ficha -----
+function activeDraft(){ return (draftItems || []).filter(i => i.active !== false); }
+function isQ(it){ return ['MultipleChoice','MultiSelect','Matching','OpenResponse'].includes(it.type); }
+function buildPagesAuthor(items){   // misma agrupación que buildPages del reproductor
+  const pages = [];
+  for (const it of items){
+    const p = pj(it.payloadJson);
+    if (p.samePage && it.type !== 'ModuleHeader' && pages.length) pages[pages.length-1].items.push(it);
+    else pages.push({ items:[it] });
+  }
+  return pages;
+}
+function presOn(){ return !!((P && P.enabled) || (F.player && F.player.presentation && F.player.presentation.enabled)); }
+function countsTxt(){
+  const act = activeDraft();
+  if (!act.length) return 'Sin contenido todavía.';
+  const n = buildPagesAuthor(act).length, q = act.filter(isQ).length;
+  return `${n} ${presOn() ? (n===1?'lámina':'láminas') : (n===1?'pantalla':'pantallas')} · ${q} ${q===1?'pregunta':'preguntas'}.`;
+}
+// Cambios del borrador frente a la última versión publicada (null = no se sabe o nunca se publicó).
+function pendingChanges(){
+  if (!F.draft || !F.pub || !F.pub.published) return null;
+  const key = x => JSON.stringify([x.stableKey, x.type, x.payloadJson, x.points, x.active !== false]);
+  const a = F.draft.items.map(key), b = (F.pub.items || []).map(key);
+  const sa = new Set(a), sb = new Set(b);
+  let n = a.filter(k => !sb.has(k)).length + b.filter(k => !sa.has(k)).length;
+  if (!n && a.join('\n') !== b.join('\n')) n = 1;   // mismo contenido en otro orden
+  return n;
+}
+function coverItem(){ return activeDraft().find(i => i.type === 'Info' && pj(i.payloadJson).layout === 'cover') || null; }
+function coverUrlOf(it){
+  const ph = it ? pj(it.payloadJson).photo : null;
+  return (typeof ph === 'string' && /^(data:image\/|https:\/\/)/i.test(ph)) ? ph : null;
+}
+function renderFichaHead(){
+  const t = fichaT(); if (!t){ el('fHead').innerHTML = ''; return; }
+  const look = trLook(t), st = trStatus(t), pill = TR_PILL[st];
+  const cambios = pendingChanges();
+  const nuncaPublicado = F.pub ? !F.pub.published : st === 'draft';
+  const hayItems = F.draft && F.draft.items.length > 0;
+  const puedePublicar = st !== 'archived' && hayItems && cambios !== 0;
+  const pubTxt = nuncaPublicado ? 'Publicar' : 'Publicar cambios';
+  const pubTitle = !F.draft ? '' : !hayItems ? 'Agrega contenido antes de publicar' : cambios === 0 ? 'No hay cambios sin publicar' : '';
+  el('fHead').innerHTML = `
+    ${coverHtml(look, 52)}
+    <div>
+      <div class="inline"><span class="st ${pill[0]}">${pill[1]}${cambios ? ' · cambios sin publicar' : ''}</span>
+        <span class="st gray">${esc(look.category)}</span><span class="st info">${esc(vigLong(t))}</span>
+        ${t.audience === 'groups' ? '<span class="st gray">Solo grupos</span>' : ''}</div>
+      <h2>${esc(t.title)}</h2>
+      <p>${esc(t.description || 'Sin descripción.')} ${F.draft ? esc(countsTxt()) : ''}</p>
+      <div class="acts">
+        <button type="button" class="btn sm" onclick="verComoEmpleado()" title="Vista previa del borrador: no crea intento">${ic('play',14)} Ver como el empleado</button>
+        ${st !== 'archived' ? `<button type="button" class="btn sm ghost" onclick="publishDraft()" ${puedePublicar ? '' : 'disabled'} title="${esc(pubTitle)}">${pubTxt}</button>` : ''}
+        <button type="button" class="btn sm ghost ml" aria-label="Más acciones" aria-haspopup="menu" onclick="trMenu(this,'${t.id}')">⋯</button>
+      </div>
+    </div>`;
+}
+async function publishDraft(){
+  const t = fichaT(); if (!t) return;
+  const nuevo = !(F.pub && F.pub.published);
+  if (!await confirmModal(nuevo ? '¿Publicar «'+t.title+'»?' : '¿Publicar los cambios?',
+      nuevo ? 'Aparecerá en el catálogo de los empleados a quienes les toca.'
+            : 'Los intentos nuevos usarán esta versión. Los certificados ya emitidos no cambian.',
+      { icon:'checkCircle', tone:'ok', okText:'Publicar' })) return;
+  try{
+    await api('/trainings/'+t.id+'/publish','POST');
+    toast('Publicado. Ya aparece en el catálogo.');
+    F.pub = await api('/trainings/'+t.id+'/sets').catch(() => F.pub);
+    await refreshTrainings();
+    await reloadContent();
+  }catch(e){ toast(e.message,'err'); }
+}
+// Abre el borrador en el reproductor tal como lo verá el empleado (modo presentación
+// incluido), sin crear intento. Guarda antes los cambios pendientes de Presentación.
+async function verComoEmpleado(){
+  const t = fichaT(); if (!t) return;
+  const w = window.open('about:blank', '_blank');
+  try{
+    if (presDirty) await savePresentation(true);
+    if (!draftVersionId) await reloadContent();
+    if (!draftVersionId) throw new Error('No se pudo abrir el borrador.');
+    // Absoluta: la pestaña nueva nace en about:blank y no tiene base propia.
+    const url = new URL('player.html?preview='+encodeURIComponent(draftVersionId)+'&t='+encodeURIComponent(t.title)+'&_='+Date.now(), location.href).href;
+    if (w) w.location.href = url; else window.open(url, '_blank');
+  }catch(e){ if (w) w.close(); toast(e.message,'err'); }
+}
+
+// ----- Resumen -----
+function actTxt(a){
+  const cuando = cuandoTxt(a.completedAt || a.startedAt);
+  if (a.status === 'completed') return (a.passed ? `Aprobó con ${a.score} pts` : `No aprobó · ${a.score} pts`) + ' · ' + cuando;
+  if (a.status === 'in-progress') return 'Intento en progreso · empezó ' + cuando;
+  if (a.status === 'pending-grading') return 'Esperando calificación · ' + cuando;
+  if (a.status === 'cancellation-requested') return 'Pidió cancelar el intento · ' + cuando;
+  if (a.status === 'cancelled') return 'Intento cancelado · ' + cuando;
+  return (a.status || '') + ' · ' + cuando;
+}
+function renderResumen(){
+  const box = el('pResumen'), t = fichaT(); if (!box || !t) return;
+  const s = F.attempts ? courseStats(t, F.attempts) : null;
+  const n = v => s ? v : '—';
+  const recientes = (F.attempts || []).slice(0, 5);
+  const cambios = pendingChanges();
+  const publicada = F.pub ? !!F.pub.published : trStatus(t) === 'published';
+  const cert = F.cert, notif = F.notif;
+  const grupos = F.plans ? planGroupsOf(t.id).map(g => (F.groups.find(x => x.id === g) || {}).name).filter(Boolean) : null;
+  const borrador = !F.draft ? 'Cargando…' : !F.draft.items.length ? 'Sin contenido todavía'
+    : cambios === null ? countsTxt() : cambios ? (cambios === 1 ? '1 cambio sin publicar' : cambios + ' cambios sin publicar') : 'Sin cambios pendientes';
+  const audiencia = t.audience === 'groups'
+    ? (grupos ? (grupos.length ? 'Solo grupos: ' + grupos.join(', ') : 'Solo grupos, pero ninguno lo tiene en su plan') : 'Solo grupos')
+    : 'Toda la compañía' + (t.onboardingDays != null ? ` · ${t.onboardingDays} días desde el ingreso` : '');
+  box.innerHTML = `
+    <div class="kpi3">
+      <div class="kpi ok"><div class="n">${n(s && s.ok)}</div><div class="l">Aprobados y vigentes</div></div>
+      <div class="kpi warn"><div class="n">${n(s && s.soon)}</div><div class="l">Vencen en ${compDueSoon} días</div></div>
+      <div class="kpi err"><div class="n">${n(s && s.exp)}</div><div class="l">Vencidos</div></div>
+    </div>
+    ${s && s.source === 'attempts' ? '<p class="hint" style="margin-top:-6px">Calculado con los intentos de este curso. Quienes no lo han empezado aparecen en Cumplimiento.</p>' : ''}
+    <div class="two">
+      <div>
+        <h3>Actividad reciente</h3>
+        <div class="list">${!F.attempts ? loadingHtml() : recientes.length ? recientes.map(a => {
+          const k = resKind(a), pill = RES_PILL[k];
+          return `<div class="li"><div class="av">${esc(initials(a.learnerName || '?'))}</div><div class="t">${esc(a.learnerName || '(anónimo)')}<small>${esc(actTxt(a))}</small></div><span class="st ${pill[0]}">${pill[1]}</span></div>`;
+        }).join('') : '<div class="empty">Nadie lo ha tomado todavía.</div>'}</div>
+        ${F.attempts && F.attempts.length > 5 ? `<p style="margin:10px 0 0"><button type="button" class="linkbtn" onclick="setFichaTab('resultados')">Ver los ${F.attempts.length} intentos</button></p>` : ''}
+      </div>
+      <div>
+        <h3>Estado de la versión</h3>
+        <div class="list">
+          <div class="li"><div class="t">Versión publicada<small>${publicada ? (trStatus(t) === 'archived' ? 'Archivado: fuera del catálogo' : 'Disponible en el catálogo') : 'Aún no se ha publicado'}</small></div>
+            ${publicada ? '<span class="st ok">Publicada</span>' : '<span class="st gray">Sin publicar</span>'}</div>
+          <div class="li"><div class="t">Borrador<small>${esc(borrador)}</small></div>
+            ${cambios ? '<span class="st warn">Por publicar</span>' : cambios === 0 ? '<span class="st ok">Al día</span>' : ''}</div>
+          <div class="li"><div class="t">Certificado<small>${!cert ? 'Cargando…' : cert.enabled !== false
+              ? esc('Emisor: ' + (cert.issuerName || 'la compañía') + (cert.signatoryName ? ' · firma ' + cert.signatoryName : '')) : 'No se emite al aprobar'}</small></div>
+            ${cert ? (cert.enabled !== false ? '<span class="st ok">Activo</span>' : '<span class="st gray">Apagado</span>') : ''}</div>
+          <div class="li"><div class="t">Audiencia<small>${esc(audiencia)}</small></div></div>
+          <div class="li"><div class="t">Avisos al empleado<small>${!notif ? 'Cargando…' : notif.enabled === false ? 'Apagados' :
+              esc([notif.onOpen !== false ? 'al publicarse' : null, (notif.daysBefore || []).length ? (notif.daysBefore.join(', ') + ' días antes de vencer') : null,
+                   notif.overdueEveryDays ? `cada ${notif.overdueEveryDays} días si está vencido` : null].filter(Boolean).join(' · ') || 'Encendidos, sin avisos marcados')}</small></div>
+            ${notif ? (notif.enabled === false ? '<span class="st gray">Apagados</span>' : '<span class="st ok">Activos</span>') : ''}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ----- Contenido (pantalla de módulos e ítems, embebida) -----
+let activeTab = 0;
+let contentGroups = [];
+
+async function reloadContent(){
+  const id = editingTrainingId; if (!id) return;
+  try{
+    const d = await api('/trainings/'+id+'/draft');
+    if (id !== fichaId) return;
+    draftVersionId = d.versionId;
+    draftItems = d.items || [];
+    F.draft = { versionId:d.versionId, items:draftItems, passPercent:d.passPercent };
+    const cv = coverUrlOf(coverItem());
+    if (cv) coverCache[id] = cv; else delete coverCache[id];
+    el('contentStatus').textContent = `Aprueba con ${d.passPercent} %.`;
+    el('contentMsg').textContent = '';
+    buildTabs();
+    renderFichaHead(); renderResumen(); renderPresentacion();
+    measureOverflow();
+  }catch(e){ el('contentMsg').textContent = e.message; el('contentMsg').className = 'msg err'; }
+}
+function tabShort(title){
+  if (!title) return 'Módulo';
+  const i = title.indexOf('—');
+  return (i >= 0 ? title.slice(0, i) : title).trim() || 'Módulo';
+}
+function buildTabs(){
+  contentGroups = []; let cur = null;
+  for (const it of draftItems){
+    if (it.type === 'ModuleHeader'){
+      const p = pj(it.payloadJson);
+      cur = { label: tabShort(p.title), full: p.title || 'Módulo', items:[it] };
+      contentGroups.push(cur);
+    } else {
+      if (!cur){ cur = { label:'General', full:'General', items:[] }; contentGroups.push(cur); }
+      cur.items.push(it);
+    }
+  }
+  if (activeTab >= contentGroups.length) activeTab = 0;
+  renderTabs();
+}
+function renderTabs(){
+  el('contentTabs').innerHTML = contentGroups.map((g, i) =>
+    `<button type="button" class="tab ${i===activeTab?'active':''}" title="${esc(g.full)}" aria-pressed="${i===activeTab}" onclick="setTab(${i})">${esc(g.label)}</button>`
+  ).join('');
+  renderTabItems();
+}
+function setTab(i){ activeTab = i; renderTabs(); }
+const LAYOUT_TXT = { cover:'Portada · foto a sangre', dark:'Fondo oscuro', split:'Panel diagonal', 'photo-left':'Foto a la izquierda' };
+const VARIANT_TXT = { right:'contenido sobre oscuro', lines:'líneas de acento' };
+function itemInfo(it, p){
+  switch (it.type){
+    case 'ModuleHeader': return { icon:'folder', title:'Módulo: ' + (p.title || ''), sub: p.subtitle || 'Encabezado de módulo' };
+    case 'Info': {
+      const lay = p.layout ? (LAYOUT_TXT[p.layout] || p.layout) + (p.layout === 'split' && VARIANT_TXT[p.variant] ? ` (${VARIANT_TXT[p.variant]})` : '')
+                           : 'sin definir (fondo oscuro)';
+      const nb = (p.blocks || []).length;
+      return { icon: p.layout === 'cover' || p.layout === 'photo-left' ? 'image' : 'doc', title: p.title || '(pantalla de contenido)',
+               sub: `Composición: ${lay} · ${nb} ${nb===1?'bloque':'bloques'}` };
+    }
+    case 'MultipleChoice': return { icon:'help', title: p.question || '', sub:`Pregunta · una correcta · ${it.points} pts` };
+    case 'MultiSelect':    return { icon:'help', title: p.question || '', sub:`Pregunta · varias correctas · ${it.points} pts` };
+    case 'Matching':       return { icon:'help', title: p.question || '', sub:`Pareo · ${it.points} pts` };
+    case 'OpenResponse':   return { icon:'pencil', title: p.question || '', sub: p.graded ? `Abierta · la evalúa el moderador · ${it.points} pts` : 'Abierta · sin puntos' };
+  }
+  return { icon:'doc', title: it.type, sub:'' };
+}
+function slideNumbers(){
+  const map = {};
+  buildPagesAuthor(activeDraft()).forEach((pg, i) => pg.items.forEach(it => map[it.id] = i + 1));
+  return map;
+}
+function renderTabItems(){
+  if (!el('contentItems') || !fichaId) return;
+  const g = contentGroups[activeTab];
+  const items = g ? g.items : [];
+  const nums = slideNumbers(), palabra = presOn() ? 'Lámina' : 'Pantalla';
+  el('contentItems').innerHTML = items.length ? items.map(it => {
+    const p = pj(it.payloadJson), inactive = it.active === false, info = itemInfo(it, p);
+    const gidx = draftItems.findIndex(x => x.id === it.id);
+    const pills = [];
+    if (nums[it.id]) pills.push(`<span class="st gray">${palabra} ${nums[it.id]}</span>`);
+    if (overflowIds.has(it.id)) pills.push('<span class="st warn" title="El contenido no cabe en la lámina 16:9: acórtalo o divídelo en dos">Excede la lámina</span>');
+    if (inactive) pills.push('<span class="st err">Inactivo</span>');
+    if (p.samePage && it.type !== 'ModuleHeader') pills.push('<span class="st info">Misma pantalla</span>');
+    return `<div class="crow${inactive ? ' off' : ''}${p.samePage && it.type !== 'ModuleHeader' ? ' grouped' : ''}">
+      <div class="crow-ic">${ic(info.icon, 18)}</div>
+      <div class="t">${esc(info.title)}<small>${esc(info.sub)}</small></div>
+      <div class="crow-pills">${pills.join('')}</div>
+      <div class="crow-acts">
+        <button type="button" class="ibtn" title="Subir" aria-label="Subir" ${gidx > 0 ? '' : 'disabled'} onclick="moveItem('${it.id}','up')">${ic('up',16)}</button>
+        <button type="button" class="ibtn" title="Bajar" aria-label="Bajar" ${gidx >= 0 && gidx < draftItems.length-1 ? '' : 'disabled'} onclick="moveItem('${it.id}','down')">${ic('down',16)}</button>
+        <button type="button" class="btn sm ghost" onclick="toggleActive('${it.id}',${inactive})">${inactive ? 'Activar' : 'Desactivar'}</button>
+        <button type="button" class="btn sm ghost" onclick="editItem('${it.id}')">Editar</button>
+        <button type="button" class="ibtn danger" title="Eliminar" aria-label="Eliminar" onclick="deleteItem('${it.id}')">${ic('trash',16)}</button>
+      </div></div>`;
+  }).join('') : `<div class="empty">${draftItems.length ? 'Sin ítems en esta sección.' : 'Aún no tiene contenido. Empieza con «+ Añadir ítem».'}</div>`;
+}
+
+// ----- Láminas 16:9: la misma composición del reproductor (presPageHtml en player.html) -----
+function presTheme(){ return normPres(P || (F.player && F.player.presentation)); }
+function normPres(p){
+  p = p || {}; const th = p.theme || {};
+  return { enabled: !!p.enabled,
+           theme: { bg: th.bg || '#0d0d0d', accent: th.accent || '#f97316', panel: th.panel !== false, panelTitle: th.panelTitle || '' },
+           transition: ['cover','fade','none'].includes(p.transition) ? p.transition : 'cover' };
+}
+function slMedia(url, type){
+  if (!url) return '';
+  const s = /^\/media\//.test(url) ? url + (url.includes('?') ? '&' : '?') + 'access_token=' + encodeURIComponent(token) : url;
+  if (type && type.indexOf('image') === 0) return `<img src="${esc(s)}" alt="">`;
+  if (type && type.indexOf('audio') === 0) return `<audio controls src="${esc(s)}"></audio>`;
+  if (type && type.indexOf('video') === 0) return `<video src="${esc(s)}"></video>`;
+  return '<a>Abrir documento</a>';
+}
+function slBody(p){
+  const blk = b => b.type === 'text' ? `<div>${b.html || ''}</div>` : b.type === 'media' ? slMedia(b.mediaUrl, b.mediaType) : '';
+  if (!Array.isArray(p.blocks)) return slMedia(p.mediaUrl, p.mediaType) + `<div>${p.bodyHtml || ''}</div>`;
+  let h = ''; const bl = p.blocks;
+  for (let i = 0; i < bl.length;){
+    if (bl[i].span === 'half' && i+1 < bl.length && bl[i+1].span === 'half'){ h += `<div class="row2"><div>${blk(bl[i])}</div><div>${blk(bl[i+1])}</div></div>`; i += 2; }
+    else { h += blk(bl[i]); i++; }
+  }
+  return h;
+}
+function slQuestion(it){
+  const p = pj(it.payloadJson), q = `<b>${esc(p.question || '')}</b>` + slMedia(p.mediaUrl, p.mediaType);
+  if (it.type === 'MultipleChoice' || it.type === 'MultiSelect') return q + `<div style="margin-top:10px">${(p.options || []).map(o => `<div class="qopt">${esc(o.text)}</div>`).join('')}</div>`;
+  if (it.type === 'Matching') return q + `<div style="margin-top:10px">${(p.prompts || []).map(x => `<div class="qmatch">${esc(x.text)}</div>`).join('')}</div>`;
+  if (it.type === 'OpenResponse') return q + '<div style="margin-top:10px" class="qopen"></div>';
+  if (it.type === 'Info') return (p.title ? `<h2>${esc(p.title)}</h2>` : '') + (p.photo ? `<img src="${esc(p.photo)}" alt="">` : '') + slBody(p);
+  return '';
+}
+function slideHtml(page, pres, num, total){
+  const th = pres.theme, t = fichaT();
+  const ptitle = (th.panelTitle || '').trim() || (t ? t.title : '').toUpperCase();
+  const vars = `--pbg:${th.bg};--pacc:${th.accent}`;
+  const ctr = num ? `<div class="ctr">${num} / ${total}</div>` : '';
+  const wrap = (cls, chrome, body, extra) =>
+    `<div class="psl ${cls}" style="${vars}${extra ? ';' + extra : ''}">${chrome}<div class="sl-body"><div class="sl-fit">${body}</div></div>${ctr}</div>`;
+  const items = page.items;
+  if (items.length === 1){
+    const it = items[0], p = pj(it.payloadJson);
+    if (it.type === 'ModuleHeader')
+      return wrap('sl-dark sl-mod', `<h1 class="sl-kicker">${esc(p.title || '')}</h1><div class="sl-rule"></div>`, `<p>${esc(p.subtitle || '')}</p>`);
+    if (it.type === 'Info'){
+      const layout = p.layout || 'dark', body = slBody(p), tt = p.title ? `<h2>${esc(p.title)}</h2>` : '';
+      if (layout === 'cover')
+        return wrap('sl-cover', `${p.photo ? `<img class="cover-photo" src="${esc(p.photo)}" alt="">` : ''}<div class="cover-band"><h1>${esc(p.title || '')}</h1></div>`, body);
+      if (layout === 'photo-left'){
+        const pos = String(p.photoPos || '').replace(/[^\w%.\s-]/g, '');
+        return wrap('sl-photo', `${p.photo ? `<img class="photo" src="${esc(p.photo)}" alt="">` : '<div class="photo"></div>'}<h1 class="sl-kicker">${esc(p.kicker || ptitle)}</h1><div class="sl-rule"></div>`,
+                    tt + body, pos ? `--ppos:${pos}` : '');
+      }
+      if (layout === 'split'){
+        const v = (p.variant && p.variant !== 'left') ? ' ' + p.variant : '', np = th.panel === false ? ' no-panel' : '';
+        return wrap('sl-split' + v + np, `<div class="panel"></div><h1 class="ptitle">${esc(ptitle)}</h1>${np ? `<div class="sl-kicker">${esc(ptitle)}</div>` : ''}`, tt + body);
+      }
+      const sub = (p.title && !/<h3[\s>]/i.test(body)) ? `<h3>${esc(p.title)}</h3>` : '';
+      return wrap('sl-dark', `<h1 class="sl-kicker">${esc(p.kicker || ptitle)}</h1><div class="sl-rule"></div>`, sub + body);
+    }
+  }
+  const preguntas = activeDraft().filter(isQ);
+  const qs = items.filter(isQ), qn = it => preguntas.indexOf(it) + 1;
+  const kicker = qs.length ? 'Pregunta ' + qn(qs[0]) + (qs.length > 1 ? ` – ${qn(qs[qs.length-1])}` : '') : ptitle;
+  return wrap('sl-dark sl-q', `<div class="sl-frame"></div><h1 class="sl-kicker">${esc(kicker)}</h1><div class="sl-rule"></div>`,
+              items.map(it => `<div class="qwrap">${slQuestion(it)}</div>`).join(''));
+}
+function fitStages(){
+  document.querySelectorAll('.pstage').forEach(s => { const w = s.clientWidth; if (w) s.style.setProperty('--k', w / 1280); });
+}
+window.addEventListener('resize', fitStages);
+
+// Aviso de desborde: cada lámina se dibuja fuera de pantalla a 1280×720 con las medidas
+// del reproductor y se marca si su cuerpo no cabe. Solo cuenta en modo presentación o en
+// pantallas que ya declaran composición (en modo clásico la pantalla hace scroll).
+function imagesReady(box){
+  const imgs = [...box.querySelectorAll('img')].filter(i => !i.complete);
+  if (!imgs.length) return Promise.resolve();
+  return Promise.race([
+    Promise.all(imgs.map(i => new Promise(r => { i.onload = i.onerror = r; }))),
+    new Promise(r => setTimeout(r, 1500))
+  ]);
+}
+async function measureOverflow(){
+  const run = ++measureRun, id = fichaId;
+  if (!F.draft) return;
+  let m = el('slMeasure');
+  if (!m){
+    m = document.createElement('div'); m.id = 'slMeasure'; m.setAttribute('aria-hidden', 'true');
+    m.style.cssText = 'position:absolute;left:-10000px;top:0;width:1280px;height:720px;overflow:hidden;visibility:hidden;pointer-events:none';
+    document.body.appendChild(m);
+  }
+  const pres = presTheme(), activo = presOn(), res = new Set();
+  for (const pg of buildPagesAuthor(activeDraft())){
+    if (pg.items.length === 1 && pg.items[0].type === 'ModuleHeader') continue;
+    if (!activo && !pg.items.some(i => i.type === 'Info' && pj(i.payloadJson).layout)) continue;
+    m.innerHTML = slideHtml(pg, pres, 0, 0);
+    await imagesReady(m);
+    if (run !== measureRun || id !== fichaId) return;
+    const body = m.querySelector('.sl-body'), fit = m.querySelector('.sl-fit');
+    if (body && fit && fit.scrollHeight > body.clientHeight + 1) pg.items.forEach(i => res.add(i.id));
+  }
+  m.innerHTML = '';
+  overflowIds = res;
+  renderTabItems();
+}
+
+// ----- Presentación -----
+const ACCENTS = ['#f97316','#4f46e5','#a21caf','#0ea5e9','#16a34a','#dc2626'];
+const DEF_LAYOUTS = [['split','Panel diagonal'],['dark','Fondo oscuro'],['photo-left','Foto a la izquierda']];
+function infoItems(){ return (draftItems || []).filter(i => i.type === 'Info'); }
+// Composición por defecto: la que se propone a las pantallas nuevas y a las que no tienen.
+// El servidor no guarda este dato (PlayerConfig.presentation solo lleva enabled, theme y
+// transition), así que se recuerda en este navegador; si no hay, la más usada del curso.
+function defaultLayout(){
+  try{ const v = localStorage.getItem('tp_layout_' + fichaId); if (DEF_LAYOUTS.some(d => d[0] === v)) return v; }catch{}
+  const cuenta = {};
+  infoItems().forEach(i => { const l = pj(i.payloadJson).layout; if (DEF_LAYOUTS.some(d => d[0] === l)) cuenta[l] = (cuenta[l] || 0) + 1; });
+  return Object.keys(cuenta).sort((a, b) => cuenta[b] - cuenta[a])[0] || 'split';
+}
+function setDefLayout(k){
+  try{ localStorage.setItem('tp_layout_' + fichaId, k); }catch{}
+  const pages = buildPagesAuthor(activeDraft());
+  const i = pages.findIndex(pg => pg.items.length === 1 && pg.items[0].type === 'Info' && pj(pg.items[0].payloadJson).layout === k);
+  if (i >= 0) presPage = i;
+  renderPresentacion();
+}
+async function applyDefLayout(){
+  const lay = defaultLayout();
+  const sin = infoItems().filter(i => !pj(i.payloadJson).layout);
+  if (!sin.length) return;
+  if (!await confirmModal('¿Aplicar «' + LAYOUT_TXT[lay] + '»?',
+      `Se asigna a ${sin.length === 1 ? 'la pantalla' : 'las ' + sin.length + ' pantallas'} del borrador sin composición. La versión publicada no cambia hasta que publiques.`,
+      { icon:'layers', okText:'Aplicar' })) return;
+  try{
+    for (const it of sin){
+      const p = pj(it.payloadJson); p.layout = lay;
+      await api('/items/'+it.id,'PUT',{ type:it.type, payloadJson:JSON.stringify(p), points:it.points, required:it.required !== false, active:it.active !== false });
+    }
+    toast('Composición aplicada.');
+  }catch(e){ toast(e.message,'err'); }
+  await reloadContent();
+}
+function setPres(k, v, suave){
+  if (!P) return;
+  if (k === 'enabled' || k === 'transition') P[k] = v; else P.theme[k] = v;
+  presDirty = true;
+  if (suave){ paintPresPreview(); paintPresSave(); } else renderPresentacion();
+  if (k === 'panel' || k === 'enabled') measureOverflow();
+}
+function presGo(d){ presPage = Math.max(0, (presPage || 0) + d); renderPresentacion(); }
+function paintPresSave(){
+  const b = el('presSave'); if (b) b.disabled = !presDirty;
+  const n = el('presDirtyNote'); if (n) n.textContent = presDirty ? 'Cambios sin guardar' : '';
+}
+function paintPresPreview(){
+  const st = el('presStage'); if (!st || !P) return;
+  const pages = buildPagesAuthor(activeDraft());
+  const lay = defaultLayout();
+  const muestra = { items:[{ id:'muestra', type:'Info', payloadJson: JSON.stringify({ title:'Así se verá una lámina', layout: lay,
+    blocks:[{ type:'text', html:'<ul><li>Agrega pantallas en la pestaña Contenido.</li><li>Cada pantalla puede tener su propia composición.</li><li>El color de acento marca líneas y marcos.</li></ul>' }] }) }] };
+  st.innerHTML = pages.length ? slideHtml(pages[presPage], P, presPage + 1, pages.length + 1) : slideHtml(muestra, P, 1, 2);
+  fitStages();
+}
+function renderPresentacion(){
+  const box = el('pPres'), t = fichaT(); if (!box || !t) return;
+  if (!F.player){ box.innerHTML = loadingHtml(); return; }
+  if (!P) P = normPres(F.player.presentation);
+  const lay = defaultLayout();
+  const pages = buildPagesAuthor(activeDraft());
+  if (presPage === null){
+    const i = pages.findIndex(pg => pg.items.length === 1 && pg.items[0].type === 'Info' && pj(pg.items[0].payloadJson).layout === lay);
+    presPage = i >= 0 ? i : 0;
+  }
+  presPage = Math.min(presPage, Math.max(0, pages.length - 1));
+  const sin = infoItems().filter(i => !pj(i.payloadJson).layout).length;
+  const cv = coverItem(), cvUrl = coverUrlOf(cv), look = trLook(t);
+  const portada = cv
+    ? `<div class="coverrow"><div class="thumb ${cvUrl ? '' : look.grad}" ${cvUrl ? `style="background-image:${esc('url("' + cvUrl.replace(/["\\\r\n]/g, '') + '")')}"` : ''}>${cvUrl ? '' : ic(look.icon, 26)}</div>
+        <div class="t"><b>${esc(pj(cv.payloadJson).title || 'Portada')}</b><small>Sale de la pantalla con composición «Portada» y se usa también en la tarjeta del curso.</small></div>
+        <button type="button" class="btn sm ghost" onclick="editCover()">Cambiar</button></div>`
+    : `<div class="coverrow"><div class="thumb ${look.grad}">${ic(look.icon, 26)}</div>
+        <div class="t"><b>Sin portada</b><small>Crea una pantalla con composición «Portada» y una foto; se usa aquí y en la tarjeta del curso.</small></div>
+        <button type="button" class="btn sm ghost" onclick="newCoverItem()">Crear portada</button></div>`;
+  box.innerHTML = `<div class="two">
+    <div>
+      <h3>Modo presentación</h3>
+      <p class="hint">Cada página se dibuja en un escenario 16:9 que se escala a la pantalla del empleado. Sin scroll.</p>
+      ${swRow('presEnabled', P.enabled, 'Activar modo presentación', 'Pantalla completa, una lámina por página, navegación con teclado.', "setPres('enabled',!P.enabled)")}
+      <label>Composición por defecto</label>
+      <div class="inline" role="group" aria-label="Composición por defecto">${DEF_LAYOUTS.map(([k, l]) =>
+        `<button type="button" class="daychip ${lay===k?'on':''}" aria-pressed="${lay===k}" onclick="setDefLayout('${k}')">${l}</button>`).join('')}</div>
+      <p class="hint" style="margin:6px 0 0">Se propone a las pantallas nuevas. ${sin
+        ? `${sin === 1 ? 'Hay 1 pantalla' : 'Hay ' + sin + ' pantallas'} sin composición (se ven con fondo oscuro). <button type="button" class="linkbtn" onclick="applyDefLayout()">Aplicársela</button>`
+        : 'Todas las pantallas tienen composición.'}</p>
+      <label>Color de acento</label>
+      <div class="swatches">${ACCENTS.map(c => `<button type="button" class="swatch ${P.theme.accent===c?'on':''}" style="background:${c}" aria-label="Acento ${c}" aria-pressed="${P.theme.accent===c}" onclick="setPres('accent','${c}')"></button>`).join('')}
+        <input type="color" class="swatch-pick" value="${esc(P.theme.accent)}" aria-label="Otro color de acento" title="Otro color" onchange="setPres('accent',this.value)" oninput="setPres('accent',this.value,true)" /></div>
+      <div class="row">
+        <div style="max-width:170px"><label for="presBg">Fondo oscuro</label><input id="presBg" type="color" class="field colorf" value="${esc(P.theme.bg)}" oninput="setPres('bg',this.value,true)" /></div>
+        <div><label for="presTrans">Transición</label>
+          <select id="presTrans" class="field" onchange="setPres('transition',this.value)">
+            <option value="cover" ${P.transition==='cover'?'selected':''}>Cover (como el PowerPoint)</option>
+            <option value="fade" ${P.transition==='fade'?'selected':''}>Fundido</option>
+            <option value="none" ${P.transition==='none'?'selected':''}>Ninguna</option>
+          </select></div>
+      </div>
+      ${swRow('presPanel', P.theme.panel, 'Panel diagonal oscuro', 'En las láminas de panel diagonal, el panel de la izquierda con el título.', "setPres('panel',!P.theme.panel)")}
+      <label for="presPT">Título del panel</label>
+      <input id="presPT" class="field" maxlength="120" value="${esc(P.theme.panelTitle)}" placeholder="${esc(t.title.toUpperCase())}" oninput="setPres('panelTitle',this.value,true)" />
+      <p class="hint" style="margin:4px 0 0">Vacío = el título del curso, en mayúsculas.</p>
+      <label>Portada</label>
+      ${portada}
+      <p class="hint" style="margin-top:14px">Teclas: <span class="kbd">→</span> <span class="kbd">Enter</span> <span class="kbd">Espacio</span> avanzan · <span class="kbd">←</span> retrocede (si se permite) · <span class="kbd">Esc</span> sale de pantalla completa.</p>
+    </div>
+    <div>
+      <h3>Vista previa</h3>
+      <p class="hint">${pages.length ? `Lámina ${presPage + 1} de ${pages.length + 1} con el tema actual.` : 'Lámina de muestra: el curso aún no tiene contenido.'}</p>
+      <div class="pstage" id="presStage"></div>
+      <div class="inline" style="margin-top:10px;justify-content:space-between">
+        <button type="button" class="btn sm ghost" onclick="presGo(-1)" ${presPage > 0 ? '' : 'disabled'}>‹ Anterior</button>
+        <button type="button" class="btn sm ghost" onclick="presGo(1)" ${presPage < pages.length - 1 ? '' : 'disabled'}>Siguiente ›</button>
+      </div>
+    </div>
+  </div>
+  <div class="panefoot">
+    <button type="button" class="btn sm" id="presSave" onclick="savePresentation()" ${presDirty ? '' : 'disabled'}>Guardar</button>
+    <button type="button" class="btn sm ghost" onclick="verComoEmpleado()">${ic('play',14)} Ver como el empleado</button>
+    <span class="hint dirty" id="presDirtyNote">${presDirty ? 'Cambios sin guardar' : ''}</span>
+  </div>`;
+  paintPresPreview();
+}
+async function savePresentation(silencioso){
+  const t = fichaT(); if (!t || !P) return;
+  try{
+    const allowBack = F.player ? F.player.allowBack !== false : true;
+    const r = await api('/trainings/'+t.id+'/player-config','PUT',{ allowBack, presentation:P });
+    F.player = Object.assign({}, F.player, r);
+    P = normPres(r.presentation); presDirty = false;
+    if (!silencioso) toast('Presentación guardada.');
+    renderPresentacion(); renderFichaHead(); renderTabItems(); measureOverflow();
+  }catch(e){ toast(e.message,'err'); throw e; }
+}
+function editCover(){ const cv = coverItem(); if (!cv) return; setFichaTab('contenido'); editItem(cv.id); }
+function newCoverItem(){
+  const t = fichaT(); if (!t) return;
+  setFichaTab('contenido');
+  resetItemForm();
+  el('itType').value = 'Info'; showItemForm();
+  el('infoLayout').value = 'cover'; syncLayoutFields();
+  el('infoTitle').value = t.title;
+  openModal('Nueva portada');
+  el('modalMsg').className = 'msg'; el('modalMsg').textContent = 'Queda al final del módulo abierto; súbela con la flecha para que sea la primera lámina.';
+}
+
+// ----- Opciones del reproductor (se guardan al instante) -----
+function renderOpciones(){
+  const box = el('pOpc'); if (!box) return;
+  if (!F.player){ box.innerHTML = loadingHtml(); return; }
+  const c = F.player;
+  box.innerHTML = `<h3>Opciones del reproductor</h3>
+    <p class="hint">Cómo se comporta el curso mientras el empleado lo toma. Cada cambio se guarda al instante.</p>
+    ${swRow('allowBack', c.allowBack !== false, 'Permitir retroceder', 'El empleado puede volver a la lámina anterior mientras toma el curso.', "setOpt('allowBack')")}
+    ${swRow('reviewAfterPass', c.reviewAfterPass === true, 'Disponible para repaso tras aprobar', 'Queda abierto para consulta sin contar como intento nuevo.', "setOpt('reviewAfterPass')")}
+    ${swRow('immediateFeedback', c.immediateFeedback === true, 'Retroalimentación inmediata', 'Muestra al instante si acertó cada pregunta. Para cumplimiento se recomienda calificar solo al final.', "setOpt('immediateFeedback')")}`;
+}
+async function setOpt(k){
+  const c = F.player; if (!c || optBusy) return;
+  const t = fichaT(); if (!t) return;
+  const nuevo = { allowBack: c.allowBack !== false, reviewAfterPass: c.reviewAfterPass === true, immediateFeedback: c.immediateFeedback === true };
+  nuevo[k] = !nuevo[k];
+  optBusy = true;
+  try{
+    const r = await api('/trainings/'+t.id+'/player-config','PUT', nuevo);   // sin `presentation`: el servidor conserva la guardada
+    F.player = Object.assign({}, F.player, r);
+    toast(nuevo[k] ? 'Activado.' : 'Desactivado.');
+  }catch(e){ toast(e.message,'err'); }
+  optBusy = false;
+  renderOpciones();
+  const b = document.querySelector(`#pOpc [data-k="${k}"]`); if (b) b.focus();
+}
+
+// ----- Vigencia, audiencia y avisos -----
+function initV(){
+  const t = fichaT(), n = F.notif || {};
+  const fija = t.expiresOn ? String(t.expiresOn).slice(0, 10) : '';
+  V = { mode: fija ? 'fixed' : (t.recurrenceMonths ? 'months' : 'none'),
+        months: t.recurrenceMonths || 12, date: fija, roll: fija ? (t.recurrenceMonths || '') : '',
+        lead: t.renewLeadDays == null ? 30 : t.renewLeadDays,
+        audience: t.audience === 'groups' ? 'groups' : 'everyone',
+        onboarding: t.onboardingDays == null ? '' : t.onboardingDays,
+        groups: new Set(F.plans ? planGroupsOf(t.id) : []),
+        enabled: n.enabled !== false, onOpen: n.onOpen !== false,
+        daysBefore: (n.daysBefore || []).map(Number), overdue: n.overdueEveryDays == null ? 14 : n.overdueEveryDays };
+}
+function setV(k, v, pintar){
+  if (!V) return;
+  V[k] = v; vigDirty = true;
+  if (pintar) renderVigencia();
+  else { const b = el('vigSave'); if (b) b.disabled = false; const n = el('vigDirtyNote'); if (n) n.textContent = 'Cambios sin guardar'; }
+}
+function toggleVDay(d){ setV('daysBefore', V.daysBefore.includes(d) ? V.daysBefore.filter(x => x !== d) : [...V.daysBefore, d].sort((a, b) => b - a), true); }
+function toggleVGroup(gid){ const s = new Set(V.groups); s.has(gid) ? s.delete(gid) : s.add(gid); setV('groups', s, true); }
+function vRadio(campo, valor, titulo, hint, extra){
+  const on = V[campo] === valor;
+  return `<div class="radio ${on ? 'on' : ''}" role="radio" tabindex="0" aria-checked="${on}" onclick="if(!event.target.closest('input,select,button:not(.radio)'))setV('${campo}','${valor}',true)"
+      onkeydown="if((event.key==='Enter'||event.key===' ')&&event.target===this){event.preventDefault();setV('${campo}','${valor}',true)}">
+    <i></i><div style="flex:1"><b>${esc(titulo)}</b>${hint ? `<span>${esc(hint)}</span>` : ''}${on && extra ? `<div class="sub">${extra}</div>` : ''}</div></div>`;
+}
+function renderVigencia(){
+  const box = el('pVig'), t = fichaT(); if (!box || !t) return;
+  if (!F.notif){ box.innerHTML = loadingHtml(); return; }
+  if (!V) initV();
+  const num = (campo, val, w, min, max, ph) =>
+    `<input type="number" class="field num" style="width:${w}" value="${esc(val)}" ${min != null ? `min="${min}"` : ''} ${max != null ? `max="${max}"` : ''} placeholder="${esc(ph || '')}" oninput="setV('${campo}',this.value)" />`;
+  const opciones = [...new Set([60, 30, 15, 7, 5, 1, ...V.daysBefore])].sort((a, b) => b - a);
+  let grupos;
+  if (!F.groups) grupos = '<p class="hint">Cargando grupos…</p>';
+  else if (!F.groups.length) grupos = '<p class="hint">Aún no hay grupos. Se crean en «Sets y asignación».</p>';
+  else grupos = `<div class="inline" role="group" aria-label="Grupos">${F.groups.map(g => {
+      const on = V.groups.has(g.id), n = (g.memberIds || []).length;
+      return `<button type="button" class="daychip ${on ? 'on' : ''}" aria-pressed="${on}" onclick="toggleVGroup('${g.id}')">${esc(g.name)} · ${n}</button>`;
+    }).join('')}</div>
+    <p class="hint" style="margin:6px 0 0">${V.audience === 'groups'
+      ? (V.groups.size ? 'Obligatorio solo para los miembros de los grupos marcados, con el plazo de cada grupo.' : 'Sin grupos marcados nadie lo tendrá como obligatorio.')
+      : 'Opcional: los grupos marcados lo tienen en su plan de onboarding, con su propio plazo.'}</p>`;
+  box.innerHTML = `<div class="two">
+    <div>
+      <h3>Vigencia</h3>
+      <p class="hint">Cuándo caduca la aprobación de cada persona.</p>
+      ${vRadio('mode', 'none', 'No caduca', 'Se toma una sola vez.')}
+      ${vRadio('mode', 'months', 'Cada N meses desde que cada persona aprueba', 'Por ejemplo, cada 12 meses.',
+          `<div class="inline">cada ${num('months', V.months, '80px', 1, 240)} meses</div>`)}
+      ${vRadio('mode', 'fixed', 'Fecha fija para todos', 'Por ejemplo 31 de diciembre, rodando cada año.',
+          `<div class="inline"><input type="date" class="field" style="max-width:180px" value="${esc(V.date)}" oninput="setV('date',this.value)" aria-label="Fecha de vencimiento" />
+           <span>rueda cada</span>${num('roll', V.roll, '80px', 1, 240, 'no')}<span>meses</span></div>`)}
+      ${V.mode !== 'none' ? `<label>Días de reapertura antes de vencer</label>${num('lead', V.lead, '120px', 0, 365)}
+        <p class="hint" style="margin:4px 0 0">Durante esos días el curso vuelve a aparecer para renovarlo.</p>` : ''}
+      <h3 style="margin-top:22px">Audiencia</h3>
+      <p class="hint">A quién se le exige este curso.</p>
+      ${vRadio('audience', 'everyone', 'Toda la compañía', 'Obligatorio para todos los usuarios, como hasta ahora.',
+          `<div class="inline">plazo de ${num('onboarding', V.onboarding, '90px', 0, 3650, 'sin')} días desde el ingreso a la compañía</div>`)}
+      ${vRadio('audience', 'groups', 'Solo algunos grupos', 'Obligatorio para quien esté en un grupo que lo tenga en su plan.')}
+      <label>Grupos con este curso en su plan</label>
+      ${grupos}
+    </div>
+    <div>
+      <h3>Avisos al empleado</h3>
+      <p class="hint">Por correo, sin repetir nunca el mismo aviso.</p>
+      ${swRow('nEnabled', V.enabled, 'Avisos de este curso', 'Apágalo para no enviar ningún correo de este curso.', "setV('enabled',!V.enabled,true)")}
+      <div class="${V.enabled ? '' : 'off-block'}">
+        ${swRow('nOnOpen', V.onOpen, 'Al publicarse una versión', '«Tienes un adiestramiento disponible».', "setV('onOpen',!V.onOpen,true)")}
+        <div class="swrow"><div class="t"><b>Antes de vencer</b><span>Un aviso por cada anticipación marcada.</span>
+          <div class="inline" style="margin-top:8px" role="group" aria-label="Días antes de vencer">${opciones.map(d =>
+            `<button type="button" class="daychip ${V.daysBefore.includes(d) ? 'on' : ''}" aria-pressed="${V.daysBefore.includes(d)}" onclick="toggleVDay(${d})">${d} d</button>`).join('')}</div></div></div>
+        <div class="swrow"><div class="t"><b>Después de vencer</b><span>Recordatorio cada N días mientras siga vencido. 0 = no avisar.</span></div>
+          <div class="inline">cada ${num('overdue', V.overdue, '76px', 0, 365)} días</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="panefoot"><button type="button" class="btn sm" id="vigSave" onclick="saveVigencia()" ${vigDirty ? '' : 'disabled'}>Guardar</button>
+    <span class="hint dirty" id="vigDirtyNote">${vigDirty ? 'Cambios sin guardar' : ''}</span></div>`;
+}
+async function saveVigencia(){
+  const t = fichaT(); if (!t || !V) return;
+  const ent = v => v === '' || v == null ? null : Number(v);
+  const months = ent(V.months), roll = ent(V.roll), lead = ent(V.lead), onb = ent(V.onboarding), overdue = ent(V.overdue);
+  const err =
+      V.mode === 'months' && !(Number.isInteger(months) && months >= 1) ? 'Pon un número de meses (1 o más).'
+    : V.mode === 'fixed' && !/^\d{4}-\d{2}-\d{2}$/.test(String(V.date || '')) ? 'Escoge la fecha de vencimiento.'
+    : V.mode === 'fixed' && roll !== null && !(Number.isInteger(roll) && roll >= 1) ? 'Los meses para rodar deben ser 1 o más, o déjalo vacío.'
+    : V.mode !== 'none' && !(Number.isInteger(lead) && lead >= 0) ? 'Los días de reapertura deben ser 0 o más.'
+    : V.audience === 'everyone' && onb !== null && !(Number.isInteger(onb) && onb >= 0 && onb <= 3650) ? 'El plazo desde el ingreso va de 0 a 3650 días, o vacío.'
+    : !(Number.isInteger(overdue) && overdue >= 0 && overdue <= 365) ? 'Los días para repetir el aviso de vencido van de 0 a 365.'
+    : null;
+  if (err){ toast(err, 'err'); return; }
+  const b = el('vigSave'); if (b) b.disabled = true;
+  try{
+    await api('/trainings/'+t.id+'/recurrence','POST',{
+      recurrenceMonths: V.mode === 'months' ? months : V.mode === 'fixed' ? roll : null,
+      renewLeadDays: V.mode === 'none' ? (t.renewLeadDays == null ? 30 : t.renewLeadDays) : lead,
+      expiresOn: V.mode === 'fixed' ? V.date : null });
+    await api('/trainings/'+t.id+'/audience','PUT',{ audience:V.audience, onboardingDays: V.audience === 'everyone' ? onb : null });
+    // Planes de grupo: solo los que cambian; cada plan se reenvía completo conservando sus plazos.
+    if (F.plans){
+      const antes = new Set(planGroupsOf(t.id));
+      for (const g of F.groups || []){
+        const quiere = V.groups.has(g.id);
+        if (quiere === antes.has(g.id) || !F.plans[g.id]) continue;
+        const cursos = (F.plans[g.id].courses || []).map(c => ({ trainingId:c.trainingId, dueDays:c.dueDays }))
+          .filter(c => c.trainingId !== t.id);
+        if (quiere) cursos.push({ trainingId:t.id, dueDays:null });
+        F.plans[g.id] = await api('/groups/'+g.id+'/plan','PUT',{ courses:cursos });
+      }
+    }
+    F.notif = await api('/trainings/'+t.id+'/notification-config','PUT',{
+      enabled:V.enabled, onOpen:V.onOpen, daysBefore:V.daysBefore, overdueEveryDays:overdue });
+    vigDirty = false;
+    toast('Vigencia y avisos guardados.');
+    await refreshTrainings();
+    initV(); renderVigencia(); renderResumen();
+  }catch(e){ toast(e.message,'err'); if (b) b.disabled = false; }
+}
+
+// ----- Certificado del curso -----
 let certCourseId = null;
 let certCourseTitle = '';
 let certRecMonths = null;         // recurrencia del curso (para la vigencia de ejemplo)
 let certLogoData = null;          // data URL del logo cargado en esta sesión de edición
 let certSignData = null;          // data URL de la firma escaneada
-async function openCertConfig(id, title, recMonths){
-  certCourseId = id; certCourseTitle = title; certRecMonths = recMonths; certLogoData = null; certSignData = null;
-  el('certCourseTitle').textContent = title;
+function certTouched(){ certDirty = true; el('certSaveBtn').disabled = false; el('certDirtyNote').textContent = 'Cambios sin guardar'; }
+function certClean(){ certDirty = false; el('certSaveBtn').disabled = true; el('certDirtyNote').textContent = ''; }
+el('pCert').addEventListener('input', e => { if (e.target.closest('.two')) certTouched(); });
+el('pCert').addEventListener('change', e => { if (e.target.closest('.two')) certTouched(); });
+async function loadCertPane(){
+  const t = fichaT(); if (!t) return;
+  certCourseId = t.id; certCourseTitle = t.title; certRecMonths = t.recurrenceMonths || null;
+  certLogoData = null; certSignData = null;
   el('certMsg').textContent = '';
   try{
-    const c = await api('/trainings/'+id+'/certificate-config');
+    const c = await api('/trainings/'+t.id+'/certificate-config');
+    if (t.id !== fichaId) return;
+    F.cert = c;
     el('certEnabled').checked      = c.enabled !== false;
     el('certIssuer').value         = c.issuerName || '';
     el('certSignName').value       = c.signatoryName || '';
@@ -2045,34 +3125,51 @@ async function openCertConfig(id, title, recMonths){
     certSignData = c.signatureDataUrl || null;
     renderCertLogoPreview();
     renderCertSignPreview();
-    el('certModal').classList.remove('hidden');
-  }catch(e){ toast(e.message,'err'); }
+    certClean();
+    renderResumen();
+  }catch(e){ el('certMsg').textContent = e.message; el('certMsg').className = 'msg err'; }
+}
+// Entrega: la decide la empresa (Cumplimiento). Solo Admin u oficial pueden leerla;
+// a los demás se les muestran los valores por defecto.
+function renderCertDelivery(){
+  const c = F.comp;
+  const modo = c && c.certificateDelivery === 'attachment' ? ['PDF adjunto al correo', 'Adjunto', 'gray'] : ['Enlace directo con vencimiento', 'Enlace', 'ok'];
+  const extra = c && (c.extraEmails || []).length ? c.extraEmails.join(', ') : 'Ninguna';
+  el('certDelivery').innerHTML = `<h3>Entrega</h3>
+    <p class="hint">Se configura por empresa en Cumplimiento; aquí solo se muestra.</p>
+    <div class="list">
+      <div class="li"><div class="t">Modo<small>${modo[0]}</small></div><span class="st ${modo[2]}">${modo[1]}</span></div>
+      ${!c || c.certificateDelivery !== 'attachment' ? `<div class="li"><div class="t">Vigencia del enlace<small>Después, en el expediente con sesión</small></div><b class="num">${c ? c.linkDays : 30} días</b></div>` : ''}
+      <div class="li"><div class="t">Oficial de cumplimiento<small>Recibe nombre, curso, fecha y ${!c || c.certificateDelivery !== 'attachment' ? 'enlace' : 'el PDF'}</small></div><b>Los marcados en la empresa</b></div>
+      <div class="li"><div class="t">Copias de la empresa<small>Además del empleado y los oficiales</small></div><b style="text-align:right;overflow-wrap:anywhere">${esc(extra)}</b></div>
+    </div>
+    ${c ? '' : '<p class="hint" style="margin-top:10px">Solo el administrador o un oficial de cumplimiento ve la configuración de la empresa; se muestran los valores por defecto.</p>'}`;
 }
 function renderCertLogoPreview(){
   el('certLogoPreview').innerHTML = certLogoData
-    ? `<img src="${certLogoData}" style="max-height:48px;max-width:160px;border:1px solid var(--line);border-radius:6px;padding:2px">
-       <button type="button" class="btn sm ghost" onclick="certLogoData=null;renderCertLogoPreview()">Quitar</button>`
+    ? `<img src="${certLogoData}" alt="Logo" style="max-height:48px;max-width:160px;border:1px solid var(--line);border-radius:6px;padding:2px">
+       <button type="button" class="btn sm ghost" onclick="certLogoData=null;renderCertLogoPreview();certTouched()">Quitar</button>`
     : '<span class="hint">Sin logo.</span>';
 }
 el('certLogoFile').onchange = e => {
-  const f = e.target.files[0]; if(!f) return;
-  if(f.size > 1_000_000){ toast('El logo es demasiado grande (máx. ~1 MB).','err'); e.target.value=''; return; }
+  const f = e.target.files[0]; if (!f) return;
+  if (f.size > 1_000_000){ toast('El logo es demasiado grande (máx. ~1 MB).','err'); e.target.value = ''; return; }
   const rd = new FileReader();
-  rd.onload = () => { certLogoData = rd.result; renderCertLogoPreview(); };
+  rd.onload = () => { certLogoData = rd.result; renderCertLogoPreview(); certTouched(); };
   rd.readAsDataURL(f);
   e.target.value = '';
 };
 function renderCertSignPreview(){
   el('certSignPreview').innerHTML = certSignData
-    ? `<img src="${certSignData}" style="max-height:44px;max-width:180px;border:1px solid var(--line);border-radius:6px;padding:2px;background:#fff">
-       <button type="button" class="btn sm ghost" onclick="certSignData=null;renderCertSignPreview()">Quitar</button>`
+    ? `<img src="${certSignData}" alt="Firma" style="max-height:44px;max-width:180px;border:1px solid var(--line);border-radius:6px;padding:2px;background:#fff">
+       <button type="button" class="btn sm ghost" onclick="certSignData=null;renderCertSignPreview();certTouched()">Quitar</button>`
     : '<span class="hint">Sin firma escaneada.</span>';
 }
 el('certSignFile').onchange = e => {
-  const f = e.target.files[0]; if(!f) return;
-  if(f.size > 1_000_000){ toast('La firma es demasiado grande (máx. ~1 MB).','err'); e.target.value=''; return; }
+  const f = e.target.files[0]; if (!f) return;
+  if (f.size > 1_000_000){ toast('La firma es demasiado grande (máx. ~1 MB).','err'); e.target.value = ''; return; }
   const rd = new FileReader();
-  rd.onload = () => { certSignData = rd.result; renderCertSignPreview(); };
+  rd.onload = () => { certSignData = rd.result; renderCertSignPreview(); certTouched(); };
   rd.readAsDataURL(f);
   e.target.value = '';
 };
@@ -2092,17 +3189,21 @@ function certFormBody(){
   };
 }
 el('certSaveBtn').onclick = async () => {
+  if (!certCourseId) return;
   try{
-    await api('/trainings/'+certCourseId+'/certificate-config','PUT',certFormBody());
-    el('certModal').classList.add('hidden');
-  }catch(e){ el('certMsg').textContent = e.message; el('certMsg').className='msg err'; }
+    F.cert = await api('/trainings/'+certCourseId+'/certificate-config','PUT',certFormBody());
+    el('certMsg').textContent = '';
+    certClean();
+    toast('Certificado guardado.');
+    renderResumen();
+  }catch(e){ el('certMsg').textContent = e.message; el('certMsg').className = 'msg err'; }
 };
-// Vista previa con datos de ejemplo (no requiere un intento real).
+// Muestra con datos de ejemplo (no requiere un intento real).
 el('certPreviewBtn').onclick = () => {
   const cfg = certFormBody();
   const now = new Date();
   let validity = 'permanent', expiresAt = null;
-  if(certRecMonths){ validity = 'valid'; const e = new Date(now); e.setMonth(e.getMonth()+certRecMonths); expiresAt = e.toISOString(); }
+  if (certRecMonths){ validity = 'valid'; const e = new Date(now); e.setMonth(e.getMonth()+certRecMonths); expiresAt = e.toISOString(); }
   const view = {
     serial: 'CERT-'+now.getFullYear()+'-EJEMPLO',
     learnerName: 'Nombre del Participante',
@@ -2121,93 +3222,86 @@ el('certPreviewBtn').onclick = () => {
     showValidity: cfg.showValidity,
     accentColor: cfg.accentColor
   };
-  localStorage.setItem('tp_cert_preview', JSON.stringify(view));
+  try{ localStorage.setItem('tp_cert_preview', JSON.stringify(view)); }catch{ toast('No se pudo preparar la muestra.','err'); return; }
   window.open('/certificate.html?preview=1', '_blank', 'noopener');
 };
 
-// ----- Pantalla de contenido (tabs por módulo) -----
-let activeTab = 0;
-let contentGroups = [];
+// ----- Resultados -----
+const RES_FILTERS = [['all','Todos'],['passed','Aprobados'],['failed','No aprobados'],['review','En revisión'],['progress','En progreso'],['cancel','Cancelados']];
+const RES_PILL = { passed:['ok','Aprobado'], failed:['err','No aprobado'], review:['warn','En revisión'], progress:['info','En progreso'], cancel:['gray','Cancelado'], other:['gray','—'] };
+function resKind(a){
+  if (a.status === 'completed') return a.passed ? 'passed' : 'failed';
+  if (a.status === 'pending-grading') return 'review';
+  if (a.status === 'in-progress') return 'progress';
+  if (a.status === 'cancellation-requested' || a.status === 'cancelled') return 'cancel';
+  return 'other';
+}
+function setResFilter(k){ resFilter = k; renderResultados(); }
+function renderResultados(){
+  const box = el('pRes'); if (!box) return;
+  if (!F.attempts){ box.innerHTML = loadingHtml(); return; }
+  const rows = F.attempts, cuenta = {};
+  rows.forEach(a => { const k = resKind(a); cuenta[k] = (cuenta[k] || 0) + 1; });
+  const badge = el('resBadge');
+  badge.textContent = cuenta.review || ''; badge.classList.toggle('hidden', !cuenta.review);
+  const lista = rows.filter(a => resFilter === 'all' || resKind(a) === resFilter);
+  box.innerHTML = `<div class="sectionhead" style="margin-top:0"><h4>Intentos · ${rows.length}</h4>
+    <div class="inline" role="group" aria-label="Filtrar intentos">${RES_FILTERS.map(([k, l]) =>
+      `<button type="button" class="daychip ${resFilter===k?'on':''}" aria-pressed="${resFilter===k}" onclick="setResFilter('${k}')">${l}${k !== 'all' && cuenta[k] ? ` <span class="num">${cuenta[k]}</span>` : ''}</button>`).join('')}
+      <button type="button" class="btn sm ghost" onclick="exportResults()" ${rows.length ? '' : 'disabled'}>Exportar CSV</button></div></div>
+    <div class="list">${lista.length ? lista.map(a => {
+      const k = resKind(a), pill = RES_PILL[k];
+      const sub = [fmtFecha(a.completedAt || a.startedAt), a.activeSeconds > 0 ? fmtTime(a.activeSeconds) + ' frente al curso' : null].filter(Boolean).join(' · ');
+      const pts = a.status === 'completed' ? `<b class="num">${a.score} pts</b>` : '<b>—</b>';
+      return `<div class="li"><div class="av">${esc(initials(a.learnerName || '?'))}</div>
+        <div class="t">${esc(a.learnerName || '(anónimo)')}<small>${esc(sub)}</small></div>
+        <div class="r">${pts}</div><span class="st ${pill[0]}">${pill[1]}</span></div>`;
+    }).join('') : `<div class="empty">${rows.length ? 'Ningún intento con este filtro.' : 'Nadie lo ha tomado todavía.'}</div>`}</div>`;
+}
+function exportResults(){
+  const t = fichaT(), rows = F.attempts || [];
+  if (!t || !rows.length) return;
+  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const lineas = [['Empleado','Estado','Puntos','Inicio','Fin','Minutos frente al curso'].map(q).join(',')]
+    .concat(rows.map(a => [a.learnerName || '', RES_PILL[resKind(a)][1], a.status === 'completed' ? a.score : '',
+      a.startedAt || '', a.completedAt || '', Math.round((a.activeSeconds || 0) / 60)].map(q).join(',')));
+  const blob = new Blob(['﻿' + lineas.join('\r\n')], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'resultados-' + t.title.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
 
-async function openContent(id, title){
-  editingTrainingId = id;
-  el('contentTitle').textContent = title;
-  el('contentMsg').textContent = '';
-  el('itemModal').classList.add('hidden');
-  el('tenantAppView').classList.add('hidden');
-  el('contentView').classList.remove('hidden');
-  activeTab = 0;
-  await reloadContent();
+// ----- Lámina de una pantalla Info (formulario del ítem) -----
+// La foto va como data URL dentro del payload, igual que en content/_shared/authoring.mjs:
+// el reproductor la pone en un <img> sin token, así que un /media/… no se vería.
+let infoPhoto = null;     // foto de cover / photo-left
+let infoExtra = {};       // campos del payload que el formulario no edita (photoPos, …): se conservan
+function syncLayoutFields(){
+  const l = el('infoLayout').value;
+  el('infoVariantRow').classList.toggle('hidden', l !== 'split');
+  el('infoKickerRow').classList.toggle('hidden', !(l === 'dark' || l === 'photo-left'));
+  el('infoPhotoRow').classList.toggle('hidden', !(l === 'cover' || l === 'photo-left'));
 }
-async function reloadContent(){
-  try{
-    const d = await api('/trainings/'+editingTrainingId+'/draft');
-    draftVersionId = d.versionId;
-    draftItems = d.items || [];
-    el('contentStatus').textContent = `borrador · aprobado ${d.passPercent}%`;
-    buildTabs();
-  }catch(e){ el('contentMsg').textContent=e.message; el('contentMsg').className='msg err'; }
+function setInfoPhoto(url){
+  infoPhoto = url || null;
+  const ok = infoPhoto && /^(data:image\/|https?:\/\/|\/)/i.test(infoPhoto);
+  el('infoPhotoPrev').style.backgroundImage = ok ? 'url("' + infoPhoto.replace(/["\\r\n]/g, '') + '")' : '';
+  el('infoPhotoPrev').innerHTML = ok ? '' : ic('image', 22);
+  el('infoPhotoDel').classList.toggle('hidden', !infoPhoto);
+  syncLayoutFields();
 }
-el('backFromContent').onclick = () => {
-  el('contentView').classList.add('hidden');
-  el('tenantAppView').classList.remove('hidden');
-  loadTrainings();
+el('infoPhotoFile').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  e.target.value = '';
+  if (f.size > 2_000_000){ qmsg('La foto es demasiado grande (máx. ~2 MB).'); return; }
+  const rd = new FileReader();
+  rd.onload = () => setInfoPhoto(rd.result);
+  rd.readAsDataURL(f);
 };
+setInfoPhoto(null);
 
-function tabShort(title){
-  if(!title) return 'Módulo';
-  const i = title.indexOf('—');
-  return (i>=0 ? title.slice(0,i) : title).trim() || 'Módulo';
-}
-function buildTabs(){
-  contentGroups = []; let cur=null;
-  for(const it of draftItems){
-    if(it.type==='ModuleHeader'){
-      let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
-      cur = { label: tabShort(p.title), full: p.title||'Módulo', items:[it] };
-      contentGroups.push(cur);
-    } else {
-      if(!cur){ cur = { label:'General', full:'General', items:[] }; contentGroups.push(cur); }
-      cur.items.push(it);
-    }
-  }
-  if(activeTab >= contentGroups.length) activeTab = 0;
-  renderTabs();
-}
-function renderTabs(){
-  el('contentTabs').innerHTML = contentGroups.map((g,i)=>
-    `<button class="tab ${i===activeTab?'active':''}" title="${(g.full||'').replace(/"/g,'&quot;')}" onclick="setTab(${i})">${g.label}</button>`
-  ).join('');
-  renderTabItems();
-}
-function setTab(i){ activeTab=i; renderTabs(); }
-function itemLabel(it){
-  let p={}; try{ p=JSON.parse(it.payloadJson); }catch{ return it.type; }
-  if(it.type==='ModuleHeader') return '📂 Módulo: '+(p.title||'');
-  if(it.type==='Info') return '📄 '+(p.title||'(pantalla de contenido)');
-  if(it.type==='MultipleChoice') return '❓ '+(p.question||'')+' ['+it.points+' pts]';
-  if(it.type==='MultiSelect') return '☑️ '+(p.question||'')+' ['+it.points+' pts · varias]';
-  if(it.type==='Matching') return '🧩 '+(p.question||'')+' ['+it.points+' pts · pareo]';
-  if(it.type==='OpenResponse') return '📝 '+(p.question||'')+(p.graded?(' ['+it.points+' pts · evalúa moderador]'):' [abierta · sin puntos]');
-  return it.type;
-}
-function renderTabItems(){
-  const g = contentGroups[activeTab];
-  const items = g ? g.items : [];
-  el('contentItems').innerHTML = items.length ? items.map(it=>{
-    const inactive = it.active===false;
-    let sp=false; try{ sp=!!JSON.parse(it.payloadJson).samePage; }catch{}
-    const grouped = sp ? '<span class="tag" style="background:#e0e7ff;color:#3730a3">↳ misma pantalla</span> ' : '';
-    const tag = inactive ? ' <span class="tag" style="background:#fee2e2;color:#b91c1c">inactivo</span>' : '';
-    const gidx = draftItems.findIndex(x=>x.id===it.id);
-    const up = gidx>0 ? `<button class="btn sm ghost" title="Subir" onclick="moveItem('${it.id}','up')">▲</button>` : '';
-    const down = (gidx>=0 && gidx<draftItems.length-1) ? `<button class="btn sm ghost" title="Bajar" onclick="moveItem('${it.id}','down')">▼</button>` : '';
-    const toggle = inactive
-      ? `<button class="btn sm ok" onclick="toggleActive('${it.id}',true)">Activar</button>`
-      : `<button class="btn sm ghost" onclick="toggleActive('${it.id}',false)">Desactivar</button>`;
-    return `<div class="item" style="${inactive?'opacity:.5':''}${sp?';border-left:3px solid #818cf8;padding-left:8px':''}">${grouped}${itemLabel(it)}${tag}<span class="sp">${up}${down} ${toggle} <button class="btn sm ghost" onclick="editItem('${it.id}')">Editar</button> <button class="btn sm danger" onclick="deleteItem('${it.id}')">Eliminar</button></span></div>`;
-  }).join('') : `<div class="empty">Sin ítems en esta sección.</div>`;
-}
 async function moveItem(itemId, dir){
   try{
     await api('/items/'+itemId+'/move','POST',{direction:dir});
@@ -2224,7 +3318,12 @@ async function toggleActive(itemId, active){
 // ----- Modal de edición -----
 function openModal(title){ el('modalTitle').textContent=title; el('modalMsg').textContent=''; el('itemModal').classList.remove('hidden'); }
 function closeModal(){ el('itemModal').classList.add('hidden'); resetItemForm(); }
-el('addItemTop').onclick = () => { resetItemForm(); el('itType').value='Info'; showItemForm(); openModal('Nuevo ítem'); };
+el('addItemTop').onclick = () => {
+  resetItemForm(); el('itType').value='Info'; showItemForm();
+  // Con modo presentación (o si el curso ya usa composiciones), la pantalla nueva nace con la composición por defecto.
+  if (presOn() || infoItems().some(i => pj(i.payloadJson).layout)){ el('infoLayout').value = defaultLayout(); syncLayoutFields(); }
+  openModal('Nuevo ítem');
+};
 
 function showItemForm(){
   const t = el('itType').value;
@@ -2408,11 +3507,16 @@ el('addItemBtn').onclick = async () => {
       if(!el('mhTitle').value.trim()){ qmsg('Pon el título del módulo.'); return; }
       t='ModuleHeader'; payload={ title:el('mhTitle').value.trim(), subtitle:el('mhSub').value.trim() };
     } else if(type==='Info'){
-      if(infoBlocks.length===0){ qmsg('Añade al menos un bloque (texto o medio).'); return; }
+      const layout = el('infoLayout').value;
+      if(infoBlocks.length===0 && layout!=='cover'){ qmsg('Añade al menos un bloque (texto o medio).'); return; }
       const blocks = infoBlocks.map(b => b.type==='text'
         ? { type:'text', html:b.html||'', span:b.span||'full' }
         : { type:'media', mediaUrl:b.mediaUrl, mediaType:b.mediaType, span:b.span||'full' });
-      t='Info'; payload={ title:el('infoTitle').value.trim(), blocks };
+      t='Info'; payload={ ...infoExtra, title:el('infoTitle').value.trim(), blocks };
+      if(layout) payload.layout = layout;
+      if(layout==='split' && el('infoVariant').value) payload.variant = el('infoVariant').value;
+      if((layout==='dark' || layout==='photo-left') && el('infoKicker').value.trim()) payload.kicker = el('infoKicker').value.trim();
+      if((layout==='cover' || layout==='photo-left') && infoPhoto) payload.photo = infoPhoto;
     } else if(type==='Matching'){
       const media = await maybeUpload('mtFile');
       const q = el('mtQ').value.trim();
@@ -2477,6 +3581,13 @@ function editItem(id){
     el('mhTitle').value=p.title||''; el('mhSub').value=p.subtitle||'';
   } else if(it.type==='Info'){
     el('infoTitle').value=p.title||'';
+    // Campos de la lámina; lo demás que traiga el payload (photoPos, etc.) se conserva tal cual.
+    const { title:_t, blocks:_b, layout, variant, kicker, photo, samePage:_s, ...resto } = p;
+    infoExtra = resto;
+    el('infoLayout').value = LAYOUT_TXT[layout] ? layout : '';
+    el('infoVariant').value = variant==='right' || variant==='lines' ? variant : '';
+    el('infoKicker').value = kicker || '';
+    setInfoPhoto(photo || null);
     infoBlocks = (p.blocks||[]).map(b=>{
       if(b.type==='text') return { type:'text', html:b.html||'', span:b.span||'full' };
       const mt=b.mediaType||'';
@@ -2512,15 +3623,13 @@ function editItem(id){
 }
 function cancelEdit(){ closeModal(); }
 el('cancelEditBtn').onclick = cancelEdit;
-el('previewBtn').onclick = () => {
-  if(!draftVersionId) return;
-  window.open('player.html?preview='+encodeURIComponent(draftVersionId)+'&t='+encodeURIComponent(el('contentTitle').textContent)+'&_='+Date.now(), '_blank');
-};
+el('previewBtn').onclick = () => verComoEmpleado();
 
 function resetItemForm(){
   editingItemId=null; editingQMedia=null;
   el('mhTitle').value=''; el('mhSub').value='';
   el('infoTitle').value=''; el('blockFile').value=''; infoBlocks=[]; renderBlocks();
+  infoExtra={}; el('infoLayout').value=''; el('infoVariant').value=''; el('infoKicker').value=''; setInfoPhoto(null);
   el('qText').value=''; el('qFile').value=''; el('qPoints').value='10';
   optCount=4; renderOptRows();
   el('mtQ').value=''; el('mtFile').value=''; el('mtPoints').value='10';
@@ -2535,15 +3644,6 @@ async function deleteItem(itemId){
     { danger:true, icon:'trash', okText:'Eliminar' })) return;
   try{ await api('/items/'+itemId,'DELETE'); await reloadContent(); toast('Ítem eliminado.'); }catch(e){ toast(e.message,'err'); }
 }
-el('publishBtn').onclick = async () => {
-  if(!editingTrainingId) return;
-  try{ await api('/trainings/'+editingTrainingId+'/publish','POST');
-    el('contentStatus').textContent = 'publicado';
-    el('contentMsg').textContent='¡Publicado! Ya aparece en el catálogo.'; el('contentMsg').className='msg ok';
-    loadTrainings(); loadCatalog();
-  }catch(e){ el('contentMsg').textContent=e.message; el('contentMsg').className='msg err'; }
-};
-
 // ===== Versiones (sets) y asignación =====
 let asgUsers=[], asgCohorts=[], asgTrainings=[];
 let curTraining=null, curSets=[], curItems=[], curAssign=[], curPublished=false;
@@ -2878,19 +3978,6 @@ async function gradeOpen(btn, attemptId, itemId){
   try{ await api('/attempts/'+attemptId+'/grade','POST',{ itemId, points:pts, comment:cmt }); loadGrading(); }
   catch(e){ toast(e.message,'err'); }
 }
-async function loadResults(id, title){
-  el('resultsCard').classList.remove('hidden');
-  el('resultsTitle').textContent = title;
-  try{
-    const rows = await api('/trainings/'+id+'/attempts');
-    el('resultsList').innerHTML = rows.length ? rows.map(a=>`
-      <div class="item">${a.learnerName||'(anónimo)'} <span class="tag">${a.status}</span>
-        <span class="sp">${a.status==='completed' ? (a.passed?'✅':'❌')+' '+a.score+' pts' : '—'} · ${fmt(a.completedAt||a.startedAt)}${a.activeSeconds>0?` · ⏱️ ${fmtTime(a.activeSeconds)}`:''}</span></div>`).join('')
-      : `<div class="empty">Nadie lo ha tomado todavía.</div>`;
-    el('resultsCard').scrollIntoView({behavior:'smooth'});
-  }catch(e){ el('resultsList').innerHTML = `<div class="empty">${e.message}</div>`; }
-}
-
 el('blocks').addEventListener('click', e => {
   const a = e.target.closest ? e.target.closest('a') : null;
   if (a && (e.ctrlKey || e.metaKey)) { e.preventDefault(); window.open(a.href, '_blank'); }
