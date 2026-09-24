@@ -165,10 +165,14 @@ public static class Phase2Endpoints
             {
                 allowBack = PlayerConfig.AllowBack(t.PlayerConfigJson),
                 reviewAfterPass = PlayerConfig.ReviewAfterPass(t.PlayerConfigJson),
-                immediateFeedback = PlayerConfig.ImmediateFeedback(t.PlayerConfigJson)
+                immediateFeedback = PlayerConfig.ImmediateFeedback(t.PlayerConfigJson),
+                presentation = PlayerConfig.Presentation(t.PlayerConfigJson)
             });
         }).RequireAuthorization();
 
+        // El bloque `presentation` es opcional: si viene, se normaliza (valores por defecto,
+        // colores válidos, transición conocida) y reemplaza al guardado; si no viene, se
+        // conserva el que había — así el PUT de las otras opciones no lo pisa.
         app.MapPut("/trainings/{id:guid}/player-config", async (Guid id, PlayerConfigRequest req, ITenantContext tc, IServiceProvider sp) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
@@ -179,13 +183,15 @@ public static class Phase2Endpoints
             node["allowBack"] = req.AllowBack;
             if (req.ReviewAfterPass is bool rap) node["reviewAfterPass"] = rap;
             if (req.ImmediateFeedback is bool ifb) node["immediateFeedback"] = ifb;
+            if (req.Presentation is not null) node["presentation"] = PlayerConfig.Normalizar(req.Presentation).ToJson();
             t.PlayerConfigJson = node.ToJsonString();
             await db.SaveChangesAsync();
             return Results.Ok(new
             {
                 allowBack = req.AllowBack,
                 reviewAfterPass = PlayerConfig.ReviewAfterPass(t.PlayerConfigJson),
-                immediateFeedback = PlayerConfig.ImmediateFeedback(t.PlayerConfigJson)
+                immediateFeedback = PlayerConfig.ImmediateFeedback(t.PlayerConfigJson),
+                presentation = PlayerConfig.Presentation(t.PlayerConfigJson)
             });
         }).RequireAuthorization();
 
@@ -201,7 +207,8 @@ public static class Phase2Endpoints
             return Results.Ok(new
             {
                 allowBack = PlayerConfig.AllowBack(cfg),
-                immediateFeedback = PlayerConfig.ImmediateFeedback(cfg)
+                immediateFeedback = PlayerConfig.ImmediateFeedback(cfg),
+                presentation = PlayerConfig.Presentation(cfg)
             });
         }).RequireAuthorization();
 
@@ -1167,12 +1174,86 @@ public static class Phase2Endpoints
 public record AddItemRequest(string Type, string PayloadJson, int Points, bool Required, bool? Active = true, Guid? AfterItemId = null);
 public record UpdateTrainingRequest(string Title, string? Description);
 public record ConfirmTitleRequest(string ConfirmTitle);
-public record PlayerConfigRequest(bool AllowBack, bool? ReviewAfterPass = null, bool? ImmediateFeedback = null);
+public record PlayerConfigRequest(bool AllowBack, bool? ReviewAfterPass = null, bool? ImmediateFeedback = null,
+    PresentationConfig? Presentation = null);
+
+// Modo presentación: el reproductor dibuja cada página en un escenario 16:9 (1280×720)
+// escalado a la ventana, con transición entre láminas, en vez de la página con scroll.
+// Apagado por defecto: sin `enabled` el reproductor se comporta exactamente como antes.
+public record PresentationConfig(bool Enabled = false, PresentationTheme? Theme = null, string? Transition = null)
+{
+    public const string TransicionPorDefecto = "cover";
+    public static readonly string[] Transiciones = { "cover", "fade", "none" };
+
+    public JsonObject ToJson() => new()
+    {
+        ["enabled"] = Enabled,
+        ["theme"] = (Theme ?? new PresentationTheme()).ToJson(),
+        ["transition"] = Transition ?? TransicionPorDefecto
+    };
+}
+
+// bg: fondo del escenario; accent: color de líneas y marcos; panel: si las láminas
+// `split` llevan el panel diagonal oscuro; panelTitle: texto en mayúsculas de ese panel
+// (vacío = el título del curso).
+public record PresentationTheme(string? Bg = null, string? Accent = null, bool Panel = true, string? PanelTitle = null)
+{
+    public const string BgPorDefecto = "#0d0d0d";
+    public const string AccentPorDefecto = "#f97316";
+
+    public JsonObject ToJson() => new()
+    {
+        ["bg"] = Bg ?? BgPorDefecto,
+        ["accent"] = Accent ?? AccentPorDefecto,
+        ["panel"] = Panel,
+        ["panelTitle"] = PanelTitle ?? ""
+    };
+}
 
 // Lectura tolerante del blob de opciones del reproductor: si falta o está corrupto,
 // se comporta como antes (se puede volver atrás, y no queda disponible para repaso).
 public static class PlayerConfig
 {
+    // Bloque `presentation` ya normalizado (siempre completo, con valores por defecto).
+    public static PresentationConfig Presentation(string? json)
+    {
+        try
+        {
+            var node = JsonNode.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json!)?["presentation"];
+            if (node is null) return Normalizar(null);
+            var cfg = System.Text.Json.JsonSerializer.Deserialize<PresentationConfig>(node.ToJsonString(),
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return Normalizar(cfg);
+        }
+        catch { return Normalizar(null); }
+    }
+
+    // Rellena lo que falte y descarta lo inválido: colores que no sean #rgb/#rrggbb y
+    // transiciones desconocidas vuelven al valor por defecto; el título del panel se
+    // recorta a 120 caracteres.
+    public static PresentationConfig Normalizar(PresentationConfig? cfg)
+    {
+        cfg ??= new PresentationConfig();
+        var th = cfg.Theme ?? new PresentationTheme();
+        var transition = (cfg.Transition ?? "").Trim().ToLowerInvariant();
+        if (!PresentationConfig.Transiciones.Contains(transition)) transition = PresentationConfig.TransicionPorDefecto;
+        return new PresentationConfig(
+            cfg.Enabled,
+            new PresentationTheme(
+                Color(th.Bg) ?? PresentationTheme.BgPorDefecto,
+                Color(th.Accent) ?? PresentationTheme.AccentPorDefecto,
+                th.Panel,
+                (th.PanelTitle ?? "").Trim() is { Length: > 0 } pt ? (pt.Length > 120 ? pt[..120] : pt) : ""),
+            transition);
+    }
+
+    private static string? Color(string? s)
+    {
+        s = (s ?? "").Trim().ToLowerInvariant();
+        if (s.Length is not (4 or 7) || s[0] != '#') return null;
+        return s.Skip(1).All(Uri.IsHexDigit) ? s : null;
+    }
+
     public static bool AllowBack(string? json) => Leer(json, "allowBack", true);
 
     // Manual del empleado, onboarding: una vez aprobado, el learner puede volver a

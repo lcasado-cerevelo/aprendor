@@ -4,7 +4,8 @@
 //
 // Tipos y formas de payload (ver wwwroot/index.html y Phase2.cs):
 //   ModuleHeader   { title, subtitle }
-//   Info           { title, blocks:[{type:'text',html,span}|{type:'media',...}] }
+//   Info           { title, blocks:[{type:'text',html,span}|{type:'media',...}],
+//                    layout?, photo?, photoPos?, variant?, kicker? }   (ver slide() más abajo)
 //   MultipleChoice { question, options:[{id,text}], correctOptionId }
 //   MultiSelect    { question, options:[{id,text}], correctOptionIds }   (todo o nada)
 //   Matching       { question, choices:[{id,text}], prompts:[{id,text,correctChoiceId}] }
@@ -34,6 +35,54 @@ export const fig = (moduleUrl, relPath, alt, credit, maxWidth = 900) => {
 };
 
 export const info = (title, ...blocks) => ({ type: 'Info', payload: { title, blocks } });
+
+// ---- Modo presentación (PlayerConfig.presentation) -------------------------
+// Cuando el curso tiene `presentation.enabled`, el reproductor dibuja cada pantalla
+// Info como una lámina 16:9 (1280×720) según su `layout`:
+//   cover       foto a sangre + banda blanca con el título (portada)
+//   dark        fondo oscuro, `kicker` en mayúsculas arriba (por defecto el título del
+//               panel), línea de acento, y el título + cuerpo debajo
+//   split       panel diagonal oscuro a la izquierda con el título del panel, contenido
+//               a la derecha sobre blanco. `variant`: 'right' (panel blanco a la izquierda
+//               y contenido sobre oscuro a la derecha) o 'lines' (fondo oscuro, título
+//               del panel entre dos líneas de acento).
+//   photo-left  foto a la izquierda (~40 %), contenido a la derecha. `photoPos` es el
+//               object-position CSS para elegir qué parte de la foto se ve.
+// Sin modo presentación, el reproductor ignora estos campos y la pantalla se ve como
+// cualquier otra Info (título, foto si la hay, bloques). El cuerpo de la lámina se
+// escribe en HTML semántico (p, ul/li, b, h3) sin estilos inline: la hoja de estilos
+// del reproductor lo viste como el deck; en modo clásico se ve como texto normal.
+
+// Foto local como data URL (sin <figure>): para `photo` de cover / photo-left.
+export const photo = (moduleUrl, relPath) => {
+  const filePath = path.join(path.dirname(fileURLToPath(moduleUrl)), relPath);
+  const ext = path.extname(filePath).slice(1).toLowerCase();
+  const mime = ext === 'jpg' ? 'jpeg' : ext;
+  return `data:image/${mime};base64,${fs.readFileSync(filePath).toString('base64')}`;
+};
+
+export const LAYOUTS = ['cover', 'dark', 'split', 'photo-left'];
+export const SPLIT_VARIANTS = ['left', 'right', 'lines'];
+
+export const slide = ({ layout = 'dark', title = '', photo, photoPos, variant, kicker }, ...blocks) => {
+  if (!LAYOUTS.includes(layout)) throw new Error(`layout desconocido: ${layout}`);
+  if (variant && !SPLIT_VARIANTS.includes(variant)) throw new Error(`variant desconocida: ${variant}`);
+  const payload = { title, layout, blocks };
+  if (photo) payload.photo = photo;
+  if (photoPos) payload.photoPos = photoPos;
+  if (variant) payload.variant = variant;
+  if (kicker) payload.kicker = kicker;
+  return { type: 'Info', payload };
+};
+
+// Viñetas al estilo del deck. Cada elemento es texto, o [texto, [sub-viñetas]].
+export const bullets = items =>
+  `<ul>${items.map(it => Array.isArray(it)
+    ? `<li>${it[0]}${bullets(it[1])}</li>`
+    : `<li>${it}</li>`).join('')}</ul>`;
+
+// Subtítulo de sección dentro de una lámina (p. ej. "INSTRUCCIONES", "Empleados").
+export const heading = text => `<h3>${text}</h3>`;
 
 export const mod = (title, subtitle = '') => ({ type: 'ModuleHeader', payload: { title, subtitle } });
 
