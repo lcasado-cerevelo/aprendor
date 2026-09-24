@@ -349,6 +349,57 @@
   .psl.sl-photo .sl-rule{position:absolute;left:535px;right:85px;top:218px;border-top:3px solid var(--pacc);}
   .psl.sl-photo .sl-body{left:535px;right:85px;top:255px;bottom:40px;font-size:24px;}
   .psl.sl-photo .sl-body h2{font-size:30px;}
+
+  /* ===== Cumplimiento: banner del inicio, KPIs y listas ===== */
+  #dashAlerts:empty{display:none;} #dashAlerts{margin:0 0 14px;}
+  .alertbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#fff5f5;border:1px solid #fecaca;border-left:4px solid var(--err);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;box-shadow:var(--rest);}
+  .alertbar .ic{width:34px;height:34px;border-radius:10px;background:var(--err-bg);color:var(--err);display:grid;place-items:center;flex:0 0 auto;}
+  .alertbar .t{flex:1;min-width:200px;color:var(--ink);} .alertbar .t b{font-family:var(--display);color:var(--err);}
+  .alertbar .t small{display:block;color:#7f1d1d;font-size:12.5px;}
+  .alertbar .acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .btn.red{background:var(--err);box-shadow:none;} .btn.red:hover{background:#991b1b;}
+  .btn.quiet{background:transparent;color:#7f1d1d;border:1px solid #fecaca;box-shadow:none;} .btn.quiet:hover{background:var(--err-bg);}
+  .kpi.go{cursor:pointer;border:2px solid transparent;text-align:left;width:100%;color:var(--ink);transition:.15s;}
+  .kpi.go:hover{border-color:#c7d2fe;} .kpi.go.on{border-color:var(--brand);background:#fff;}
+  .kpi.go:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .kpi.gray .n{color:var(--gray);}
+  .fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 6px;}
+  .field.sm{padding:7px 10px;font-size:13px;width:auto;max-width:100%;}
+  .lacts{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px;font-size:12.5px;}
+  .lacts .linkbtn:disabled{color:var(--muted);text-decoration:none;cursor:default;}
+  .li .st{flex:0 0 auto;}
+  .st.xs{font-size:11.5px;padding:2px 8px;}
+  .digest{border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;background:var(--panel2);}
+  .digest .subj{font:700 14.5px var(--display);} .digest small{color:var(--muted);}
+  .digest .sectionhead{margin:12px 0 4px;} .digest .sectionhead h4{font-size:11.5px;}
+  .digest .drow{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13px;}
+  .digest .drow:last-child{border-bottom:none;} .digest .drow .w{margin-left:auto;white-space:nowrap;}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:9px 2px;border-bottom:1px solid var(--line);font-size:13.5px;}
+  .kv span{color:var(--muted);} .kv b{text-align:right;overflow-wrap:anywhere;}
+
+  /* ===== Grupos ===== */
+  .gtop{display:flex;gap:12px;align-items:center;}
+  .gic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:#fff;flex:0 0 auto;}
+  .ghead{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:20px;border-bottom:1px solid var(--line);}
+  .ghead .gic{width:56px;height:56px;border-radius:var(--r);}
+  .ghead h2{font-size:22px;margin:0 0 6px;} .ghead .t{flex:1;min-width:200px;}
+  .pick{border:1px solid var(--line);border-radius:var(--r);margin-top:6px;max-height:260px;overflow:auto;background:#fff;}
+  .pick .li{padding:9px 12px;} .pick .li:last-child{border-bottom:none;}
+  .prow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:11px 2px;border-bottom:1px solid var(--line);}
+  .prow .t{flex:1 1 220px;min-width:0;} .prow .t b{display:block;font-family:var(--display);} .prow .t small{color:var(--muted);font-size:12.5px;}
+  .prow select{max-width:210px;}
+
+  /* ===== Expediente: una tarjeta horizontal por certificado ===== */
+  .certs{display:flex;flex-direction:column;gap:12px;}
+  .cert{background:#fff;border-radius:var(--r);display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;padding:14px 16px;box-shadow:var(--rest);}
+  .cert .seal{width:52px;height:52px;border-radius:var(--r);display:grid;place-items:center;color:#fff;}
+  .cert h3{margin:0;font-size:15px;} .cert .meta{margin-top:4px;}
+  .cert .note{color:var(--muted);font-size:12.5px;margin-top:4px;}
+  .cert .bar{height:6px;background:var(--gray-bg);border-radius:999px;margin-top:8px;max-width:360px;overflow:hidden;}
+  .cert .bar i{display:block;height:100%;background:var(--ok);}
+  .cert .bar.warn i{background:var(--warn);} .cert .bar.err i{background:var(--err);}
+  .cert .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+  @media (max-width:640px){.cert{grid-template-columns:auto 1fr;}.cert .acts{grid-column:1/-1;justify-content:flex-start;}}
   @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
 </style>
 </head>
@@ -569,6 +620,9 @@
 
       <!-- DASHBOARD -->
       <div id="dashGrid">
+        <!-- Cumplimiento (Admin y oficiales): un banner rojo por curso con personas vencidas -->
+        <div id="dashAlerts" role="region" aria-label="Alertas de cumplimiento"></div>
+
         <div class="dash-head">
           <h1 class="dash-title">Hola, <span id="dashName"></span></h1>
           <p class="dash-sub" id="dashSub">Este es tu panel.</p>
@@ -695,54 +749,107 @@
         <div id="repasoRow"></div>
       </div>
 
-      <!-- SECCIÓN: Historial -->
+      <!-- SECCIÓN: Expediente (una tarjeta por certificado) -->
       <div class="section hidden" id="sec-record">
         <button class="back-link" onclick="showDash()">← Inicio</button>
-        <div class="card">
-          <h2>Expediente de certificaciones</h2>
-          <p class="sub" style="margin:0 0 12px">Todo junto: lo aprobado en la plataforma y lo que se tomó fuera.</p>
-          <div class="row" style="margin-bottom:10px;gap:10px;flex-wrap:wrap">
-            <select id="recUser" class="field" style="max-width:320px"></select>
-            <button class="btn sm ghost" onclick="loadRecord()">Ver expediente</button>
-            <button class="btn sm ghost" id="recAddBtn" onclick="toggleCertForm()">+ Registrar certificación externa</button>
+        <div class="pagehead">
+          <div><h1 id="recTitle">Expediente</h1><p>Certificados de la plataforma y certificaciones externas, juntos.</p></div>
+          <div class="inline">
+            <span id="recPick" class="hidden"><select id="recUser" class="field" style="min-width:240px" aria-label="Empleado" onchange="loadRecord()"></select></span>
+            <button type="button" class="btn dim" id="recAddBtn" onclick="toggleCertForm()">+ Certificación externa</button>
           </div>
+        </div>
 
-          <div id="certForm" class="hidden" style="border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px">
-            <div class="row" style="gap:10px;flex-wrap:wrap">
-              <div style="flex:1 1 260px"><label>Certificación</label><input id="ceTitle" class="field" placeholder="Ej. OSHA 10 horas" /></div>
-              <div style="flex:1 1 200px"><label>Emitida por</label><input id="ceIssuer" class="field" placeholder="Ej. OSHA Training Institute" /></div>
-            </div>
-            <div class="row" style="gap:10px;flex-wrap:wrap">
-              <div style="flex:1 1 160px"><label>Fecha de emisión</label><input id="ceIssued" class="field" type="date" /></div>
-              <div style="flex:1 1 160px"><label>Vence (opcional)</label><input id="ceExpires" class="field" type="date" /></div>
-              <div style="flex:1 1 200px"><label>Número / folio</label><input id="ceCred" class="field" placeholder="Opcional" /></div>
-            </div>
-            <div class="row" style="gap:10px;flex-wrap:wrap">
-              <div style="flex:1 1 260px"><label>Documento (PDF o imagen)</label><input id="ceFile" class="field" type="file" accept=".pdf,image/*" /></div>
-              <div style="flex:1 1 260px"><label>o enlace externo (Tempox u otro)</label><input id="ceUrl" class="field" placeholder="https://…" /></div>
-            </div>
-            <div class="row" style="gap:10px;flex-wrap:wrap">
-              <div style="flex:1 1 160px"><label>Sistema externo</label><input id="ceSource" class="field" placeholder="tempox" /></div>
-              <div style="flex:1 1 160px"><label>Id en ese sistema</label><input id="ceRef" class="field" placeholder="Opcional" /></div>
-              <div style="flex:1 1 260px"><label>Notas</label><input id="ceNotes" class="field" placeholder="Opcional" /></div>
-            </div>
-            <div style="margin-top:12px">
-              <button class="btn sm" onclick="saveCert()">Guardar en el expediente</button>
-              <button class="btn sm ghost" onclick="toggleCertForm()">Cancelar</button>
-            </div>
-            <p class="msg" id="certMsg2"></p>
+        <div id="certForm" class="card hidden">
+          <h2>Registrar certificación externa</h2>
+          <p class="hint">Una certificación tomada fuera de la plataforma (OSHA, un curso presencial…). Queda en el expediente con la etiqueta «Externa».</p>
+          <div class="row" style="gap:10px;flex-wrap:wrap">
+            <div style="flex:1 1 260px"><label for="ceTitle">Certificación</label><input id="ceTitle" class="field" placeholder="Ej. OSHA 10 horas" /></div>
+            <div style="flex:1 1 200px"><label for="ceIssuer">Emitida por</label><input id="ceIssuer" class="field" placeholder="Ej. OSHA Training Institute" /></div>
           </div>
+          <div class="row" style="gap:10px;flex-wrap:wrap">
+            <div style="flex:1 1 160px"><label for="ceIssued">Fecha de emisión</label><input id="ceIssued" class="field" type="date" /></div>
+            <div style="flex:1 1 160px"><label for="ceExpires">Vence (opcional)</label><input id="ceExpires" class="field" type="date" /></div>
+            <div style="flex:1 1 200px"><label for="ceCred">Número / folio</label><input id="ceCred" class="field" placeholder="Opcional" /></div>
+          </div>
+          <div class="row" style="gap:10px;flex-wrap:wrap">
+            <div style="flex:1 1 260px"><label for="ceFile">Documento (PDF o imagen)</label><input id="ceFile" class="field" type="file" accept=".pdf,image/*" /></div>
+            <div style="flex:1 1 260px"><label for="ceUrl">o enlace externo (Tempox u otro)</label><input id="ceUrl" class="field" placeholder="https://…" /></div>
+          </div>
+          <div class="row" style="gap:10px;flex-wrap:wrap">
+            <div style="flex:1 1 160px"><label for="ceSource">Sistema externo</label><input id="ceSource" class="field" placeholder="tempox" /></div>
+            <div style="flex:1 1 160px"><label for="ceRef">Id en ese sistema</label><input id="ceRef" class="field" placeholder="Opcional" /></div>
+            <div style="flex:1 1 260px"><label for="ceNotes">Notas</label><input id="ceNotes" class="field" placeholder="Opcional" /></div>
+          </div>
+          <div class="panefoot">
+            <button type="button" class="btn sm" onclick="saveCert()">Guardar en el expediente</button>
+            <button type="button" class="btn sm ghost" onclick="toggleCertForm()">Cancelar</button>
+          </div>
+          <p class="msg" id="certMsg2"></p>
+        </div>
 
-          <div class="list" id="recordList"><div class="empty">Escoge un empleado y pulsa "Ver expediente".</div></div>
+        <div class="certs" id="recordList"></div>
+      </div>
+
+      <!-- SECCIÓN: Historial -->
+      <div class="section hidden" id="sec-history">
+        <button class="back-link" onclick="showDash()">← Inicio</button>
+        <div class="pagehead">
+          <div><h1>Mi historial</h1><p>Tus intentos y resultados. De un curso aprobado puedes reenviarte el enlace del certificado.</p></div>
+          <button type="button" class="btn dim" id="refreshHistBtn">Actualizar</button>
+        </div>
+        <div class="card"><div class="list" id="historyList" style="margin-top:0"></div></div>
+      </div>
+
+      <!-- SECCIÓN: Cumplimiento (Admin de la compañía y oficiales de cumplimiento) -->
+      <div class="section hidden" id="sec-compliance">
+        <button class="back-link" onclick="showDash()">← Inicio</button>
+        <div class="pagehead">
+          <div><h1>Cumplimiento</h1><p>Lo mismo que recibe el oficial por correo, en vivo.</p></div>
+          <button type="button" class="btn dim" onclick="loadCompliance()">Actualizar</button>
+        </div>
+        <div class="ficha">
+          <div class="pane">
+            <div id="compKpis"></div>
+            <div class="two">
+              <div id="compLeft"></div>
+              <div id="compRight"></div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="section hidden" id="sec-history">
-        <button class="back-link" onclick="showDash()">← Inicio</button>
-        <div class="card">
-          <h2>Mi historial</h2>
-          <div class="row" style="margin-bottom:6px"><button class="btn sm ghost" id="refreshHistBtn">Actualizar</button></div>
-          <div class="list" id="historyList"></div>
+      <!-- SECCIÓN: Grupos (miembros, plan de onboarding y sets) -->
+      <div class="section hidden" id="sec-groups">
+        <div id="grpListView">
+          <button class="back-link" onclick="showDash()">← Inicio</button>
+          <div class="pagehead">
+            <div><h1>Grupos</h1><p>Miembros, plan de onboarding y el set de contenido de cada grupo.</p></div>
+            <button type="button" class="btn" onclick="newGroup()">+ Nuevo grupo</button>
+          </div>
+          <div id="grpGrid"></div>
+
+          <div class="card" id="setsCard" style="margin-top:22px">
+            <h2>Sets por adiestramiento</h2>
+            <p class="hint">Arma el adiestramiento <b>una vez</b> con todo el contenido; un <b>set</b> es una versión donde solo eliges qué se enseña (todo viene marcado y desmarcas lo que no quieres). Al empleado siempre le aparece el mismo nombre. Precedencia: <b>persona › grupo › set por defecto</b>. El set de cada grupo también se escoge en la pestaña Plan del grupo.</p>
+            <label for="setTraining">Adiestramiento</label>
+            <select id="setTraining" class="field" style="max-width:420px" onchange="loadSets()"></select>
+            <div id="setsArea" style="margin-top:14px"></div>
+            <p class="msg" id="assignMsg"></p>
+          </div>
+        </div>
+
+        <div id="grpFicha" class="hidden">
+          <button class="back-link" onclick="closeGroup()">← Grupos</button>
+          <div class="ficha">
+            <div class="ghead" id="gHead"></div>
+            <div class="ftabs" id="gTabs" role="tablist" aria-label="Secciones del grupo">
+              <button type="button" class="ftab on" role="tab" aria-selected="true" data-t="miembros" onclick="setGrpTab('miembros')">Miembros</button>
+              <button type="button" class="ftab" role="tab" aria-selected="false" data-t="plan" onclick="setGrpTab('plan')">Plan</button>
+            </div>
+            <div class="pane" role="tabpanel" data-p="miembros" id="gMembers"></div>
+            <div class="pane" role="tabpanel" data-p="plan" id="gPlan" hidden></div>
+          </div>
         </div>
       </div>
 
@@ -764,34 +871,6 @@
       </div>
 
     </div>
-  </div>
-</div>
-
-<!-- PANTALLA DE VERSIONES Y ASIGNACIÓN -->
-<div id="assignView" class="screen hidden">
-  <div class="screen-bar">
-    <button class="btn sm ghost" id="backFromAssign" style="color:#cbd5e1;border-color:#334155">← Volver</button>
-    <div style="margin-left:4px"><b>Versiones y asignación</b></div>
-  </div>
-  <div class="screen-body">
-    <p class="hint" style="color:#475569">Arma el adiestramiento <b>una vez</b> con todo el contenido. Luego crea <b>sets</b> (versiones) donde solo eliges qué se enseña — todo viene marcado y desmarcas lo que no quieres. Al usuario siempre le aparece el mismo nombre del adiestramiento. Asigna qué set ve cada usuario o cohorte. Precedencia: <b>usuario › cohorte › set por defecto</b>.</p>
-
-    <div class="card" style="margin-bottom:16px">
-      <h2>Cohortes (grupos de usuarios)</h2>
-      <div class="row">
-        <div><input id="cohortName" class="field" placeholder="Departamento de Ventas" /></div>
-        <button class="btn sm" id="addCohortBtn">Crear cohorte</button>
-      </div>
-      <div class="list" id="cohortList"></div>
-    </div>
-
-    <div class="card">
-      <h2>Sets y asignación por adiestramiento</h2>
-      <label>Adiestramiento</label>
-      <select id="setTraining" class="field" style="max-width:420px" onchange="loadSets()"></select>
-      <div id="setsArea" style="margin-top:14px"></div>
-    </div>
-    <p class="msg" id="assignMsg"></p>
   </div>
 </div>
 
@@ -1157,7 +1236,8 @@ async function api(path, method='GET', body=null){
   if (res.status === 401){ logout(); throw new Error('No autorizado'); }
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
-  if (!res.ok) throw new Error((data && (data.title || data)) || ('Error ' + res.status));
+  // El servidor responde con un texto o con { title } / { error }; si no, el código.
+  if (!res.ok) throw new Error((data && (data.title || data.error || (typeof data === 'string' ? data : null))) || ('Error ' + res.status));
   return data;
 }
 
@@ -1395,18 +1475,38 @@ function showApp(){
   el('appView').classList.remove('hidden');
   const dispName = user.name || user.email;
   el('whoName').textContent = dispName;
-  el('whoRole').textContent = roleLabel(user.role) + (user.tenantId ? '' : ' · plataforma');
+  paintWhoRole();
   el('navAvatar').textContent = initials(dispName);
   const isAdmin = user.role === 'Admin' && !user.tenantId;
   el('adminView').classList.toggle('hidden', !isAdmin);
   el('tenantAppView').classList.toggle('hidden', isAdmin);
+  // Lo que depende de la compañía activa se olvida (al cambiar de compañía, por ejemplo).
+  compSummary = null; compDenied = false; compAlerts = null; recPeople = []; grpSets = {}; grpId = null;
   if (isAdmin){ loadTenants(); }
   else {
     el('dashName').textContent = user.name ? user.name.trim().split(/\s+/)[0] : dispName;
     buildDashTiles();
     loadDashStats();
     showDash();
+    refreshMe();
   }
+}
+function paintWhoRole(){
+  el('whoRole').textContent = roleLabel(user.role) + (user.tenantId ? '' : ' · plataforma')
+    + (user.tenantId && user.isComplianceOfficer ? ' · Oficial de cumplimiento' : '');
+}
+// La marca de oficial de cumplimiento se consulta al entrar (/me): quitarla o ponerla
+// surte efecto sin volver a iniciar sesión.
+async function refreshMe(){
+  try{
+    const me = await api('/me');
+    const oficial = !!(me && me.isComplianceOfficer === true);
+    if (oficial === (user.isComplianceOfficer === true)) return;
+    user.isComplianceOfficer = oficial;
+    localStorage.setItem('tp_user', JSON.stringify(user));
+    paintWhoRole();
+    if (!el('dashGrid').classList.contains('hidden')){ buildDashTiles(); loadAlerts(); }
+  }catch(e){}
 }
 
 // ===== Perfil =====
@@ -1518,17 +1618,23 @@ async function tfaDisable(){
 let tenantName = '';
 
 // ===== Dashboard y navegación por secciones =====
-const SECTIONS = ['sec-manage','sec-take','sec-history','sec-review','sec-record'];
+const SECTIONS = ['sec-manage','sec-take','sec-history','sec-review','sec-record','sec-compliance','sec-groups'];
 function isCreator(){ return !!user && ['Admin','Author'].includes(user.role); }
 function isReviewer(){ return !!user && ['Admin','Author','Moderator'].includes(user.role); }
+// Cumplimiento: el Admin de la compañía o quien tenga la marca de oficial (no es un rol).
+function canCompliance(){ return !!user && !!user.tenantId && (user.role === 'Admin' || user.isComplianceOfficer === true); }
+function isCompanyAdmin(){ return !!user && !!user.tenantId && user.role === 'Admin'; }
 
 function buildDashTiles(){
   const tiles = [];
   tiles.push({key:'take', icon:'book', title:'Mis adiestramientos', desc:'Por tomar, en progreso y por renovar', badge:'badge-take'});
-  tiles.push({key:'record', icon:'folder', title:'Expediente', desc:'Certificaciones en línea y las tomadas fuera'});
+  tiles.push({key:'record', icon:'folder', title:'Expediente', desc:'Tus certificados y sus enlaces'});
+  if (canCompliance()){
+    tiles.push({key:'compliance', icon:'shield', title:'Cumplimiento', desc:'Vencidos, por vencer y avisos al oficial', badge:'badge-comp'});
+  }
   if (isCreator()){
     tiles.push({key:'manage', icon:'layers', title:'Adiestramientos', desc:'Crear, editar contenido y publicar'});
-    tiles.push({key:'assign', icon:'sliders', title:'Sets y asignación', desc:'Versiones y quién ve qué'});
+    tiles.push({key:'groups', icon:'users', title:'Grupos', desc:'Miembros, plan de onboarding y sets'});
   }
   if (isReviewer()){
     tiles.push({key:'review', icon:'checkCircle', title:'Revisar', desc:'Calificar y aprobar cancelaciones', badge:'badge-review'});
@@ -1764,8 +1870,10 @@ function renderHero(rows){
 }
 
 async function refreshBadges(){
-  // El número de «Mis adiestramientos» sale de la misma carga del inicio (loadDashStats).
+  // El número de «Mis adiestramientos» sale de la misma carga del inicio (loadDashStats);
+  // el de «Cumplimiento», de /compliance/alerts (loadAlerts).
   paintTakeBadge();
+  paintCompBadge();
   if (isReviewer()){
     try{
       const g = await api('/grading/pending');
@@ -1783,8 +1891,8 @@ function paintTakeBadge(){
 }
 
 function tileGo(key){
-  if (key==='assign'){ openAssign(); return; }
   if (key==='profile'){ openProfile(); return; }
+  if (key==='compliance'){ openCompliance(); return; }
   if (key==='take') catFilter = 'all';
   showSection('sec-'+key);
 }
@@ -1793,82 +1901,213 @@ function showDash(){
   el('dashGrid').classList.remove('hidden');
   buildDashTiles();
   loadDashStats();
+  loadAlerts();
 }
 function showSection(id){
   el('dashGrid').classList.add('hidden');
   SECTIONS.forEach(s=>el(s).classList.toggle('hidden', s!==id));
+  window.scrollTo({ top:0 });
   if (id==='sec-manage'){ fichaId=null; el('mgFicha').classList.add('hidden'); el('mgList').classList.remove('hidden'); loadTrainings(); }
   else if (id==='sec-take'){ loadCatalog(); }
   else if (id==='sec-history'){ loadMyHistory(); }
   else if (id==='sec-review'){ loadGrading(); loadPending(); }
   else if (id==='sec-record'){ initRecord(); }
+  else if (id==='sec-compliance'){ loadCompliance(); }
+  else if (id==='sec-groups'){ showGroupList(); loadGroups(); }
 }
 
 // ===== Expediente de certificaciones =====
-// El learner ve el suyo; autores y moderadores pueden ver el de cualquiera y
-// registrar certificaciones tomadas fuera de la plataforma.
+// Una tarjeta horizontal por certificado: curso, emitido, vence, folio, barra de vigencia
+// y cuántas veces se abrió su enlace, con Ver / Reenviar enlace / Revocar. Las externas
+// llevan la etiqueta «Externa». El empleado ve el suyo; autores, moderadores y oficiales
+// de cumplimiento, el de cualquiera (autores y moderadores registran además las externas).
+let recPeople = [];        // [{ id, name }] para el selector
+let recTarget = null;      // persona que se abre desde Cumplimiento («Ver expediente»)
+let recRows = [];          // último /record/{userId}
+let recUserId = null;
+let recLinks = {};         // folio → /certificates/{folio}/links
+let recPaint = 0;
+
+function canManageCerts(){ return isReviewer() || canCompliance(); }
 async function initRecord(){
   const sel = el('recUser');
+  const otros = canManageCerts();
   el('recAddBtn').classList.toggle('hidden', !isReviewer());
-  if (!isReviewer()){
-    sel.innerHTML = `<option value="${user.id}">${user.name || user.email}</option>`;
-    sel.disabled = true;
-    loadRecord();
-    return;
-  }
-  if (sel.options.length === 0){
+  el('certForm').classList.add('hidden');
+  el('recPick').classList.toggle('hidden', !otros);
+  const yo = { id:user.id, name:user.name || user.email };
+  if (!otros) recPeople = [yo];
+  else if (!recPeople.length){
     try{
       const us = await api('/tenant-users');
-      sel.innerHTML = us.map(u=>`<option value="${u.id}">${u.name || u.email}</option>`).join('');
-      const yo = us.find(u=>u.id===user.id); if(yo) sel.value = yo.id;
-    }catch(e){ sel.innerHTML = `<option value="${user.id}">${user.name || user.email}</option>`; }
+      recPeople = (us || []).map(u => ({ id:u.id, name:u.name || u.email }));
+    }catch(e){
+      // Oficial sin rol de autor: las personas salen del panel de cumplimiento.
+      await loadCompSummary();
+      const m = new Map(); compRowsAll().forEach(r => m.set(r.userId, r.name));
+      recPeople = [...m].map(([id, name]) => ({ id, name }));
+    }
+    if (!recPeople.some(p => p.id === user.id)) recPeople.push(yo);
+    recPeople.sort((a, b) => a.name.localeCompare(b.name, 'es'));
   }
+  if (recTarget && !recPeople.some(p => p.id === recTarget.id)) recPeople.push(recTarget);
+  const antes = sel.value;
+  sel.innerHTML = recPeople.map(p => `<option value="${p.id}">${esc(p.name)}${p.id === user.id ? ' (yo)' : ''}</option>`).join('');
+  sel.value = recTarget ? recTarget.id : (recPeople.some(p => p.id === antes) ? antes : user.id);
+  recTarget = null;
   loadRecord();
 }
-
+function openRecordFor(uid){
+  const r = compRowsAll().find(x => x.userId === uid);
+  recTarget = { id:uid, name: r ? r.name : '(empleado)' };
+  showSection('sec-record');
+}
 async function loadRecord(){
   const userId = el('recUser').value || user.id;
+  const p = recPeople.find(x => x.id === userId);
+  el('recTitle').textContent = userId === user.id ? 'Mi expediente' : 'Expediente de ' + (p ? p.name : '…');
+  el('recordList').innerHTML = loadingHtml();
+  recUserId = userId; recRows = []; recLinks = {};
   try{
     const filas = await api('/record/'+userId);
-    el('recordList').innerHTML = filas.length ? filas.map(r=>{
-      const origen = r.origen === 'plataforma'
-        ? `<span class="tag" style="background:#e0e7ff;color:#3730a3">en línea</span>`
-        : `<span class="tag" style="background:#fef3c7;color:#92400e">externa${r.externalSource?(' · '+r.externalSource):''}</span>`;
-      const estado = r.vigente
-        ? `<span class="tag" style="background:#dcfce7;color:#166534">vigente</span>`
-        : `<span class="tag" style="background:#fee2e2;color:#991b1b">vencida</span>`;
-      const fechas = `emitida ${String(r.issuedOn).slice(0,10)}` + (r.expiresOn ? ` · vence ${String(r.expiresOn).slice(0,10)}` : ' · no caduca');
-      const doc = r.documentUrl ? `<a class="btn sm ghost" style="text-decoration:none" href="${r.documentUrl}" target="_blank" rel="noopener">Ver documento</a>` : '';
-      const pdf = r.origen === 'plataforma'
-        ? `<button class="btn sm ghost" onclick="bajarCertPdf('${r.credentialId}')">Descargar PDF</button>` : '';
-      const borrar = (r.origen==='externa' && isReviewer())
-        ? `<button class="btn sm ghost danger" onclick="deleteCert('${r.id}')">Eliminar</button>` : '';
-      return `<div class="item" style="flex-wrap:wrap;gap:8px">
-        <div style="flex:1 1 320px">
-          <div style="font-weight:600">${r.title} ${origen} ${estado}</div>
-          <div style="color:var(--muted);font-size:13px">${fechas}${r.issuer?(' · '+r.issuer):''}${r.credentialId?(' · folio '+r.credentialId):''}</div>
-          ${r.notes?`<div style="color:var(--muted);font-size:13px">${r.notes}</div>`:''}
-        </div>
-        <span class="sp">${doc} ${pdf} ${borrar}</span></div>`;
-    }).join('') : `<div class="empty">Sin certificaciones registradas.</div>`;
-  }catch(e){ el('recordList').innerHTML = `<div class="empty">${e.message}</div>`; }
+    if (userId !== recUserId) return;
+    recRows = Array.isArray(filas) ? filas : [];
+  }catch(e){
+    el('recordList').innerHTML = stateBox('alert','err','No se pudo cargar el expediente', e.message);
+    return;
+  }
+  renderRecord();
+  // Cuántas veces se abrió cada enlace: después de pintar, sin demorar la lista.
+  recRows.filter(r => r.origen === 'plataforma' && r.credentialId).forEach(r => loadCertLinks(r.credentialId));
+}
+async function loadCertLinks(serial){
+  const uid = recUserId;
+  try{
+    const d = await api('/certificates/'+encodeURIComponent(serial)+'/links');
+    if (uid !== recUserId) return;
+    recLinks[serial] = d;
+    cancelAnimationFrame(recPaint); recPaint = requestAnimationFrame(renderRecord);   // varias respuestas, un solo repintado
+  }catch(e){}
+}
+// Mismo color e ícono que la tarjeta del curso en «Mis adiestramientos», si se conoce.
+function recordLook(title){
+  const c = catItems.find(x => x.title === title);
+  if (c) return courseLook(c);
+  return { grad: GRADS[hashStr(title) % GRADS.length], icon: courseIcon(title) };
+}
+function docUrl(u){
+  return /^\/media\//.test(u || '') ? u + (u.includes('?') ? '&' : '?') + 'access_token=' + encodeURIComponent(token) : u;
+}
+function renderRecord(){
+  const box = el('recordList'); if (!box) return;
+  const propio = recUserId === user.id;
+  if (!recRows.length){
+    box.innerHTML = stateBox('award','gray','Sin certificaciones todavía', propio
+      ? 'Cuando apruebes un adiestramiento, su certificado aparecerá aquí con su enlace.'
+      : 'Esta persona aún no tiene certificados ni certificaciones externas registradas.');
+    return;
+  }
+  box.innerHTML = recRows.map((r, i) => certCard(r, i, propio)).join('');
+}
+function certCard(r, i, propio){
+  const ext = r.origen !== 'plataforma';
+  const emit = diaLocal(r.issuedOn), exp = r.expiresOn ? diaLocal(r.expiresOn) : null;
+  const vencida = r.vigente === false;
+  const dias = exp ? daysUntil(exp) : null;
+  const tono = !exp ? 'ok' : vencida ? 'err' : dias <= compDueSoon ? 'warn' : 'ok';
+  let pct = 100;
+  if (exp && !vencida){
+    const total = exp - emit, pasado = Date.now() - emit;
+    pct = total > 0 ? Math.min(100, Math.max(2, Math.round(pasado / total * 100))) : 100;
+  }
+  const L = !ext && r.credentialId ? recLinks[r.credentialId] : null;
+  const meta = [];
+  if (ext && r.issuer) meta.push('Emitida por ' + esc(r.issuer));
+  meta.push((ext ? 'Emitida ' : 'Emitido ') + esc(fmtShort(emit)));
+  meta.push(!exp ? 'No caduca'
+    : vencida ? `<span style="color:var(--err)">Venció ${esc(fmtShort(exp))}</span>`
+    : `<span${tono === 'warn' ? ' style="color:var(--warn)"' : ''}>Vence ${esc(fmtShort(exp))}${tono === 'warn' ? ' · ' + enDias(dias) : ''}</span>`);
+  if (r.credentialId) meta.push('Folio ' + esc(r.credentialId));
+  if (L){
+    const n = L.totalAccesses || 0;
+    meta.push(n ? `Enlace abierto ${n} ${n === 1 ? 'vez' : 'veces'}` : (L.links || []).length ? 'Enlace sin abrir' : 'Sin enlaces enviados');
+  }
+  const look = ext ? null : recordLook(r.title);
+  const seal = ext ? `<div class="seal" style="background:#475569">${ic('doc', 26)}</div>`
+                   : `<div class="seal ${look.grad}">${ic(look.icon, 26)}</div>`;
+  const acts = [];
+  if (ext){
+    if (r.documentUrl) acts.push(`<a class="btn sm ghost" style="text-decoration:none" href="${esc(docUrl(r.documentUrl))}" target="_blank" rel="noopener">Ver documento</a>`);
+    if (isReviewer()) acts.push(`<button type="button" class="btn sm danger" onclick="deleteCert('${r.id}')">Eliminar</button>`);
+  } else if (r.credentialId){
+    acts.push(`<button type="button" class="btn sm ghost" onclick="verCert(${i})">Ver</button>`);
+    if (!vencida) acts.push(`<button type="button" class="btn sm ghost" onclick="resendCert(${i},this)">Reenviar enlace</button>`);
+    else if (propio) acts.push(`<button type="button" class="btn sm" onclick="openCatalogFilter('ren')">Renovar ▸</button>`);
+    if (L && L.activeLinks > 0) acts.push(`<button type="button" class="btn sm danger" onclick="revokeCert(${i})" title="${L.activeLinks === 1 ? '1 enlace vivo' : L.activeLinks + ' enlaces vivos'}">Revocar</button>`);
+  }
+  return `<div class="cert">${seal}
+    <div style="min-width:0">
+      <div class="inline"><h3>${esc(r.title)}</h3>${ext ? `<span class="st gray">Externa${r.externalSource ? ' · ' + esc(r.externalSource) : ''}</span>` : ''}${vencida ? '<span class="st err">Vencida</span>' : ''}</div>
+      <div class="meta">${meta.map(m => `<span>${m}</span>`).join('')}</div>
+      ${r.notes ? `<div class="note">${esc(r.notes)}</div>` : ''}
+      ${exp ? `<div class="bar ${tono === 'ok' ? '' : tono}" role="img" aria-label="${vencida ? 'Vigencia agotada' : 'Vigencia consumida: ' + pct + ' %'}"><i style="width:${pct}%"></i></div>` : ''}
+    </div>
+    <div class="acts">${acts.join('')}</div></div>`;
+}
+// Ver: el PDF va por endpoint autenticado; se pide con fetch y se abre en otra pestaña.
+async function verCert(i){
+  const r = recRows[i]; if (!r) return;
+  const w = window.open('about:blank', '_blank');
+  try{
+    const res = await fetch('/certificates/'+encodeURIComponent(r.credentialId)+'/pdf', { headers:{ Authorization:'Bearer '+token } });
+    if (!res.ok) throw new Error(res.status === 403 ? 'No tienes permiso para ver este certificado.' : 'No se pudo generar el PDF.');
+    const url = URL.createObjectURL(await res.blob());
+    if (w) w.location.href = url; else window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }catch(e){ if (w) w.close(); toast(e.message,'err'); }
+}
+// Reenviar: siempre genera un enlace nuevo. El dueño se lo manda a sí mismo; quien
+// gestiona puede mandarlo además a las copias de cumplimiento.
+async function resendCert(i, btn){
+  const r = recRows[i]; if (!r) return;
+  const propio = recUserId === user.id;
+  let to = 'learner';
+  if (!propio && canManageCerts()){
+    const p = recPeople.find(x => x.id === recUserId);
+    const d = await dialog({ title:'Reenviar el enlace del certificado', icon:'mail', okText:'Enviar',
+      text:'Se genera un enlace nuevo. Los anteriores siguen abriendo hasta que venzan o los revoques.',
+      fields:[{ name:'to', type:'radio', value:'learner', options:[
+        { value:'learner', label:'Al empleado', hint: p ? p.name : '' },
+        { value:'copies', label:'A las copias de cumplimiento', hint:'Oficiales marcados y correos adicionales de la empresa y del curso.' },
+        { value:'all', label:'A ambos' } ] }] });
+    if (!d) return;
+    to = d.values.to;
+  }
+  if (btn) btn.disabled = true;
+  try{
+    const res = await api('/certificates/'+encodeURIComponent(r.credentialId)+'/resend','POST',{ to });
+    const n = (res.recipients || []).length;
+    toast(res.delivery === 'link'
+      ? `Enlace nuevo enviado${propio ? ' a tu correo' : n > 1 ? ' a ' + n + ' destinatarios' : ''}; vale ${res.linkDays} días.`
+      : 'Certificado reenviado por correo.');
+    loadCertLinks(r.credentialId);
+  }catch(e){ toast(e.message,'err'); }
+  finally{ if (btn) btn.disabled = false; }
+}
+async function revokeCert(i){
+  const r = recRows[i]; if (!r) return;
+  if (!await confirmModal('¿Revocar los enlaces de este certificado?',
+      'Los enlaces enviados por correo dejan de abrir el certificado. El certificado sigue siendo válido y se puede ver aquí; si hace falta, reenvía un enlace nuevo.',
+      { danger:true, icon:'link', okText:'Revocar enlaces' })) return;
+  try{
+    const res = await api('/certificates/'+encodeURIComponent(r.credentialId)+'/revoke','POST',{});
+    toast(res.revoked ? (res.revoked === 1 ? '1 enlace revocado.' : res.revoked + ' enlaces revocados.')
+                      : 'No había enlaces vivos que puedas revocar.', res.revoked ? 'ok' : 'info');
+    loadCertLinks(r.credentialId);
+  }catch(e){ toast(e.message,'err'); }
 }
 
 function toggleCertForm(){ el('certForm').classList.toggle('hidden'); el('certMsg2').textContent=''; }
-
-// El PDF va por endpoint autenticado, así que se baja con fetch y se entrega como blob.
-async function bajarCertPdf(serial){
-  try{
-    const res = await fetch('/certificates/'+encodeURIComponent(serial)+'/pdf', { headers:{ Authorization:'Bearer '+token } });
-    if(!res.ok) throw new Error('No se pudo generar el PDF.');
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'Certificado-'+serial+'.pdf';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 5000);
-  }catch(e){ toast(e.message,'err'); }
-}
 
 async function saveCert(){
   const m = el('certMsg2'); m.className='msg err'; m.textContent='';
@@ -1906,6 +2145,361 @@ async function deleteCert(id){
   if(!await confirmModal('¿Eliminar esta certificación?', 'Se quita del expediente del empleado. Esta acción no se puede deshacer.',
     { danger:true, icon:'trash', okText:'Eliminar' })) return;
   try{ await api('/certifications/'+id,'DELETE'); toast('Certificación eliminada.'); loadRecord(); }catch(e){ toast(e.message,'err'); }
+}
+
+// ===== Cumplimiento =====
+// Para el Admin de la compañía y los oficiales de cumplimiento (marca en la membresía, no
+// un rol). Tres listas de /compliance/summary (vencidos = caducados o fuera de plazo; por
+// vencer dentro de la ventana de la empresa; sin comenzar), las reglas de la empresa
+// (/company/compliance: solo el Admin las cambia), el correo de prueba y, en el inicio,
+// un banner rojo por curso con personas vencidas (/compliance/alerts).
+let compAlerts = null;     // último /compliance/alerts
+let alertIds = [];         // cursos de los banners que se ven ahora (para «Ocultar hasta mañana»)
+let compView = { bucket:'overdue', trainingId:'', group:'' };
+let compCfg = null;        // /company/compliance tal como está guardado
+let CC = null, compCfgDirty = false;   // copia editable
+let compOfficers = null;   // solo Admin: usuarios de la compañía con su marca de oficial
+const COMP_BUCKETS = [
+  { key:'overdue',     list:'overdue',    tone:'err',  label:'Vencidos' },
+  { key:'due-soon',    list:'dueSoon',    tone:'warn', label:'Vencen en {n} días' },
+  { key:'not-started', list:'notStarted', tone:'gray', label:'Sin comenzar' }
+];
+const DIAS_SEMANA = [['Monday','lunes'],['Tuesday','martes'],['Wednesday','miércoles'],['Thursday','jueves'],['Friday','viernes'],['Saturday','sábado'],['Sunday','domingo']];
+
+function compRowsAll(){ return compSummary ? [...(compSummary.overdue || []), ...(compSummary.dueSoon || []), ...(compSummary.notStarted || [])] : []; }
+// Fecha de una fila del panel: txt para la lista, short para las pastillas de Grupos.
+function compWhen(r){
+  const f = r.date ? new Date(r.date) : null, lim = r.dateKind === 'due';
+  if (r.bucket === 'overdue'){
+    const hace = r.days > 0 ? ` · hace ${r.days} ${r.days === 1 ? 'día' : 'días'}` : '';
+    return { tone:'err', short:'vencido', txt: f ? (lim ? 'límite ' : 'venció ') + fmtShort(f) + hace : 'vencido' };
+  }
+  if (r.bucket === 'due-soon'){
+    const n = r.days != null ? r.days : (f ? daysUntil(f) : 0);
+    const t = (lim ? 'límite ' : 'vence ') + enDias(n);
+    return { tone:'warn', short:t, txt: t + (f ? ' · ' + fmtShort(f) : '') };
+  }
+  return { tone:'gray', short:'sin comenzar', txt: f ? 'sin comenzar · límite ' + fmtShort(f) : 'sin comenzar' };
+}
+
+// ----- Banner rojo del inicio -----
+// «Ocultar hasta mañana»: se guarda por curso el día de hoy; mañana ya no coincide.
+// Es una comodidad de este navegador (localStorage), no cambia nada para los demás.
+function hoyKey(){ const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+function alertStoreKey(){ return 'tp_alerts_hidden_' + ((user && user.tenantId) || ''); }
+function hiddenAlerts(){
+  try{
+    const m = JSON.parse(localStorage.getItem(alertStoreKey()) || '{}') || {}, h = hoyKey();
+    return new Set(Object.keys(m).filter(k => m[k] === h));
+  }catch{ return new Set(); }
+}
+function hideAlerts(ids){
+  try{
+    const h = hoyKey(), m = JSON.parse(localStorage.getItem(alertStoreKey()) || '{}') || {};
+    Object.keys(m).forEach(k => { if (m[k] !== h) delete m[k]; });   // limpia lo de días anteriores
+    (ids || []).forEach(id => m[id] = h);
+    localStorage.setItem(alertStoreKey(), JSON.stringify(m));
+  }catch{}
+  renderAlerts();
+  toast((ids || []).length === 1 ? 'Aviso oculto hasta mañana.' : 'Avisos ocultos hasta mañana.', 'info');
+}
+async function loadAlerts(){
+  if (!canCompliance()){ compAlerts = null; renderAlerts(); paintCompBadge(); return; }
+  try{ compAlerts = await api('/compliance/alerts'); }catch(e){ compAlerts = null; }
+  renderAlerts(); paintCompBadge();
+}
+function paintCompBadge(){
+  const b = el('badge-comp'); if (!b) return;
+  const n = compAlerts ? (compAlerts.totalOverdue || 0) : 0;
+  b.textContent = n; b.classList.add('err');
+  b.style.display = n > 0 ? 'inline-block' : 'none';
+  b.title = n === 1 ? '1 vencimiento' : n + ' vencimientos';
+}
+function alertBar(title, sub, acts){
+  return `<div class="alertbar"><div class="ic">${ic('alert', 18)}</div>
+    <div class="t"><b>${esc(title)}</b><small>${esc(sub)}</small></div><div class="acts">${acts}</div></div>`;
+}
+// Un banner por curso con vencidos; con más de 5 cursos, uno solo de resumen.
+function renderAlerts(){
+  const box = el('dashAlerts'); if (!box) return;
+  const ocultos = hiddenAlerts();
+  const cursos = ((compAlerts && compAlerts.courses) || []).filter(c => c.overdue > 0 && !ocultos.has(c.trainingId));
+  alertIds = cursos.map(c => c.trainingId);
+  if (!cursos.length){ box.innerHTML = ''; return; }
+  const desde = d => d ? ' · el más antiguo desde el ' + fmtShort(d) : '';
+  if (cursos.length > 5){
+    const total = cursos.reduce((s, c) => s + c.overdue, 0);
+    const viejo = cursos.map(c => c.oldest).filter(Boolean).sort()[0];
+    box.innerHTML = alertBar(`${cursos.length} cursos tienen personas vencidas`, `${total} vencimientos en total${desde(viejo)}`,
+      `<button type="button" class="btn sm red" onclick="openCompliance({bucket:'overdue'})">Ver quiénes</button>
+       <button type="button" class="btn sm quiet" onclick="hideAlerts(alertIds)">Ocultar hasta mañana</button>`);
+    return;
+  }
+  box.innerHTML = cursos.map(c => alertBar(c.title,
+      (c.overdue === 1 ? '1 persona lo tiene vencido' : c.overdue + ' personas lo tienen vencido') + desde(c.oldest),
+      `<button type="button" class="btn sm red" onclick="openCompliance({bucket:'overdue',trainingId:'${c.trainingId}'})">Ver quiénes</button>
+       <button type="button" class="btn sm quiet" onclick="hideAlerts(['${c.trainingId}'])">Ocultar hasta mañana</button>`)).join('');
+}
+
+// ----- Sección Cumplimiento -----
+function openCompliance(o){
+  o = o || {};
+  compView = { bucket: o.bucket || 'overdue', trainingId: o.trainingId || '', group: '' };
+  showSection('sec-compliance');
+}
+async function loadCompliance(){
+  el('compKpis').innerHTML = ''; el('compLeft').innerHTML = loadingHtml(); el('compRight').innerHTML = '';
+  const [s, cfg] = await Promise.all([loadCompSummary(true), api('/company/compliance').catch(() => null)]);
+  if (!s){
+    el('compLeft').innerHTML = stateBox('lock','gray','Sin acceso a Cumplimiento',
+      'Lo ven el administrador de la compañía y las personas marcadas como oficial de cumplimiento.');
+    return;
+  }
+  compCfg = cfg; initCC();
+  renderCompliance(); renderCompConfig();
+  if (isCompanyAdmin()) loadCompOfficers();
+  loadAlerts();
+}
+function compFilter(list){
+  return (list || []).filter(r => (!compView.trainingId || r.trainingId === compView.trainingId)
+                                && (!compView.group || (r.groups || []).includes(compView.group)));
+}
+function setCompBucket(k){
+  compView.bucket = k; renderCompliance();
+  const b = document.querySelector('#compKpis .kpi.on'); if (b) b.focus();
+}
+function setCompFilter(k, v){
+  if (k === '*'){ compView.trainingId = ''; compView.group = ''; } else compView[k] = v;
+  renderCompliance();
+}
+function renderCompliance(){
+  if (!compSummary) return;
+  const n = compSummary.dueSoonDays || 30;
+  const listas = {}; COMP_BUCKETS.forEach(b => listas[b.key] = compFilter(compSummary[b.list]));
+  el('compKpis').innerHTML = `<div class="kpi3" role="group" aria-label="Listas de cumplimiento">${COMP_BUCKETS.map(b => {
+      const on = compView.bucket === b.key;
+      return `<button type="button" class="kpi go ${b.tone} ${on ? 'on' : ''}" aria-pressed="${on}" onclick="setCompBucket('${b.key}')">
+        <div class="n">${listas[b.key].length}</div><div class="l">${esc(b.label.replace('{n}', n))}</div></button>`;
+    }).join('')}</div>`;
+
+  const todas = compRowsAll();
+  const cursos = [...new Map(todas.map(r => [r.trainingId, r.title]))].sort((a, b) => a[1].localeCompare(b[1], 'es'));
+  if (compView.trainingId && !cursos.some(c => c[0] === compView.trainingId)){
+    // Curso que llegó desde el banner y ya no tiene filas (se pusieron al día).
+    const a = ((compAlerts && compAlerts.courses) || []).find(c => c.trainingId === compView.trainingId);
+    cursos.push([compView.trainingId, a ? a.title : 'Curso']);
+  }
+  const grupos = [...new Set(todas.flatMap(r => r.groups || []))].sort((a, b) => a.localeCompare(b, 'es'));
+  const b = COMP_BUCKETS.find(x => x.key === compView.bucket) || COMP_BUCKETS[0];
+  const filas = listas[b.key];
+  const vacio = { overdue:'Nadie tiene cursos vencidos.', 'due-soon':`Nadie tiene cursos que venzan en los próximos ${n} días.`,
+                  'not-started':'Nadie tiene cursos sin comenzar.' }[b.key];
+  el('compLeft').innerHTML = `
+    <div class="fbar">
+      <select class="field sm" aria-label="Filtrar por curso" onchange="setCompFilter('trainingId',this.value)">
+        <option value="">Todos los cursos</option>${cursos.map(([id, t]) => `<option value="${id}" ${id === compView.trainingId ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
+      ${grupos.length ? `<select class="field sm" aria-label="Filtrar por grupo" onchange="setCompFilter('group',this.value)">
+        <option value="">Todos los grupos</option>${grupos.map(g => `<option value="${esc(g)}" ${g === compView.group ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select>` : ''}
+      ${compView.trainingId || compView.group ? `<button type="button" class="linkbtn" onclick="setCompFilter('*','')">Quitar filtros</button>` : ''}
+    </div>
+    <div class="sectionhead"><h4>${esc(b.label.replace('{n}', n))} · ${filas.length}</h4></div>
+    <div class="list" style="margin-top:0">${filas.length ? filas.map(compRowHtml).join('') : `<div class="empty">${esc(vacio)}</div>`}</div>`;
+}
+function compRowHtml(r){
+  const w = compWhen(r);
+  // El servidor no recuerda nada a quien ya aprobó y sigue vigente, ni a quien espera calificación.
+  const puede = !['current','done','pending-grading','pending-cancellation'].includes(r.status);
+  const sub = r.title + (r.groups && r.groups.length ? ' · ' + r.groups.join(', ') : '');
+  return `<div class="li"><div class="av">${esc(initials(r.name))}</div>
+    <div class="t">${esc(r.name)}<small>${esc(sub)}</small>
+      <div class="lacts">${puede ? `<button type="button" class="linkbtn" onclick="remindNow(this,'${r.userId}','${r.trainingId}')">Recordar ahora</button>` : ''}
+        <button type="button" class="linkbtn" onclick="openRecordFor('${r.userId}')">Ver expediente</button></div></div>
+    <span class="st ${w.tone}">${esc(w.txt)}</span></div>`;
+}
+// «Recordar ahora»: correo inmediato al empleado, saltando la cadencia de los avisos.
+async function remindNow(btn, uid, tid){
+  const r = compRowsAll().find(x => x.userId === uid && x.trainingId === tid);
+  btn.disabled = true;
+  try{
+    const res = await api('/compliance/remind/'+uid+'/'+tid, 'POST');
+    toast('Aviso enviado a ' + (res.email || (r ? r.name : 'la persona')) + '.');
+    btn.textContent = 'Aviso enviado';
+  }catch(e){ toast(e.message,'err'); btn.disabled = false; }
+}
+
+// ----- Configuración de la empresa (ComplianceConfig) -----
+function initCC(){
+  const c = compCfg || {};
+  CC = compCfg ? {
+    extraEmails: (c.extraEmails || []).join(', '), digestFrequency: c.digestFrequency || 'weekly',
+    digestDayOfWeek: c.digestDayOfWeek || 'Monday', digestDayOfMonth: c.digestDayOfMonth || 1,
+    digestHour: c.digestHour == null ? 8 : c.digestHour, dueSoonDays: c.dueSoonDays || 30,
+    expiredRepeatDays: c.expiredRepeatDays || 14, includeNotStarted: c.includeNotStarted !== false,
+    certificateDelivery: c.certificateDelivery === 'attachment' ? 'attachment' : 'link', linkDays: c.linkDays || 30 } : null;
+  compCfgDirty = false;
+}
+function setCC(k, v, pintar){
+  if (!CC) return;
+  CC[k] = v; compCfgDirty = true;
+  if (pintar){ renderCompConfig(); return; }
+  const b = el('ccSave'); if (b) b.disabled = false;
+  const n = el('ccDirty'); if (n) n.textContent = 'Cambios sin guardar';
+}
+function digestTxt(c){
+  const h = (Number(c.digestHour) || 0) + ':00';
+  if (c.digestFrequency === 'daily') return `Diario, desde las ${h}`;
+  if (c.digestFrequency === 'monthly') return `Mensual, el día ${c.digestDayOfMonth}, desde las ${h}`;
+  const d = (DIAS_SEMANA.find(x => x[0] === c.digestDayOfWeek) || DIAS_SEMANA[0])[1];
+  return `Semanal, los ${d} desde las ${h}`;
+}
+function renderCompConfig(){
+  const box = el('compRight'); if (!box) return;
+  if (!CC){
+    box.innerHTML = `<h3>Configuración de avisos</h3><p class="hint">No se pudo leer la configuración de la empresa.</p>`;
+    return;
+  }
+  const admin = isCompanyAdmin();
+  const num = (k, min, max, w, lbl) => `<input type="number" class="field num" style="width:${w || '84px'}" min="${min}" max="${max}" value="${esc(CC[k])}" aria-label="${esc(lbl)}" oninput="setCC('${k}',this.value)" />`;
+  const chip = (v, l) => `<button type="button" class="daychip ${CC.certificateDelivery === v ? 'on' : ''}" aria-pressed="${CC.certificateDelivery === v}" onclick="setCC('certificateDelivery','${v}',true)">${l}</button>`;
+  let form;
+  if (admin){
+    form = `
+      <label for="ccExtra">Correos adicionales</label>
+      <input id="ccExtra" class="field" value="${esc(CC.extraEmails)}" placeholder="cumplimiento@empresa.com, rrhh@empresa.com" oninput="setCC('extraEmails',this.value)" />
+      <p class="hint" style="margin:4px 0 0">Además de los oficiales marcados. Reciben el resumen y copia de cada certificado. Separados por coma.</p>
+      <label>Resumen</label>
+      <div class="inline">
+        <select class="field sm" aria-label="Frecuencia del resumen" onchange="setCC('digestFrequency',this.value,true)">
+          ${[['daily','Diario'],['weekly','Semanal'],['monthly','Mensual']].map(([v, l]) => `<option value="${v}" ${CC.digestFrequency === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        ${CC.digestFrequency === 'weekly' ? `<select class="field sm" aria-label="Día de la semana" onchange="setCC('digestDayOfWeek',this.value)">
+          ${DIAS_SEMANA.map(([v, l]) => `<option value="${v}" ${CC.digestDayOfWeek === v ? 'selected' : ''}>${l.charAt(0).toUpperCase() + l.slice(1)}</option>`).join('')}</select>` : ''}
+        ${CC.digestFrequency === 'monthly' ? `<span>el día</span>${num('digestDayOfMonth', 1, 31, '70px', 'Día del mes')}` : ''}
+        <span>a las</span>
+        <select class="field sm" aria-label="Hora de envío" onchange="setCC('digestHour',this.value)">
+          ${Array.from({ length:24 }, (_, h) => `<option value="${h}" ${Number(CC.digestHour) === h ? 'selected' : ''}>${h}:00</option>`).join('')}</select>
+      </div>
+      <p class="hint" style="margin:4px 0 0">Un solo correo consolidado; solo se envía si hay algo que reportar.</p>
+      <label>Ventana de «por vencer»</label>
+      <div class="inline">${num('dueSoonDays', 1, 365, '84px', 'Días de la ventana de por vencer')}<span>días</span></div>
+      <label>Repetir vencidos cada</label>
+      <div class="inline">${num('expiredRepeatDays', 1, 365, '84px', 'Días para repetir un vencido')}<span>días</span></div>
+      <p class="hint" style="margin:4px 0 0">Un vencido ya avisado vuelve a salir en «Siguen vencidos» pasado este plazo.</p>
+      ${swRow('ccNotStarted', CC.includeNotStarted, 'Incluir cursos sin comenzar', 'Publicados que el empleado nunca abrió.', "setCC('includeNotStarted',!CC.includeNotStarted,true)")}
+      <div class="swrow"><div class="t"><b>Entrega del certificado</b><span>Enlace directo con vencimiento o el PDF adjunto al correo.</span>
+        <div class="inline" style="margin-top:8px" role="group" aria-label="Entrega del certificado">${chip('link', 'Enlace')}${chip('attachment', 'PDF adjunto')}
+          ${CC.certificateDelivery === 'link' ? `<span>vale</span>${num('linkDays', 1, 365, '70px', 'Días de vigencia del enlace')}<span>días</span>` : ''}</div></div></div>
+      <div class="panefoot">
+        <button type="button" class="btn sm" id="ccSave" onclick="saveCompConfig()" ${compCfgDirty ? '' : 'disabled'}>Guardar</button>
+        <button type="button" class="btn sm ghost" onclick="sendCompTest(this)">${ic('mail', 14)} Enviar correo de prueba</button>
+        <span class="hint dirty" id="ccDirty">${compCfgDirty ? 'Cambios sin guardar' : ''}</span>
+      </div>`;
+  } else {
+    const kv = (k, v) => `<div class="kv"><span>${esc(k)}</span><b>${esc(v)}</b></div>`;
+    form = `<div>
+        ${kv('Correos adicionales', CC.extraEmails || 'Ninguno')}
+        ${kv('Resumen', digestTxt(CC))}
+        ${kv('Ventana de «por vencer»', CC.dueSoonDays + ' días')}
+        ${kv('Repetir vencidos cada', CC.expiredRepeatDays + ' días')}
+        ${kv('Cursos sin comenzar', CC.includeNotStarted ? 'Se incluyen' : 'No se incluyen')}
+        ${kv('Entrega del certificado', CC.certificateDelivery === 'link' ? 'Enlace, vale ' + CC.linkDays + ' días' : 'PDF adjunto')}
+      </div>
+      <p class="hint" style="margin:10px 0 0">Solo el administrador de la compañía cambia esta configuración.</p>
+      <div class="panefoot"><button type="button" class="btn sm ghost" onclick="sendCompTest(this)">${ic('mail', 14)} Enviar correo de prueba</button></div>`;
+  }
+  box.innerHTML = `<h3>Configuración de avisos</h3>
+    <p class="hint">Un solo correo por empresa para los oficiales de cumplimiento marcados y los correos adicionales.</p>
+    ${form}
+    ${admin ? '<div id="compOfficers"></div>' : ''}
+    <div class="sectionhead"><h4>Así llega el correo</h4></div>
+    ${digestPreview()}`;
+  if (admin) renderCompOfficers();
+}
+// Vista aproximada del resumen con los datos de ahora (sin separar nuevos y repetidos,
+// que depende de los avisos ya enviados).
+function digestPreview(){
+  const s = compSummary; if (!s || !CC) return '';
+  const venc = s.overdue || [], porv = s.dueSoon || [], sin = CC.includeNotStarted ? (s.notStarted || []) : [];
+  if (!venc.length && !porv.length && !sin.length)
+    return `<div class="digest"><div class="subj">Esta vez no sale correo</div><small>No hay vencidos, por vencer ni cursos sin comenzar.</small></div>`;
+  const fila = r => { const w = compWhen(r);
+    return `<div class="drow"><span>${esc(r.name)}</span><span>·</span><span>${esc(r.title)}</span><span class="w" style="color:var(--${w.tone === 'gray' ? 'muted' : w.tone})">${esc(w.txt)}</span></div>`; };
+  const bloque = (t, arr, max) => !arr.length ? '' : `<div class="sectionhead"><h4>${t} · ${arr.length}</h4></div>${arr.slice(0, max).map(fila).join('')}`
+    + (arr.length > max ? `<div class="drow" style="color:var(--muted)">y ${arr.length - max} más…</div>` : '');
+  return `<div class="digest">
+    <div class="subj">Cumplimiento: ${venc.length} ${venc.length === 1 ? 'vencido' : 'vencidos'}, ${porv.length} por vencer</div>
+    <small>${esc(digestTxt(CC))}</small>
+    ${bloque('Vencidos', venc, 4)}${bloque('Por vencer', porv, 3)}${bloque('Sin comenzar', sin, 3)}
+    <p class="hint" style="margin:10px 0 0">En el correo, los vencidos se separan en «Nuevos desde el último aviso» y «Siguen vencidos» según los avisos ya enviados.</p>
+  </div>`;
+}
+async function saveCompConfig(){
+  if (!CC) return;
+  const ent = v => v === '' || v == null ? NaN : Number(v);
+  const correos = String(CC.extraEmails || '').split(/[,;\s]+/).map(x => x.trim()).filter(Boolean);
+  const malo = correos.find(x => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
+  const rango = (k, a, b, nombre) => { const n = ent(CC[k]); return Number.isInteger(n) && n >= a && n <= b ? null : `${nombre} va de ${a} a ${b} días.`; };
+  const err = (malo ? `«${malo}» no parece un correo.` : null)
+    || rango('dueSoonDays', 1, 365, 'La ventana de «por vencer»')
+    || rango('expiredRepeatDays', 1, 365, 'Repetir vencidos')
+    || (CC.digestFrequency === 'monthly' && !(Number.isInteger(ent(CC.digestDayOfMonth)) && ent(CC.digestDayOfMonth) >= 1 && ent(CC.digestDayOfMonth) <= 31) ? 'El día del mes va de 1 a 31.' : null)
+    || (CC.certificateDelivery === 'link' ? rango('linkDays', 1, 365, 'La vigencia del enlace') : null);
+  if (err){ toast(err,'err'); return; }
+  const b = el('ccSave'); if (b) b.disabled = true;
+  try{
+    compCfg = await api('/company/compliance','PUT',{
+      extraEmails:correos, digestFrequency:CC.digestFrequency, digestDayOfWeek:CC.digestDayOfWeek,
+      digestDayOfMonth:ent(CC.digestDayOfMonth), digestHour:ent(CC.digestHour), dueSoonDays:ent(CC.dueSoonDays),
+      expiredRepeatDays:ent(CC.expiredRepeatDays), includeNotStarted:!!CC.includeNotStarted,
+      certificateDelivery:CC.certificateDelivery, linkDays:ent(CC.linkDays) });
+    initCC();
+    toast('Configuración guardada.');
+    await loadCompSummary(true);   // la ventana de «por vencer» cambia las listas
+    renderCompliance(); renderCompConfig();
+  }catch(e){ toast(e.message,'err'); if (b) b.disabled = false; }
+}
+async function sendCompTest(btn){
+  if (compCfgDirty && !await confirmModal('¿Enviar con la configuración guardada?',
+      'El correo de prueba usa lo que está guardado; los cambios sin guardar no cuentan.', { icon:'mail', okText:'Enviar igual' })) return;
+  btn.disabled = true;
+  try{
+    const r = await api('/company/compliance/test','POST');
+    if (r.sent) toast('Correo de prueba enviado a ' + r.to + '.');
+    else await infoModal('No se envió el correo de prueba', (r.overdue || r.dueSoon || r.notStarted)
+      ? 'No se pudo enviar a ' + r.to + '. Revisa la configuración de correo del servidor.'
+      : 'No hay nada que reportar ahora mismo: el resumen solo se envía si hay vencidos, por vencer o cursos sin comenzar.', { icon:'mail' });
+  }catch(e){ toast(e.message,'err'); }
+  finally{ btn.disabled = false; }
+}
+
+// ----- Oficiales de cumplimiento (solo el Admin de la compañía) -----
+// La marca vive en la membresía (UserCompany.IsComplianceOfficer); no cambia el rol.
+async function loadCompOfficers(){
+  try{
+    const us = await api('/admin/users?tenantId=' + encodeURIComponent(user.tenantId));
+    compOfficers = (us || []).map(u => ({ id:u.id, name:u.name || u.email, email:u.email, on: !!u.isComplianceOfficer }))
+      .sort((a, b) => (b.on - a.on) || a.name.localeCompare(b.name, 'es'));
+  }catch(e){ compOfficers = null; }
+  renderCompOfficers();
+}
+function renderCompOfficers(){
+  const box = el('compOfficers'); if (!box) return;
+  if (!compOfficers){ box.innerHTML = ''; return; }
+  const marcados = compOfficers.filter(o => o.on).length;
+  box.innerHTML = `<div class="sectionhead"><h4>Oficiales de cumplimiento · ${marcados}</h4></div>
+    <p class="hint" style="margin:0 0 4px">Reciben el resumen y copia de cada certificado, y ven esta sección. No cambia su rol.</p>
+    <div style="max-height:280px;overflow:auto">${compOfficers.map(o =>
+      swRow('off_' + o.id, o.on, o.name, o.email, `setOfficerHere('${o.id}')`)).join('')}</div>`;
+}
+async function setOfficerHere(uid){
+  const o = (compOfficers || []).find(x => x.id === uid); if (!o) return;
+  try{
+    const r = await api('/admin/user-companies/'+uid+'/compliance-officer','POST',{ isOfficer:!o.on, tenantId:user.tenantId });
+    o.on = !!r.isComplianceOfficer;
+    toast(o.on ? o.name + ' ahora es oficial de cumplimiento.' : o.name + ' ya no es oficial de cumplimiento.');
+    if (uid === user.id){ user.isComplianceOfficer = o.on; localStorage.setItem('tp_user', JSON.stringify(user)); paintWhoRole(); }
+  }catch(e){ toast(e.message,'err'); }
+  renderCompOfficers();
+  const b = document.querySelector(`#compOfficers [data-k="off_${uid}"]`); if (b) b.focus();
 }
 
 // ===== Admin =====
@@ -1971,9 +2565,14 @@ async function loadUsers(){
       const sel = `<select class="field" style="max-width:140px;padding:6px 8px" onchange="changeRole('${u.id}',this.value)">${roles.map(r=>`<option ${r===u.role?'selected':''}>${r}</option>`).join('')}</select>`;
       const flag = u.mustChangePassword ? ' <span class="tag" style="background:#fef3c7;color:#92400e">cambio pendiente</span>' : '';
       const me = (user && u.id===user.id);
+      // Oficial de cumplimiento: marca en la compañía filtrada o, sin filtro, en su principal.
+      const comp = f || u.tenantId;
+      const oficial = comp
+        ? `<label class="opt" style="margin:0;font-weight:600;white-space:nowrap" title="Recibe copia de los certificados y el resumen de cumplimiento de ${esc(tenantNameById(comp))}">
+             <input type="checkbox" ${u.isComplianceOfficer?'checked':''} onchange="setOfficer('${u.id}','${comp}',this)" /> Oficial de cumplimiento</label>` : '';
       return `<div class="item" style="flex-wrap:wrap">
-        <div><b>${u.name||'(sin nombre)'}</b>${flag}<br><span class="hint">${u.email} · ${tn}</span></div>
-        <span class="sp">${sel}
+        <div><b>${esc(u.name||'(sin nombre)')}</b>${flag}${u.isComplianceOfficer ? ' <span class="st xs info">Oficial</span>' : ''}<br><span class="hint">${esc(u.email)} · ${esc(tn)}</span></div>
+        <span class="sp" style="flex-wrap:wrap;align-items:center">${oficial}${sel}
           <button class="btn sm ghost" onclick="resetUserPwd('${u.id}','${(u.name||u.email).replace(/'/g,"")}')">Resetear contraseña</button>
           ${me?'':`<button class="btn sm danger" onclick="deleteUser('${u.id}','${(u.name||u.email).replace(/'/g,"")}')">Eliminar</button>`}
         </span>
@@ -1982,6 +2581,18 @@ async function loadUsers(){
   }catch(e){}
 }
 async function changeRole(id, role){ try{ await api('/admin/users/'+id+'/role','POST',{role}); }catch(e){ toast(e.message,'err'); loadUsers(); } }
+// Marca de oficial de cumplimiento en una compañía (no es un rol: se suma al que tenga).
+async function setOfficer(userId, tenantId, cb){
+  const quiere = cb.checked;
+  cb.disabled = true;
+  try{
+    const r = await api('/admin/user-companies/'+userId+'/compliance-officer','POST',{ isOfficer:quiere, tenantId });
+    toast(r.isComplianceOfficer ? 'Marcado como oficial de cumplimiento de ' + tenantNameById(tenantId) + '.'
+                                : 'Ya no es oficial de cumplimiento de ' + tenantNameById(tenantId) + '.');
+    loadUsers();
+  }catch(e){ cb.checked = !quiere; toast(e.message,'err'); }
+  finally{ cb.disabled = false; }
+}
 async function resetUserPwd(id, name){
   const temp = await askModal('Resetear contraseña de '+name, 'El usuario deberá cambiarla al entrar.',
     { label:'Contraseña temporal', placeholder:'Mínimo 6 caracteres', icon:'key', okText:'Resetear',
@@ -2121,9 +2732,11 @@ function courseStats(t, attempts){
   }
   return { ok, soon, exp, lastPass, source: compSummary ? 'compliance' : 'attempts' };
 }
-async function loadCompSummary(){
+// force: vuelve a pedirlo aunque haya uno reciente (y reintenta aunque antes se negara).
+async function loadCompSummary(force){
+  if (force) compDenied = false;
   if (compDenied) return null;
-  if (compSummary && Date.now() - compSummary._at < 60000) return compSummary;
+  if (!force && compSummary && Date.now() - compSummary._at < 60000) return compSummary;
   try{
     compSummary = await api('/compliance/summary');
     compSummary._at = Date.now();
@@ -3007,7 +3620,7 @@ function renderVigencia(){
   const opciones = [...new Set([60, 30, 15, 7, 5, 1, ...V.daysBefore])].sort((a, b) => b - a);
   let grupos;
   if (!F.groups) grupos = '<p class="hint">Cargando grupos…</p>';
-  else if (!F.groups.length) grupos = '<p class="hint">Aún no hay grupos. Se crean en «Sets y asignación».</p>';
+  else if (!F.groups.length) grupos = '<p class="hint">Aún no hay grupos. Se crean en la sección «Grupos» del inicio.</p>';
   else grupos = `<div class="inline" role="group" aria-label="Grupos">${F.groups.map(g => {
       const on = V.groups.has(g.id), n = (g.memberIds || []).length;
       return `<button type="button" class="daychip ${on ? 'on' : ''}" aria-pressed="${on}" onclick="toggleVGroup('${g.id}')">${esc(g.name)} · ${n}</button>`;
@@ -3644,113 +4257,408 @@ async function deleteItem(itemId){
     { danger:true, icon:'trash', okText:'Eliminar' })) return;
   try{ await api('/items/'+itemId,'DELETE'); await reloadContent(); toast('Ítem eliminado.'); }catch(e){ toast(e.message,'err'); }
 }
-// ===== Versiones (sets) y asignación =====
-let asgUsers=[], asgCohorts=[], asgTrainings=[];
-let curTraining=null, curSets=[], curItems=[], curAssign=[], curPublished=false;
+// ===== Grupos: miembros, plan de onboarding y sets =====
+// Un grupo reúne personas. Su plan (GET/PUT /groups/{id}/plan) dice qué cursos deben
+// completar sus miembros y en cuántos días desde que entran, y el set de contenido que
+// ven (una asignación de tipo group en cada curso). El estado de cada miembro sale de
+// /compliance/summary, que solo leen el Admin y los oficiales de cumplimiento; a los
+// demás se les muestran los miembros y sus fechas de ingreso, sin estado.
+let grpList = [];          // /user-groups
+let grpUsers = [];         // /tenant-users
+let grpTrainings = [];     // /trainings
+let grpId = null;          // grupo abierto
+let grpTab = 'miembros';
+let grpPlan = null;        // último /groups/{id}/plan del grupo abierto
+let GP = null, grpPlanDirty = false;   // copia editable del plan
+let grpSets = {};          // trainingId → sets (para escoger el set del grupo)
+let grpSearch = '';
 
-el('backFromAssign').onclick = () => { el('assignView').classList.add('hidden'); el('tenantAppView').classList.remove('hidden'); showDash(); };
-function amsg(m){ el('assignMsg').textContent=m||''; el('assignMsg').className='msg err'; }
-
-async function openAssign(){
-  el('tenantAppView').classList.add('hidden');
-  el('assignView').classList.remove('hidden');
-  amsg('');
-  try{
-    asgUsers = await api('/tenant-users');
-    asgCohorts = await api('/user-groups');
-    asgTrainings = await api('/trainings');
-    renderCohorts();
-    el('setTraining').innerHTML = `<option value="">— elige un adiestramiento —</option>`+
-      asgTrainings.map(t=>`<option value="${t.id}">${t.title} (${t.status})</option>`).join('');
-    el('setsArea').innerHTML = '';
-    curTraining=null;
-  }catch(e){ amsg(e.message); }
+function grpOf(id){ return grpList.find(g => g.id === id) || null; }
+function grpGrad(g){ return GRADS[hashStr(g.name) % GRADS.length]; }
+function grpUserName(uid){
+  const u = grpUsers.find(x => x.id === uid); if (u) return u.name || u.email;
+  const r = compRowsAll().find(x => x.userId === uid);
+  return r ? r.name : '(persona)';
 }
-function userLabel(uid){ const u=asgUsers.find(x=>x.id===uid); return u?(u.name||u.email):'(usuario)'; }
-function cohortLabel(cid){ const c=asgCohorts.find(x=>x.id===cid); return c?c.name:'(cohorte)'; }
-function setLabel(sid){ const s=curSets.find(x=>x.id===sid); return s?s.name:'(set)'; }
-
-// --- Cohortes ---
-el('addCohortBtn').onclick = async () => {
-  const name=el('cohortName').value.trim(); if(!name) return;
-  try{ await api('/user-groups','POST',{name}); el('cohortName').value=''; asgCohorts=await api('/user-groups'); renderCohorts(); }catch(e){ amsg(e.message); }
-};
-function renderCohorts(){
-  el('cohortList').innerHTML = asgCohorts.length ? asgCohorts.map(c=>`
-    <div class="item" style="flex-wrap:wrap">
-      <b>${c.name}</b> <span class="tag">${c.memberIds.length} miembro(s)</span>
-      <span class="sp">
-        <button class="btn sm ghost" onclick="toggleCohortMembers('${c.id}')">Miembros</button>
-        <button class="btn sm danger" onclick="deleteCohort('${c.id}')">Eliminar</button>
-      </span>
-      <div id="mem_${c.id}" class="hidden" style="flex-basis:100%;margin-top:8px;padding:10px;background:var(--soft);border-radius:8px">
-        ${asgUsers.length ? asgUsers.map(u=>`<label class="opt"><input type="checkbox" ${c.memberIds.includes(u.id)?'checked':''} onchange="toggleMember('${c.id}','${u.id}',this.checked)"> ${u.name||u.email} <span class="hint">${u.role}</span></label>`).join('') : '<span class="hint">No hay usuarios en esta compañía.</span>'}
-      </div>
-    </div>`).join('') : `<div class="empty">Sin cohortes.</div>`;
+// Al día = sin vencidos y sin cursos sin comenzar; vencidos = con al menos un curso vencido.
+function groupStats(g){
+  if (!compSummary) return null;
+  const ids = new Set(g.memberIds || []);
+  const venc = new Set((compSummary.overdue || []).filter(r => ids.has(r.userId)).map(r => r.userId));
+  const sin = new Set((compSummary.notStarted || []).filter(r => ids.has(r.userId)).map(r => r.userId));
+  let alDia = 0; ids.forEach(u => { if (!venc.has(u) && !sin.has(u)) alDia++; });
+  return { alDia, venc: venc.size };
 }
-function toggleCohortMembers(id){ el('mem_'+id).classList.toggle('hidden'); }
-async function deleteCohort(id){
-  if(!await confirmModal('¿Eliminar la cohorte?', 'Se quitan sus miembros, su plan y sus asignaciones. Las personas no se borran.', { danger:true, icon:'trash', okText:'Eliminar' })) return;
-  try{ await api('/user-groups/'+id,'DELETE'); asgCohorts=await api('/user-groups'); renderCohorts(); if(curTraining) loadSets(); }catch(e){ toast(e.message,'err'); } }
-async function toggleMember(cohortId, userId, on){
+
+async function loadGroups(){
+  el('grpGrid').innerHTML = loadingHtml();
   try{
-    if(on) await api('/user-groups/'+cohortId+'/members','POST',{userId});
-    else await api('/user-groups/'+cohortId+'/members/'+userId,'DELETE');
-    const c=asgCohorts.find(x=>x.id===cohortId);
-    if(c){ if(on){ if(!c.memberIds.includes(userId)) c.memberIds.push(userId); } else { c.memberIds=c.memberIds.filter(x=>x!==userId); } }
-    renderCohorts(); el('mem_'+cohortId).classList.remove('hidden');
+    const [gs, us, trs] = await Promise.all([api('/user-groups'), api('/tenant-users').catch(() => []), api('/trainings').catch(() => [])]);
+    grpList = Array.isArray(gs) ? gs : []; grpUsers = Array.isArray(us) ? us : []; grpTrainings = Array.isArray(trs) ? trs : [];
+  }catch(e){
+    el('grpGrid').innerHTML = stateBox('alert','err','No se pudieron cargar los grupos', e.message);
+    return;
+  }
+  renderGroups();
+  initSetsPanel();
+  if (await loadCompSummary()){ renderGroups(); if (grpId){ renderGrpHead(); renderGrpMembers(); } }
+}
+function renderGroups(){
+  if (!el('grpGrid')) return;
+  el('grpGrid').innerHTML = grpList.length
+    ? `<div class="cgrid">${grpList.map(grpCard).join('')}</div>`
+    : stateBox('users','gray','Aún no hay grupos', 'Crea uno con «+ Nuevo grupo», añade a sus miembros y arma su plan de onboarding.');
+}
+function grpCard(g){
+  const s = groupStats(g), n = (g.memberIds || []).length;
+  const v = x => `<b class="num">${s ? x : '—'}</b>`;
+  const pie = g.courseCount ? (g.courseCount === 1 ? '1 curso en el plan' : g.courseCount + ' cursos en el plan') : 'Sin cursos en el plan';
+  return `<article class="ccard tcard" role="button" tabindex="0" aria-label="Abrir el grupo ${esc(g.name)}"
+      onclick="openGroup('${g.id}')" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();openGroup('${g.id}')}">
+    <div class="cbody">
+      <div class="gtop"><div class="gic ${grpGrad(g)}">${ic('users', 22)}</div>
+        <div style="min-width:0"><div class="cat">Plazo de ${g.onboardingDays} ${g.onboardingDays === 1 ? 'día' : 'días'}</div><h3>${esc(g.name)}</h3></div></div>
+      <div class="kpis"><div><b class="num">${n}</b>${n === 1 ? 'miembro' : 'miembros'}</div><div class="o">${v(s && s.alDia)}al día</div><div class="e">${v(s && s.venc)}vencidos</div></div>
+      <div class="cfoot"><span class="due">${pie}</span>
+        <button type="button" class="more" aria-label="Más acciones" aria-haspopup="menu" onclick="event.stopPropagation();grpMenu(this,'${g.id}')">⋯</button></div>
+    </div>
+  </article>`;
+}
+function grpMenu(btn, id){
+  openMenu(btn, [
+    { icon:'users', label:'Abrir', run:() => openGroup(id) },
+    { icon:'trash', label:'Eliminar grupo', danger:true, run:() => deleteGroup(id) }
+  ]);
+}
+async function newGroup(){
+  const r = await dialog({ title:'Nuevo grupo', icon:'users', okText:'Crear',
+    text:'Por ejemplo un departamento, un turno o las personas de nuevo ingreso.',
+    fields:[{ name:'name', label:'Nombre del grupo', placeholder:'Departamento de Ventas' }],
+    validate: v => String(v.name || '').trim().length < 2 ? 'Escribe el nombre del grupo.' : null });
+  if (!r) return;
+  try{
+    const g = await api('/user-groups','POST',{ name:r.values.name.trim() });
+    toast('Grupo creado.');
+    grpList = await api('/user-groups');
+    renderGroups(); initSetsPanel();
+    if (g && g.id) openGroup(g.id);
+  }catch(e){ toast(e.message,'err'); }
+}
+async function deleteGroup(id){
+  const g = grpOf(id); if (!g) return;
+  if (!await confirmModal('¿Eliminar el grupo «' + g.name + '»?',
+      'Se quitan sus miembros, su plan de onboarding y sus asignaciones de set. Las personas, sus intentos y sus certificados no se borran.',
+      { danger:true, icon:'trash', okText:'Eliminar' })) return;
+  try{
+    await api('/user-groups/'+id,'DELETE');
+    toast('Grupo eliminado.');
+    if (grpId === id) showGroupList();
+    grpList = await api('/user-groups');
+    renderGroups(); initSetsPanel();
   }catch(e){ toast(e.message,'err'); }
 }
 
-// --- Sets de un adiestramiento ---
+// ----- Ficha del grupo: Miembros y Plan -----
+async function openGroup(id, tab){
+  const g = grpOf(id); if (!g) return;
+  grpId = id; grpPlan = null; GP = null; grpPlanDirty = false; grpSearch = '';
+  el('grpListView').classList.add('hidden');
+  el('grpFicha').classList.remove('hidden');
+  window.scrollTo({ top:0 });
+  setGrpTab(tab || 'miembros');
+  renderGrpHead(); renderGrpMembers();
+  el('gPlan').innerHTML = loadingHtml();
+  try{
+    const p = await api('/groups/'+id+'/plan');
+    if (id !== grpId) return;
+    grpPlan = p; initGP();
+    renderGrpHead(); renderGrpMembers(); renderGrpPlan();
+    loadPlanSets();
+  }catch(e){ if (id === grpId) el('gPlan').innerHTML = stateBox('alert','err','No se pudo cargar el plan', e.message); }
+}
+async function closeGroup(){
+  if (grpPlanDirty && !await confirmModal('¿Salir sin guardar?', 'Hay cambios sin guardar en el plan. Si sales, se pierden.',
+      { danger:true, icon:'alert', okText:'Salir sin guardar', cancelText:'Seguir editando' })) return;
+  showGroupList();
+  loadGroups();
+}
+function showGroupList(){
+  grpId = null; grpPlanDirty = false; GP = null;
+  el('grpFicha').classList.add('hidden');
+  el('grpListView').classList.remove('hidden');
+}
+function setGrpTab(k){
+  grpTab = k;
+  document.querySelectorAll('#gTabs .ftab').forEach(b => {
+    const on = b.dataset.t === k;
+    b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('#grpFicha .pane').forEach(p => p.hidden = p.dataset.p !== k);
+}
+function renderGrpHead(){
+  const g = grpOf(grpId); if (!g){ el('gHead').innerHTML = ''; return; }
+  const n = (g.memberIds || []).length, cursos = grpPlan ? grpPlan.courses.length : (g.courseCount || 0);
+  const s = groupStats(g);
+  el('gHead').innerHTML = `<div class="gic ${grpGrad(g)}">${ic('users', 28)}</div>
+    <div class="t"><h2>${esc(g.name)}</h2>
+      <div class="inline"><span class="st gray">${n} ${n === 1 ? 'miembro' : 'miembros'}</span>
+        <span class="st info">Plazo del grupo: ${g.onboardingDays} ${g.onboardingDays === 1 ? 'día' : 'días'}</span>
+        <span class="st gray">${cursos} ${cursos === 1 ? 'curso' : 'cursos'} en el plan</span>
+        ${s ? `<span class="st ok">${s.alDia} al día</span>${s.venc ? `<span class="st err">${s.venc} con vencidos</span>` : ''}` : ''}</div></div>
+    <button type="button" class="more" aria-label="Más acciones" aria-haspopup="menu" onclick="openMenu(this,[{icon:'trash',label:'Eliminar grupo',danger:true,run:()=>deleteGroup(grpId)}])">⋯</button>`;
+}
+
+// Miembros: añadir por búsqueda, fecha de ingreso (JoinedAt) y estado en cada curso del plan.
+function renderGrpMembers(){
+  const box = el('gMembers'), g = grpOf(grpId); if (!box || !g) return;
+  const plan = grpPlan ? grpPlan.courses : null;
+  const miembros = (g.members || (g.memberIds || []).map(u => ({ userId:u, joinedAt:null })))
+    .map(m => ({ ...m, name: grpUserName(m.userId), email: (grpUsers.find(u => u.id === m.userId) || {}).email || '' }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  const nota = !compSummary ? ' El estado por curso lo ven el administrador y los oficiales de cumplimiento.'
+             : plan && !plan.length ? ' El plan aún no tiene cursos: añádelos en la pestaña Plan.' : '';
+  box.innerHTML = `<h3>Miembros</h3>
+    <p class="hint">El plazo de cada curso del plan corre desde el día en que la persona entra al grupo.${nota}</p>
+    <label for="gSearch">Añadir persona</label>
+    <input id="gSearch" class="field" style="max-width:440px" placeholder="Busca por nombre o correo" autocomplete="off" value="${esc(grpSearch)}" oninput="grpSearch=this.value;renderGrpPick()" />
+    <div id="gPick" style="max-width:440px"></div>
+    <div class="sectionhead"><h4>En el grupo · ${miembros.length}</h4></div>
+    <div class="list" style="margin-top:0">${miembros.length ? miembros.map(m => memberRow(m, plan)).join('')
+      : '<div class="empty">Aún no tiene miembros. Búscalos arriba por nombre o correo.</div>'}</div>`;
+  renderGrpPick();
+}
+function memberRow(m, plan){
+  const desde = m.joinedAt ? 'en el grupo desde el ' + fmtShort(m.joinedAt) : '';
+  const pills = plan && compSummary ? plan.map(c => memberPill(m.userId, c)).join('') : '';
+  return `<div class="li"><div class="av">${esc(initials(m.name))}</div>
+    <div class="t">${esc(m.name)}<small>${esc([m.email, desde].filter(Boolean).join(' · '))}</small>
+      ${pills ? `<div class="inline" style="margin-top:6px;gap:6px">${pills}</div>` : ''}</div>
+    <button type="button" class="ibtn danger" title="Quitar del grupo" aria-label="Quitar a ${esc(m.name)} del grupo" onclick="removeMember('${m.userId}')">${ic('trash', 16)}</button></div>`;
+}
+function memberPill(uid, c){
+  const r = compRowsAll().find(x => x.userId === uid && x.trainingId === c.trainingId);
+  const t = c.title.length > 34 ? c.title.slice(0, 32) + '…' : c.title;
+  if (!r) return `<span class="st xs ok" title="${esc(c.title)}: al día">${esc(t)}: al día</span>`;
+  const w = compWhen(r);
+  return `<span class="st xs ${w.tone}" title="${esc(c.title + ': ' + w.txt)}">${esc(t)}: ${esc(w.short)}</span>`;
+}
+function renderGrpPick(){
+  const box = el('gPick'), g = grpOf(grpId); if (!box || !g) return;
+  const q = grpSearch.trim().toLowerCase();
+  if (!q){ box.innerHTML = ''; return; }
+  const dentro = new Set(g.memberIds || []);
+  const res = grpUsers.filter(u => !dentro.has(u.id) &&
+    ((u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))).slice(0, 8);
+  box.innerHTML = `<div class="pick" role="list">${res.length ? res.map(u => `<div class="li" role="listitem"><div class="av">${esc(initials(u.name || u.email))}</div>
+      <div class="t">${esc(u.name || u.email)}<small>${esc(u.email)} · ${esc(roleLabel(u.role))}</small></div>
+      <button type="button" class="btn sm" onclick="addMember('${u.id}')">Añadir</button></div>`).join('')
+    : `<div class="empty" style="padding:10px 12px">${grpUsers.length ? 'Nadie más coincide con la búsqueda.' : 'No se pudo leer la lista de usuarios de la compañía.'}</div>`}</div>`;
+}
+async function addMember(uid){
+  const g = grpOf(grpId); if (!g) return;
+  try{
+    const r = await api('/user-groups/'+g.id+'/members','POST',{ userId:uid });
+    g.memberIds = [...new Set([...(g.memberIds || []), uid])];
+    g.members = [...(g.members || []).filter(m => m.userId !== uid), { userId:uid, joinedAt: r && r.joinedAt }];
+    grpSearch = '';
+    toast(grpUserName(uid) + ' entró al grupo. Su plazo corre desde hoy.');
+    renderGrpHead(); renderGrpMembers();
+    const s = el('gSearch'); if (s) s.focus();
+    refreshGrpStatus();
+  }catch(e){ toast(e.message,'err'); }
+}
+async function removeMember(uid){
+  const g = grpOf(grpId); if (!g) return;
+  if (!await confirmModal('¿Quitar a ' + grpUserName(uid) + ' del grupo?',
+      'Deja de tener los cursos del plan de este grupo; los que le toquen por otro lado siguen igual. Sus intentos y certificados no se borran.',
+      { danger:true, icon:'users', okText:'Quitar' })) return;
+  try{
+    await api('/user-groups/'+g.id+'/members/'+uid,'DELETE');
+    g.memberIds = (g.memberIds || []).filter(x => x !== uid);
+    g.members = (g.members || []).filter(m => m.userId !== uid);
+    toast('Quitado del grupo.');
+    renderGrpHead(); renderGrpMembers();
+    refreshGrpStatus();
+  }catch(e){ toast(e.message,'err'); }
+}
+// Tras cambiar miembros o plan, el estado de cumplimiento se vuelve a pedir en segundo plano.
+async function refreshGrpStatus(){
+  if (compDenied) return;
+  if (await loadCompSummary(true) && grpId){ renderGrpHead(); renderGrpMembers(); }
+}
+
+// Plan: cursos obligatorios, plazo del grupo (OnboardingDays), plazo por curso (DueDays)
+// y el set del grupo en cada curso.
+function initGP(){
+  const p = grpPlan || { onboardingDays:7, courses:[] };
+  GP = { onboardingDays: p.onboardingDays,
+         courses: (p.courses || []).map(c => ({ trainingId:c.trainingId, title:c.title, status:c.status, audience:c.audience,
+           dueDays: c.dueDays == null ? '' : c.dueDays, setId: c.setId || '', origSetId: c.setId || '' })) };
+  grpPlanDirty = false;
+}
+function setGP(i, k, v){
+  if (!GP) return;
+  if (i === null) GP[k] = v; else GP.courses[i][k] = v;
+  grpPlanDirty = true;
+  const b = el('gpSave'); if (b) b.disabled = false;
+  const n = el('gpDirty'); if (n) n.textContent = 'Cambios sin guardar';
+  if (i === null && k === 'onboardingDays') GP.courses.forEach((c, j) => { const x = el('gpDue' + j); if (x) x.placeholder = v; });
+}
+async function loadPlanSets(){
+  const ids = (GP ? GP.courses : []).map(c => c.trainingId).filter(id => !grpSets[id]);
+  if (!ids.length) return;
+  await Promise.all(ids.map(id => api('/trainings/'+id+'/sets').then(d => { grpSets[id] = (d && d.sets) || []; }).catch(() => { grpSets[id] = []; })));
+  if (grpId) renderGrpPlan();
+}
+function renderGrpPlan(){
+  const box = el('gPlan'); if (!box || !grpId) return;
+  if (!GP){ box.innerHTML = loadingHtml(); return; }
+  const act = document.activeElement;
+  const foco = act && act.id && box.contains(act) ? act.id : null;
+  const en = new Set(GP.courses.map(c => c.trainingId));
+  const libres = grpTrainings.filter(t => t.status !== 'archived' && !en.has(t.id)).sort((a, b) => a.title.localeCompare(b.title, 'es'));
+  const filas = GP.courses.map((c, i) => {
+    const sets = grpSets[c.trainingId];
+    const setSel = !sets ? `<select class="field sm" disabled aria-label="Set del grupo"><option>Cargando sets…</option></select>`
+      : !sets.length ? `<select class="field sm" disabled aria-label="Set del grupo" title="Este curso no tiene sets: el grupo ve todo el contenido"><option>Todo el contenido</option></select>`
+      : `<select id="gpSet${i}" class="field sm" aria-label="Set del grupo para ${esc(c.title)}" onchange="setGP(${i},'setId',this.value)">
+           <option value="">Set por defecto</option>${sets.map(s => `<option value="${s.id}" ${c.setId === s.id ? 'selected' : ''}>${esc(s.name)}${s.isDefault ? ' (por defecto)' : ''}</option>`).join('')}</select>`;
+    const pub = c.status === 'published' ? 'Publicado' : c.status === 'archived' ? 'Archivado' : 'Borrador: aún no le aparece a nadie';
+    const aud = c.audience === 'groups' ? 'solo para grupos con este curso en su plan' : 'obligatorio para toda la compañía; aquí se fija el plazo del grupo';
+    return `<div class="prow">
+      <div class="t"><b>${esc(c.title)}</b><small>${esc(pub + ' · ' + aud)}</small></div>
+      <div class="inline"><span>plazo</span><input id="gpDue${i}" type="number" class="field sm num" style="width:84px" min="0" max="3650" value="${esc(c.dueDays)}" placeholder="${esc(GP.onboardingDays)}" aria-label="Días de plazo para ${esc(c.title)}" oninput="setGP(${i},'dueDays',this.value)" /><span>días</span></div>
+      ${setSel}
+      <button type="button" class="ibtn danger" title="Quitar del plan" aria-label="Quitar ${esc(c.title)} del plan" onclick="removePlanCourse(${i})">${ic('trash', 16)}</button>
+    </div>`;
+  }).join('');
+  box.innerHTML = `<h3>Plan de onboarding</h3>
+    <p class="hint">Cursos obligatorios para los miembros del grupo y en cuántos días deben completarlos desde que entran (o desde que el curso se añade al plan, lo que sea más tarde). Un curso ya aprobado y vigente al entrar no se vuelve a exigir.</p>
+    <label for="gpDays">Plazo del grupo</label>
+    <div class="inline"><input id="gpDays" type="number" class="field num" style="width:96px" min="0" max="3650" value="${esc(GP.onboardingDays)}" oninput="setGP(null,'onboardingDays',this.value)" /><span>días desde que la persona entra al grupo</span></div>
+    <p class="hint" style="margin:4px 0 0">Vale para los cursos sin plazo propio: deja vacío el plazo de un curso para usar el del grupo.</p>
+    <div class="sectionhead"><h4>Cursos del plan · ${GP.courses.length}</h4><span class="hint" style="margin:0">Plazo · set de contenido del grupo</span></div>
+    <div class="list" style="margin-top:0">${filas || '<div class="empty">Sin cursos en el plan. Añade los que deben completar sus miembros.</div>'}</div>
+    <div class="inline" style="margin-top:12px">
+      <select id="gpAdd" class="field sm" style="max-width:340px" aria-label="Curso para añadir al plan" ${libres.length ? '' : 'disabled'}>
+        ${libres.length ? '<option value="">Añadir un curso al plan…</option>' + libres.map(t => `<option value="${t.id}">${esc(t.title)}${t.status === 'published' ? '' : ' (borrador)'}</option>`).join('')
+                        : '<option>Todos los cursos ya están en el plan</option>'}</select>
+      <button type="button" class="btn sm ghost" onclick="addPlanCourse()" ${libres.length ? '' : 'disabled'}>Añadir</button>
+    </div>
+    <div class="panefoot"><button type="button" class="btn sm" id="gpSave" onclick="saveGrpPlan()" ${grpPlanDirty ? '' : 'disabled'}>Guardar plan</button>
+      <span class="hint dirty" id="gpDirty">${grpPlanDirty ? 'Cambios sin guardar' : ''}</span></div>`;
+  if (foco){ const n = el(foco); if (n) n.focus(); }
+}
+function addPlanCourse(){
+  const id = el('gpAdd') && el('gpAdd').value; if (!id || !GP) return;
+  const t = grpTrainings.find(x => x.id === id); if (!t) return;
+  GP.courses.push({ trainingId:t.id, title:t.title, status:t.status, audience:t.audience || 'everyone', dueDays:'', setId:'', origSetId:'' });
+  grpPlanDirty = true;
+  renderGrpPlan(); loadPlanSets();
+}
+function removePlanCourse(i){ if (!GP) return; GP.courses.splice(i, 1); grpPlanDirty = true; renderGrpPlan(); }
+async function saveGrpPlan(){
+  const g = grpOf(grpId); if (!g || !GP) return;
+  const ent = v => v === '' || v == null ? null : Number(v);
+  const od = ent(GP.onboardingDays);
+  if (!(Number.isInteger(od) && od >= 0 && od <= 3650)){ toast('El plazo del grupo va de 0 a 3650 días.','err'); return; }
+  const malo = GP.courses.find(c => { const d = ent(c.dueDays); return d !== null && !(Number.isInteger(d) && d >= 0 && d <= 3650); });
+  if (malo){ toast('El plazo de «' + malo.title + '» va de 0 a 3650 días, o vacío para usar el del grupo.','err'); return; }
+  const b = el('gpSave'); if (b) b.disabled = true;
+  const id = g.id;
+  try{
+    await api('/groups/'+id+'/plan','PUT',{ onboardingDays:od, courses: GP.courses.map(c => ({ trainingId:c.trainingId, dueDays:ent(c.dueDays) })) });
+    // El set del grupo es una asignación de tipo group en cada curso: se crea, se cambia o se quita.
+    for (const c of GP.courses.filter(c => c.setId !== c.origSetId)){
+      if (c.setId) await api('/trainings/'+c.trainingId+'/assignments','POST',{ setId:c.setId, targetType:'group', targetId:id });
+      else {
+        const asg = await api('/trainings/'+c.trainingId+'/assignments');
+        const a = (asg || []).find(x => x.targetType === 'group' && x.targetId === id);
+        if (a) await api('/assignments/'+a.id,'DELETE');
+      }
+    }
+    const p = await api('/groups/'+id+'/plan');
+    g.onboardingDays = p.onboardingDays; g.courseCount = (p.courses || []).length;
+    toast('Plan guardado.');
+    if (id !== grpId) return;
+    grpPlan = p; initGP();
+    renderGrpHead(); renderGrpMembers(); renderGrpPlan();
+    if (curTraining) loadSets();
+    refreshGrpStatus();
+  }catch(e){ toast(e.message,'err'); if (b) b.disabled = false; }
+}
+
+// ----- Sets por adiestramiento (antes «Sets y asignación») -----
+// El editor de sets de siempre, ahora dentro de Grupos. Las asignaciones pueden ir a una
+// persona o a un grupo; la del grupo también se escoge en la pestaña Plan.
+let asgUsers = [], asgGroups = [];
+let curTraining = null, curSets = [], curItems = [], curAssign = [], curPublished = false;
+
+function amsg(m){ el('assignMsg').textContent = m || ''; el('assignMsg').className = 'msg err'; }
+function initSetsPanel(){
+  asgUsers = grpUsers; asgGroups = grpList;
+  const sel = el('setTraining'); if (!sel) return;
+  const prev = curTraining;
+  const trs = grpTrainings.filter(t => t.status !== 'archived').sort((a, b) => a.title.localeCompare(b.title, 'es'));
+  sel.innerHTML = `<option value="">— elige un adiestramiento —</option>` +
+    trs.map(t => `<option value="${t.id}">${esc(t.title)}${t.status === 'published' ? '' : ' (borrador)'}</option>`).join('');
+  amsg('');
+  if (prev && trs.some(t => t.id === prev)){ sel.value = prev; loadSets(); }
+  else { curTraining = null; el('setsArea').innerHTML = ''; }
+}
+function userLabel(uid){ const u = asgUsers.find(x => x.id === uid); return u ? (u.name || u.email) : '(persona)'; }
+function groupLabel(gid){ const g = asgGroups.find(x => x.id === gid); return g ? g.name : '(grupo)'; }
+function setLabel(sid){ const s = curSets.find(x => x.id === sid); return s ? s.name : '(set)'; }
+
 async function loadSets(){
   curTraining = el('setTraining').value || null;
-  if(!curTraining){ el('setsArea').innerHTML=''; return; }
+  if (!curTraining){ el('setsArea').innerHTML = ''; return; }
   try{
     const d = await api('/trainings/'+curTraining+'/sets');
     curPublished = d.published; curItems = d.items; curSets = d.sets;
+    grpSets[curTraining] = curSets;
     curAssign = await api('/trainings/'+curTraining+'/assignments');
     renderSets();
   }catch(e){ amsg(e.message); }
 }
 function itemShort(it){
-  let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
-  if(it.type==='ModuleHeader') return '📂 '+(p.title||'módulo');
-  if(it.type==='Info') return '📄 '+(p.title||'pantalla');
-  if(it.type==='MultipleChoice'||it.type==='MultiSelect') return '❓ '+(p.question||'');
-  if(it.type==='Matching') return '🧩 '+(p.question||'');
-  if(it.type==='OpenResponse') return '📝 '+(p.question||'');
-  return it.type;
+  let p = {}; try{ p = JSON.parse(it.payloadJson); }catch{}
+  const fila = (icono, txt) => `${ic(icono, 14)} ${esc(txt)}`;
+  if (it.type === 'ModuleHeader') return fila('folder', p.title || 'módulo');
+  if (it.type === 'Info') return fila('doc', p.title || 'pantalla');
+  if (it.type === 'MultipleChoice' || it.type === 'MultiSelect' || it.type === 'Matching') return fila('help', p.question || '');
+  if (it.type === 'OpenResponse') return fila('pencil', p.question || '');
+  return esc(it.type);
 }
 function renderSets(){
-  if(!curItems.length){
-    el('setsArea').innerHTML = `<div class="empty">Este adiestramiento aún no tiene contenido${curPublished?'':' publicado'}. Publícalo para poder armar sets sobre su contenido.</div>
-      <div style="margin-top:10px"><button class="btn sm" onclick="createSet()">+ Crear set</button></div>`;
-    if(curSets.length) el('setsArea').innerHTML += renderSetsList();
+  if (!curItems.length){
+    el('setsArea').innerHTML = `<div class="empty">Este adiestramiento aún no tiene contenido${curPublished ? '' : ' publicado'}. Publícalo para poder armar sets sobre su contenido.</div>
+      <div style="margin-top:10px"><button type="button" class="btn sm" onclick="createSet()">+ Crear set</button></div>`;
+    if (curSets.length) el('setsArea').innerHTML += renderSetsList();
     return;
   }
   el('setsArea').innerHTML = `
-    ${curPublished?'':'<p class="hint" style="color:#b45309">Mostrando el borrador (no hay versión publicada). Publica el adiestramiento para que los sets apliquen a lo que toman los usuarios.</p>'}
-    <div style="margin-bottom:10px"><button class="btn sm" onclick="createSet()">+ Crear set</button></div>
+    ${curPublished ? '' : '<p class="hint" style="color:var(--warn)">Mostrando el borrador (no hay versión publicada). Publica el adiestramiento para que los sets apliquen a lo que toman los empleados.</p>'}
+    <div style="margin-bottom:10px"><button type="button" class="btn sm" onclick="createSet()">+ Crear set</button></div>
     ${renderSetsList()}
     ${renderAssignBlock()}`;
 }
 function renderSetsList(){
-  if(!curSets.length) return `<div class="empty">Sin sets. Crea al menos uno.</div>`;
-  return curSets.map(s=>{
-    const rows = curItems.map(it=>{
+  if (!curSets.length) return `<div class="empty">Sin sets. Crea al menos uno.</div>`;
+  return curSets.map(s => {
+    const rows = curItems.map(it => {
       const inc = !s.excluded.includes(it.stableKey);
-      return `<label class="opt" style="${inc?'':'opacity:.5'}"><input type="checkbox" ${inc?'checked':''} onchange="toggleSetItem('${s.id}','${it.stableKey}',this.checked)"> ${itemShort(it)}</label>`;
+      return `<label class="opt" style="${inc ? '' : 'opacity:.5'}"><input type="checkbox" ${inc ? 'checked' : ''} onchange="toggleSetItem('${s.id}','${esc(it.stableKey)}',this.checked)"> ${itemShort(it)}</label>`;
     }).join('');
     const incCount = curItems.length - s.excluded.length;
     return `<div class="card" style="box-shadow:none;border:1px solid var(--line);margin-bottom:12px">
       <div class="item" style="border:none">
-        <b style="font-size:15px">${s.name}</b> ${s.isDefault?'<span class="tag" style="background:#dcfce7;color:#166534">por defecto</span>':''}
-        <span class="tag">${incCount}/${curItems.length} incluidos</span>
+        <b style="font-size:15px">${esc(s.name)}</b> ${s.isDefault ? '<span class="st ok">Por defecto</span>' : ''}
+        <span class="st gray">${incCount}/${curItems.length} incluidos</span>
         <span class="sp">
-          ${s.isDefault?'':`<button class="btn sm ghost" onclick="makeDefault('${s.id}')">Hacer default</button>`}
-          <button class="btn sm ghost" onclick="renameSet('${s.id}','${s.name.replace(/'/g,"")}')">Renombrar</button>
-          <button class="btn sm danger" onclick="deleteSet('${s.id}')">Eliminar</button>
+          ${s.isDefault ? '' : `<button type="button" class="btn sm ghost" onclick="makeDefault('${s.id}')">Hacer por defecto</button>`}
+          <button type="button" class="btn sm ghost" onclick="renameSet('${s.id}')">Renombrar</button>
+          <button type="button" class="btn sm danger" onclick="deleteSet('${s.id}')">Eliminar</button>
         </span>
       </div>
       <p class="hint">Desmarca lo que NO quieras mostrar en este set.</p>
@@ -3759,58 +4667,66 @@ function renderSetsList(){
   }).join('');
 }
 function renderAssignBlock(){
-  if(!curSets.length) return '';
-  const userOpts = asgUsers.map(u=>`<option value="${u.id}">${u.name||u.email}</option>`).join('');
-  const setOpts = curSets.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-  const rows = curAssign.length ? curAssign.map(a=>`<div class="item"><span>${a.targetType==='user'?'👤 '+userLabel(a.targetId):'👥 '+cohortLabel(a.targetId)} → <b>${setLabel(a.setId)}</b></span><span class="sp"><button class="btn sm danger" onclick="deleteAssignment('${a.id}')">Quitar</button></span></div>`).join('') : `<div class="empty">Sin asignaciones. Todos ven el set por defecto.</div>`;
+  if (!curSets.length) return '';
+  const userOpts = asgUsers.map(u => `<option value="${u.id}">${esc(u.name || u.email)}</option>`).join('');
+  const setOpts = curSets.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  const rows = curAssign.length ? curAssign.map(a => `<div class="item"><span>${a.targetType === 'user' ? ic('user', 14) + ' ' + esc(userLabel(a.targetId)) : ic('users', 14) + ' ' + esc(groupLabel(a.targetId))} → <b>${esc(setLabel(a.setId))}</b></span>
+      <span class="sp"><button type="button" class="btn sm danger" onclick="deleteAssignment('${a.id}')">Quitar</button></span></div>`).join('')
+    : `<div class="empty">Sin asignaciones. Todos ven el set por defecto.</div>`;
   return `<div class="card" style="box-shadow:none;border:1px solid var(--line)">
-    <h3 style="margin-top:0">Asignaciones (usuario o cohorte → set)</h3>
+    <h3 style="margin-top:0">Asignaciones (persona o grupo → set)</h3>
     <div class="row" style="margin:6px 0 10px">
-      <div style="max-width:150px"><select class="field" id="aType" onchange="renderTargetOpts()"><option value="user">Usuario</option><option value="group">Cohorte</option></select></div>
-      <div><select class="field" id="aTarget">${userOpts}</select></div>
-      <div><select class="field" id="aSet">${setOpts}</select></div>
-      <button class="btn sm" onclick="addAssignment()">Asignar</button>
+      <div style="max-width:150px"><select class="field" id="aType" aria-label="Tipo" onchange="renderTargetOpts()"><option value="user">Persona</option><option value="group">Grupo</option></select></div>
+      <div><select class="field" id="aTarget" aria-label="A quién">${userOpts}</select></div>
+      <div><select class="field" id="aSet" aria-label="Set">${setOpts}</select></div>
+      <button type="button" class="btn sm" onclick="addAssignment()">Asignar</button>
     </div>
     <div class="list">${rows}</div>
   </div>`;
 }
 function renderTargetOpts(){
-  const type=el('aType').value;
-  el('aTarget').innerHTML = type==='user'
-    ? asgUsers.map(u=>`<option value="${u.id}">${u.name||u.email}</option>`).join('')
-    : asgCohorts.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const type = el('aType').value;
+  el('aTarget').innerHTML = type === 'user'
+    ? asgUsers.map(u => `<option value="${u.id}">${esc(u.name || u.email)}</option>`).join('')
+    : asgGroups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('');
 }
 async function createSet(){
   const name = await askModal('Nuevo set', 'Un set es una versión del adiestramiento donde eliges qué se enseña.',
-    { label:'Nombre del set', value:'Set '+(curSets.length+1), placeholder:'Set básico', icon:'layers', okText:'Crear',
+    { label:'Nombre del set', value:'Set ' + (curSets.length + 1), placeholder:'Set básico', icon:'layers', okText:'Crear',
       validate: v => v.trim() ? null : 'Ponle un nombre al set.' });
-  if(name===null) return;
-  try{ await api('/trainings/'+curTraining+'/sets','POST',{name:name.trim()}); await loadSets(); toast('Set creado.'); }catch(e){ amsg(e.message); }
+  if (name === null) return;
+  try{ await api('/trainings/'+curTraining+'/sets','POST',{ name:name.trim() }); await loadSets(); toast('Set creado.'); }catch(e){ amsg(e.message); }
 }
-async function renameSet(id, cur){
+async function renameSet(id){
+  const cur = setLabel(id);
   const name = await askModal('Renombrar set', '', { label:'Nuevo nombre', value:cur, icon:'pencil', okText:'Guardar',
     validate: v => v.trim() ? null : 'Ponle un nombre al set.' });
-  if(name===null) return;
-  try{ await api('/sets/'+id+'/rename','POST',{name:name.trim()}); await loadSets(); }catch(e){ amsg(e.message); }
+  if (name === null) return;
+  try{ await api('/sets/'+id+'/rename','POST',{ name:name.trim() }); await loadSets(); }catch(e){ amsg(e.message); }
 }
 async function makeDefault(id){ try{ await api('/sets/'+id+'/default','POST'); await loadSets(); }catch(e){ amsg(e.message); } }
 async function deleteSet(id){
-  if(!await confirmModal('¿Eliminar este set?', 'Se quitan sus asignaciones: esas personas verán el set de su cohorte o el set por defecto.', { danger:true, icon:'trash', okText:'Eliminar' })) return;
+  if (!await confirmModal('¿Eliminar este set?', 'Se quitan sus asignaciones: esas personas verán el set de su grupo o el set por defecto.', { danger:true, icon:'trash', okText:'Eliminar' })) return;
   try{ await api('/sets/'+id,'DELETE'); await loadSets(); toast('Set eliminado.'); }catch(e){ amsg(e.message); }
 }
 async function toggleSetItem(setId, stableKey, included){
-  try{ await api('/sets/'+setId+'/item','POST',{stableKey, included});
-    const s=curSets.find(x=>x.id===setId);
-    if(s){ if(included){ s.excluded=s.excluded.filter(k=>k!==stableKey); } else { if(!s.excluded.includes(stableKey)) s.excluded.push(stableKey); } }
+  try{
+    await api('/sets/'+setId+'/item','POST',{ stableKey, included });
+    const s = curSets.find(x => x.id === setId);
+    if (s){ if (included) s.excluded = s.excluded.filter(k => k !== stableKey); else if (!s.excluded.includes(stableKey)) s.excluded.push(stableKey); }
     renderSets();
   }catch(e){ amsg(e.message); }
 }
 async function addAssignment(){
-  const targetType=el('aType').value, targetId=el('aTarget').value, setId=el('aSet').value;
-  if(!targetId||!setId) return;
-  try{ await api('/trainings/'+curTraining+'/assignments','POST',{setId, targetType, targetId}); curAssign=await api('/trainings/'+curTraining+'/assignments'); renderSets(); }catch(e){ amsg(e.message); }
+  const targetType = el('aType').value, targetId = el('aTarget').value, setId = el('aSet').value;
+  if (!targetId || !setId) return;
+  try{ await api('/trainings/'+curTraining+'/assignments','POST',{ setId, targetType, targetId }); curAssign = await api('/trainings/'+curTraining+'/assignments'); renderSets(); }
+  catch(e){ amsg(e.message); }
 }
-async function deleteAssignment(id){ try{ await api('/assignments/'+id,'DELETE'); curAssign=await api('/trainings/'+curTraining+'/assignments'); renderSets(); }catch(e){ amsg(e.message); } }
+async function deleteAssignment(id){
+  try{ await api('/assignments/'+id,'DELETE'); curAssign = await api('/trainings/'+curTraining+'/assignments'); renderSets(); }
+  catch(e){ amsg(e.message); }
+}
 
 // ===== Catálogo: abre el reproductor en pestaña nueva =====
 // «Mis adiestramientos»: tarjetas ordenadas por urgencia, con filtros. Los aprobados van
@@ -3902,22 +4818,46 @@ function openReview(attemptId, title){
 function fmt(d){ return d ? new Date(d).toLocaleString() : '—'; }
 function fmtTime(s){ s=Math.max(0,Math.round(s||0)); const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60; if(h>0)return h+'h '+m+'m'; if(m>0)return m+'m '+sec+'s'; return sec+'s'; }
 el('refreshHistBtn').onclick = loadMyHistory;
+// Intentos del empleado con su estado. De un intento aprobado se puede reenviar el enlace
+// del certificado (genera uno nuevo y lo manda a su correo).
+const HIST_PILL = { 'in-progress':['info','En progreso'], 'pending-grading':['warn','En revisión'],
+                    'cancellation-requested':['gray','Cancelación solicitada'], 'cancelled':['gray','Cancelado'] };
+let histRows = [];
 async function loadMyHistory(){
+  el('historyList').innerHTML = loadingHtml();
   try{
     const h = await api('/me/attempts');
-    el('historyList').innerHTML = h.length ? h.map(a=>{
-      let right='', actions='', note='';
-      if(a.status==='completed'){ right=(a.passed?'✅':'❌')+' '+a.score+' pts'; actions=`<button class="btn sm ghost" onclick="openReview('${a.id}','${a.title.replace(/'/g,"")}')">Revisar</button>`; }
-      else if(a.status==='pending-grading'){ right='pendiente de evaluación'; actions=`<button class="btn sm ghost" onclick="openReview('${a.id}','${a.title.replace(/'/g,"")}')">Revisar</button>`; }
-      else if(a.status==='in-progress'){ right='en progreso'; actions=`<button class="btn sm ghost" onclick="requestCancel('${a.id}')">Solicitar cancelación</button>`; }
-      else if(a.status==='cancellation-requested'){ right='cancelación solicitada'; if(a.cancelRequestComment) note=` · “${a.cancelRequestComment}”`; }
-      else if(a.status==='cancelled'){ right='cancelado'; if(a.cancelApprovalComment) note=` · aprobó: “${a.cancelApprovalComment}”`; }
-      else right=a.status;
-      const t = (a.activeSeconds>0) ? ` · ⏱️ ${fmtTime(a.activeSeconds)}` : '';
-      return `<div class="item">${a.title} <span class="tag">${a.status}</span>
-        <span class="sp">${right}${note} · ${fmt(a.completedAt||a.startedAt)}${t} ${actions}</span></div>`;
+    histRows = Array.isArray(h) ? h : [];
+    el('historyList').innerHTML = histRows.length ? histRows.map((a, i) => {
+      const pill = a.status === 'completed' ? (a.passed ? ['ok', 'Aprobado · ' + a.score + ' pts'] : ['err', 'No aprobado · ' + a.score + ' pts'])
+                 : HIST_PILL[a.status] || ['gray', a.status];
+      const sub = [fmtFecha(a.completedAt || a.startedAt),
+        a.activeSeconds > 0 ? fmtTime(a.activeSeconds) + ' frente al curso' : null,
+        a.status === 'cancellation-requested' && a.cancelRequestComment ? 'motivo: «' + a.cancelRequestComment + '»' : null,
+        a.status === 'cancelled' && a.cancelApprovalComment ? 'aprobó: «' + a.cancelApprovalComment + '»' : null].filter(Boolean).join(' · ');
+      const acts = [];
+      if (a.status === 'completed' || a.status === 'pending-grading')
+        acts.push(`<button type="button" class="btn sm ghost" onclick="openReview('${a.id}',histRows[${i}].title)">Revisar</button>`);
+      if (a.status === 'completed' && a.passed)
+        acts.push(`<button type="button" class="btn sm ghost" onclick="resendFromAttempt(${i},this)" title="Te enviamos a tu correo un enlace nuevo al certificado">Reenviar enlace</button>`);
+      if (a.status === 'in-progress')
+        acts.push(`<button type="button" class="btn sm ghost" onclick="requestCancel('${a.id}')">Solicitar cancelación</button>`);
+      return `<div class="li" style="flex-wrap:wrap"><div class="crow-ic">${ic(a.status === 'completed' && a.passed ? 'award' : 'book', 18)}</div>
+        <div class="t" style="min-width:180px">${esc(a.title)}<small>${esc(sub)}</small></div>
+        <span class="st ${pill[0]}">${esc(pill[1])}</span>
+        ${acts.length ? `<div class="inline" style="gap:6px">${acts.join('')}</div>` : ''}</div>`;
     }).join('') : `<div class="empty">Aún no has tomado adiestramientos.</div>`;
-  }catch(e){}
+  }catch(e){ el('historyList').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+async function resendFromAttempt(i, btn){
+  const a = histRows[i]; if (!a) return;
+  btn.disabled = true;
+  try{
+    const c = await api('/attempts/'+a.id+'/certificate');
+    const r = await api('/certificates/'+encodeURIComponent(c.serial)+'/resend','POST',{ to:'learner' });
+    toast(r.delivery === 'link' ? `Te enviamos a tu correo un enlace nuevo; vale ${r.linkDays} días.` : 'Te reenviamos el certificado por correo.');
+  }catch(e){ toast(e.message,'err'); }
+  finally{ btn.disabled = false; }
 }
 
 // ===== Cancelaciones =====
