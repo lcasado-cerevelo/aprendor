@@ -220,3 +220,37 @@ error en la bitácora. El admin sembrado nace con cambio de contraseña obligato
 ### Bitácora
 `App_Data/logs/app-log-AAAAMMDD.txt`, un archivo por día; se conservan los últimos 14. Los enlaces de
 restablecimiento y los códigos de doble factor solo se escriben en la bitácora en Development.
+
+## Autenticación y sesión (septiembre 2026, bloque S2)
+
+### Al desplegar
+- Migración de catálogo `SecurityHardening` (se aplica sola al arrancar o con `migrate`): tabla
+  `SecurityEvent`, `AuditLog.Ip`, `PasswordResetToken.Purpose` y en `User` el sello de seguridad
+  (`SecurityStamp`, cada fila existente recibe uno nuevo), contadores de fallos, bloqueos,
+  `LastTotpStep`, `PendingTotpSecret` y `TempPasswordExpiresAt`.
+- Los tokens emitidos antes no llevan sello: todas las sesiones abiertas se cierran y cada persona
+  vuelve a entrar una vez.
+
+### Qué cambia
+- Límites por IP real (429 con `Retry-After` y `{ error: "Demasiados intentos. Espera N minutos.", minutes }`):
+  `/auth/login` 10/min y 50/15 min; `/auth/2fa/verify` 10/min; `/auth/forgot-password` 5/h;
+  `/auth/reset-password` 10/h; `/auth/2fa/resend` y `/me/email/send-code` 10/h.
+- Por cuenta: 5 claves malas seguidas bloquean la entrada 15 minutos (con aviso por correo, como
+  mucho uno por hora); 5 códigos de verificación malos, sumando todos los retos, bloquean el doble
+  factor 15 minutos; «¿Olvidaste tu contraseña?» 3 por hora y 5 al día; códigos por correo con 60 s
+  entre envíos y 10 al día; comprobar la clave actual con la sesión abierta (cambiar clave, quitar o
+  cambiar el 2FA), 5 fallos → 15 minutos.
+- El token lleva `sst` (sello), `scope` y `amr`. Cambiar o restablecer la clave, tocar el 2FA, cambiar
+  el rol o quitar una membresía rota el sello y cierra las sesiones de esa persona (la propia recibe
+  un token nuevo en la respuesta). Cada petición comprueba sello, membresía y rol (caché de 60 s).
+- Tokens restringidos de 15 minutos (`scope` = `change-password`, `enroll-2fa` o `verify-email`) que
+  solo abren `/me`, `/me/password`, `/me/2fa/*` y `/me/email/*`. La política de doble factor del login
+  es la más estricta entre las compañías de la persona; `/me/switch-company` no alarga la sesión y, si
+  la compañía destino exige 2FA y la sesión no lo pasó, responde `requires2fa` con un reto.
+- Cambiar de autenticador exige la clave actual y un código del autenticador vigente; el nuevo queda
+  pendiente hasta confirmarlo.
+- Contraseñas: mínimo 10 caracteres, distinta del correo y fuera de una lista de comunes, en todos los
+  puntos que fijan una clave.
+- Alta de usuarios sin contraseñas por correo: con invitación, enlace `#invite=TOKEN` de 72 h para que
+  la persona cree la suya; sin invitación, el servidor genera una temporal de 16 caracteres que se
+  muestra una sola vez al admin y vence a las 72 h. El reset del admin también puede generarla.

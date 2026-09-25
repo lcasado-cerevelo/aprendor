@@ -460,20 +460,58 @@ public static class EmailTemplates
         return Render(b.ToString(), $"Tienes {notStarted.Count + inProgress.Count} adiestramiento(s) pendiente(s).");
     }
 
-    public static string Invitation(string name, string email, string tempPassword, string? appUrl)
+    // Invitación sin contraseña en claro: enlace de un solo uso para que la persona cree
+    // su propia clave.
+    public static string InvitationLink(string name, string email, string link, int horas)
     {
         string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
         var body =
             Titulo("Bienvenido a Aprendor") +
             $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
-            "<p style=\"margin:0;\">Tu cuenta ya está lista para que comiences tus adiestramientos.</p>" +
-            Recuadro(
-                $"<div style=\"margin:2px 0;\"><span style=\"color:#64748b;\">Usuario:</span> <b>{Enc(email)}</b></div>" +
-                $"<div style=\"margin:6px 0 2px;\"><span style=\"color:#64748b;\">Contraseña temporal:</span> " +
-                $"<b style=\"font-family:Consolas,monospace;\">{Enc(tempPassword)}</b></div>") +
-            "<p style=\"margin:0;color:#475569;font-size:14px;\">Por seguridad, la primera vez que inicies sesión te pediremos crear tu propia contraseña.</p>" +
-            Boton("Entrar a Aprendor", appUrl ?? "");
-        return Render(body, "Tu cuenta de Aprendor ya está lista.");
+            "<p style=\"margin:0;\">Te crearon una cuenta para que tomes tus adiestramientos. " +
+            "Pulsa el botón para crear tu contraseña y entrar.</p>" +
+            Recuadro($"<div style=\"margin:2px 0;\"><span style=\"color:#64748b;\">Usuario:</span> <b>{Enc(email)}</b></div>") +
+            Boton("Crear mi contraseña", link) +
+            $"<p style=\"margin:14px 0 0;color:#64748b;font-size:13px;\">El enlace vence en {horas} horas y solo se puede usar una vez. " +
+            "Si vence, usa «¿Olvidaste tu contraseña?» en la pantalla de entrada o pide otra invitación.</p>";
+        return Render(body, "Crea tu contraseña de Aprendor.");
+    }
+
+    // Aviso de bloqueo temporal. motivo: password (contraseña) | 2fa (código de verificación).
+    public static string AccountLocked(string name, string motivo, int minutos)
+    {
+        string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        var que = motivo == "2fa" ? "códigos de verificación incorrectos" : "contraseñas incorrectas";
+        var body =
+            Titulo("Bloqueamos temporalmente el acceso") +
+            $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
+            $"<p style=\"margin:0;\">Hubo varios intentos seguidos de entrar a tu cuenta con {que}. " +
+            $"Por seguridad, el acceso quedó bloqueado durante {minutos} minutos.</p>" +
+            "<p style=\"margin:14px 0 0;color:#475569;font-size:14px;\">Si fuiste tú, espera y vuelve a intentarlo. " +
+            (motivo == "2fa"
+                ? "Si no fuiste tú, alguien conoce tu contraseña: cámbiala en cuanto puedas entrar."
+                : "Si no fuiste tú, te recomendamos cambiar tu contraseña con «¿Olvidaste tu contraseña?».") +
+            "</p>";
+        return Render(body, "Varios intentos fallidos de entrar a tu cuenta.");
+    }
+
+    // Aviso de cambios en la verificación en dos pasos. cambio: enabled | changed | disabled.
+    public static string AuthenticatorChanged(string name, string cambio, DateTime cuandoUtc)
+    {
+        string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        var (titulo, texto) = cambio switch
+        {
+            "changed" => ("Cambiaste tu app autenticadora", "Se registró una app autenticadora nueva en tu cuenta. La anterior ya no sirve para entrar."),
+            "disabled" => ("Desactivaste la verificación en dos pasos", "Tu cuenta ya no pide el código de la app autenticadora al entrar."),
+            _ => ("Activaste la verificación en dos pasos", "A partir de ahora, al entrar te pediremos el código de tu app autenticadora."),
+        };
+        var body =
+            Titulo(titulo) +
+            $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
+            $"<p style=\"margin:0;\">{Enc(texto)}</p>" +
+            Recuadro($"<div><span style=\"color:#64748b;\">Fecha:</span> <b>{cuandoUtc:yyyy-MM-dd HH:mm} UTC</b></div>") +
+            "<p style=\"margin:0;color:#64748b;font-size:13px;\">Si no fuiste tú, cambia tu contraseña enseguida y avisa al administrador de tu compañía.</p>";
+        return Render(body, titulo + ".");
     }
 
     public static string PasswordReset(string name, string link, int minutos)

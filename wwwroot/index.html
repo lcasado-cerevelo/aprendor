@@ -603,7 +603,8 @@
         <div class="row">
           <div><label>Correo</label><input id="uEmail" class="field" placeholder="autor@compania.com" /></div>
           <div><label>Nombre</label><input id="uName" class="field" placeholder="Autora" /></div>
-          <div><label>Contraseña</label><input id="uPass" class="field" type="text" placeholder="Pass123!" /></div>
+          <!-- La clave ya no la escribe el admin: invitación con enlace o temporal generada por el servidor. -->
+          <div class="hidden"><label>Contraseña</label><input id="uPass" class="field" type="text" /></div>
           <div><label>Rol</label><select id="uRole" class="field">
             <option>Author</option><option>Moderator</option><option>Learner</option><option>Admin</option></select></div>
           <div><label>Compañía</label><select id="uTenant" class="field"></select></div>
@@ -1262,6 +1263,16 @@ async function doLogin(){
   }catch(e){ msg.textContent = 'Correo o contraseña incorrectos.'; }
 }
 
+// Tras cambiar la clave, validar el correo o tocar el 2FA el servidor rota el sello de
+// la sesión y devuelve un token nuevo (con el alcance que corresponda): hay que usarlo.
+function adoptarSesion(r){
+  if (!r || !r.token) return false;
+  token = r.token; if (r.user) user = r.user;
+  localStorage.setItem('tp_token', token);
+  localStorage.setItem('tp_user', JSON.stringify(user));
+  return true;
+}
+
 function entrarConSesion(r){
   token = r.token; user = r.user;
   localStorage.setItem('tp_token', token);
@@ -1292,7 +1303,7 @@ async function pedirValidacionCorreo(){
   const m = el('veMsg'); m.className='msg'; m.textContent = 'Enviando el código…';
   try{
     const r = await api('/me/email/send-code','POST');
-    if(r.verified){ user.emailVerified = true; localStorage.setItem('tp_user', JSON.stringify(user)); showApp(); return; }
+    if(r.verified){ if (adoptarSesion(r)) { entrarConSesion(r); return; } user.emailVerified = true; localStorage.setItem('tp_user', JSON.stringify(user)); showApp(); return; }
     retoCorreo = r.challengeId;
     m.className='msg ok'; m.textContent = 'Te enviamos un código a ' + (r.email || user.email) + '.';
     el('veCode').focus();
@@ -1305,10 +1316,11 @@ async function validarCorreo(){
   if(code.length !== 6){ m.textContent = 'El código son 6 dígitos.'; return; }
   el('veBtn').disabled = true;
   try{
-    await api('/me/email/verify','POST',{ challengeId: retoCorreo, code });
+    const r = await api('/me/email/verify','POST',{ challengeId: retoCorreo, code });
+    retoCorreo = null;
+    if (adoptarSesion(r)) { entrarConSesion(r); return; }
     user.emailVerified = true;
     localStorage.setItem('tp_user', JSON.stringify(user));
-    retoCorreo = null;
     showApp();
   }catch(e){ m.textContent = e.message; }
   finally{ el('veBtn').disabled = false; }
@@ -1350,7 +1362,14 @@ el('tfResend').onclick = async e => {
     m.className='msg ok'; m.textContent = r.message || 'Código reenviado.';
   }catch(err){ m.className='msg err'; m.textContent = err.message; }
 };
-el('tfCancel').onclick = e => { e.preventDefault(); retoActual = null; el('password').value=''; mostrarSolo('loginView'); };
+el('tfCancel').onclick = e => {
+  e.preventDefault();
+  const eraCambio = retoActual && retoActual.cambioCompania;
+  retoActual = null; el('password').value='';
+  // Si el reto era para cambiar de compañía, la sesión actual sigue: se vuelve a la app.
+  if (eraCambio && token && user){ showApp(); return; }
+  mostrarSolo('loginView');
+};
 function logout(){ token=null; user=null; retoActual=null;
   localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user');
   el('profileModal').classList.add('hidden'); el('forceChangeView').classList.add('hidden');
@@ -1420,7 +1439,9 @@ el('fgEmail').addEventListener('keydown', e => { if(e.key==='Enter') pedirEnlace
 // nunca manda al servidor ni deja en los logs; ?reset=TOKEN se sigue aceptando por los
 // enlaces viejos. Se lee una sola vez al cargar y se quita enseguida de la barra.
 const tokenReset = (() => {
-  const t = new URLSearchParams(location.hash.replace(/^#/, '')).get('reset')
+  // #invite= (invitación del admin) usa la misma pantalla y el mismo endpoint.
+  const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const t = h.get('reset') || h.get('invite')
          || new URLSearchParams(location.search).get('reset');
   if (t) history.replaceState(null, '', location.pathname);
   return t;
@@ -1429,12 +1450,12 @@ function tokenDeLaUrl(){ return tokenReset; }
 function limpiarUrlReset(){ history.replaceState(null, '', location.pathname); }
 // Si el enlace se abre en una pestaña que ya tenía index.html, solo cambia el fragmento
 // y la página no se recarga: se recarga para que lo lea el arranque.
-window.addEventListener('hashchange', () => { if (/(^#|&)reset=/.test(location.hash)) location.reload(); });
+window.addEventListener('hashchange', () => { if (/(^#|&)(reset|invite)=/.test(location.hash)) location.reload(); });
 
 async function guardarNuevaClave(){
   const m = el('rsMsg'); m.className = 'msg err'; m.textContent = '';
   const n1 = el('rsNew').value, n2 = el('rsNew2').value;
-  if(n1.length < 8){ m.textContent = 'La nueva debe tener al menos 8 caracteres.'; return; }
+  if(n1.length < 10){ m.textContent = 'La nueva debe tener al menos 10 caracteres.'; return; }
   if(n1 !== n2){ m.textContent = 'Las contraseñas no coinciden.'; return; }
   el('rsBtn').disabled = true;
   try{
@@ -1460,13 +1481,15 @@ function showForceChange(){
 el('fcBtn').onclick = async () => {
   const m = el('fcMsg'); m.textContent=''; m.className='msg err';
   const cur=el('fcCur').value, n1=el('fcNew').value, n2=el('fcNew2').value;
-  if(n1.length<6){ m.textContent='La nueva debe tener al menos 6 caracteres.'; return; }
+  if(n1.length<10){ m.textContent='La nueva debe tener al menos 10 caracteres.'; return; }
   if(n1!==n2){ m.textContent='Las contraseñas no coinciden.'; return; }
   try{
-    await api('/me/password','POST',{ currentPassword:cur, newPassword:n1 });
-    user.mustChangePassword = false; localStorage.setItem('tp_user', JSON.stringify(user));
+    const r = await api('/me/password','POST',{ currentPassword:cur, newPassword:n1 });
     el('forceChangeView').classList.add('hidden');
     el('fcCur').value=el('fcNew').value=el('fcNew2').value='';
+    // Token nuevo: puede quedar pendiente validar el correo o dar de alta el 2FA.
+    if (adoptarSesion(r)) { entrarConSesion(r); return; }
+    user.mustChangePassword = false; localStorage.setItem('tp_user', JSON.stringify(user));
     showApp();
   }catch(e){ m.textContent = e.message; }
 };
@@ -1476,10 +1499,11 @@ function togglePwd(){ el('pwdForm').classList.toggle('hidden'); el('pwdMsg').tex
 async function submitPwd(){
   const m=el('pwdMsg'); m.className='msg'; m.textContent='';
   const cur=el('pwdCur').value, n1=el('pwdNew').value, n2=el('pwdNew2').value;
-  if(n1.length<6){ m.textContent='La nueva debe tener al menos 6 caracteres.'; m.className='msg err'; return; }
+  if(n1.length<10){ m.textContent='La nueva debe tener al menos 10 caracteres.'; m.className='msg err'; return; }
   if(n1!==n2){ m.textContent='Las contraseñas no coinciden.'; m.className='msg err'; return; }
   try{
-    await api('/me/password','POST',{ currentPassword:cur, newPassword:n1 });
+    // El cambio cierra las demás sesiones; esta sigue con el token nuevo que devuelve.
+    adoptarSesion(await api('/me/password','POST',{ currentPassword:cur, newPassword:n1 }));
     m.textContent='Contraseña actualizada.'; m.className='msg ok';
     el('pwdCur').value=el('pwdNew').value=el('pwdNew2').value='';
     setTimeout(()=>{ el('pwdForm').classList.add('hidden'); m.textContent=''; }, 1300);
@@ -1491,6 +1515,8 @@ function initials(s){ s=(s||'').trim(); if(!s) return '··'; const p=s.split(/\
 
 function showApp(){
   el('loginView').classList.add('hidden');
+  // Las pantallas de acceso (código, validar correo, clave nueva...) no quedan encima de la app.
+  ['twoFaView','verifyEmailView','forgotView','resetView','forceChangeView'].forEach(v => el(v)?.classList.add('hidden'));
   el('appView').classList.remove('hidden');
   const dispName = user.name || user.email;
   el('whoName').textContent = dispName;
@@ -1558,6 +1584,8 @@ async function cambiarCompania(tenantId){
   if(!tenantId || tenantId === user.tenantId) return;
   try{
     const r = await api('/me/switch-company','POST',{ tenantId });
+    // La compañía destino exige doble factor y esta sesión no lo pasó: pedir el código.
+    if (r.requires2fa){ closeProfile(); pedirSegundoFactor(r); retoActual.cambioCompania = true; return; }
     token = r.token; user = r.user;
     localStorage.setItem('tp_token', token);
     localStorage.setItem('tp_user', JSON.stringify(user));
@@ -1615,7 +1643,11 @@ async function tfaConfirm(){
   const code = el('tfaCode').value.trim();
   if(code.length !== 6){ m.textContent = 'El código son 6 dígitos.'; return; }
   try{
-    await api('/me/2fa/confirm','POST',{ mode:'totp', code });
+    const r = await api('/me/2fa/confirm','POST',{ mode:'totp', code });
+    const estabaObligado = !!user.mustEnroll2fa;
+    adoptarSesion(r);
+    // Si el alta era obligatoria, el token nuevo ya es completo: se recarga la app.
+    if (estabaObligado){ closeProfile(); entrarConSesion(r); toast('Verificación en dos pasos activada.'); return; }
     m.className='msg ok'; m.textContent = 'Verificación en dos pasos activada.';
     await cargarEstado2FA();
     el('tfaMsg').className='msg ok'; el('tfaMsg').textContent = 'Verificación en dos pasos activada.';
@@ -1629,7 +1661,7 @@ async function tfaDisable(){
       validate: v => v ? null : 'Escribe tu contraseña.' });
   if(clave === null) return;
   try{
-    await api('/me/2fa/disable','POST',{ currentPassword: clave });
+    adoptarSesion(await api('/me/2fa/disable','POST',{ currentPassword: clave }));
     await cargarEstado2FA();
     el('tfaMsg').className='msg'; el('tfaMsg').textContent = 'Verificación en dos pasos desactivada.';
   }catch(e){ m.textContent = e.message; }
@@ -2616,13 +2648,13 @@ async function setOfficer(userId, tenantId, cb){
   finally{ cb.disabled = false; }
 }
 async function resetUserPwd(id, name){
-  const temp = await askModal('Resetear contraseña de '+name, 'El usuario deberá cambiarla al entrar.',
-    { label:'Contraseña temporal', placeholder:'Mínimo 6 caracteres', icon:'key', okText:'Resetear',
-      validate: v => v.length<6 ? 'Mínimo 6 caracteres.' : null });
+  const temp = await askModal('Resetear contraseña de '+name, 'El usuario deberá cambiarla al entrar. Vence en 72 horas.',
+    { label:'Contraseña temporal', placeholder:'Mínimo 10 caracteres', icon:'key', okText:'Resetear',
+      validate: v => v.length<10 ? 'Mínimo 10 caracteres.' : null });
   if(temp===null) return;
   try{
-    await api('/admin/users/'+id+'/reset-password','POST',{tempPassword:temp});
-    await infoModal('Contraseña reseteada', 'Comunícale a '+name+' la contraseña temporal:', { code:temp, tone:'ok' });
+    const r = await api('/admin/users/'+id+'/reset-password','POST',{tempPassword:temp});
+    await infoModal('Contraseña reseteada', 'Comunícale a '+name+' la contraseña temporal:', { code:(r && r.temporaryPassword) || temp, tone:'ok' });
     loadUsers();
   }catch(e){ toast(e.message,'err'); }
 }
@@ -2633,11 +2665,11 @@ async function deleteUser(id, name){
 el('createUserBtn').onclick = async () => {
   const msg = el('userMsg'); msg.textContent=''; msg.className='msg';
   const email = el('uEmail').value.trim(), name = el('uName').value.trim();
-  if(!email || !el('uPass').value){ msg.textContent='Correo y contraseña son requeridos.'; msg.className='msg err'; return; }
+  if(!email){ msg.textContent='El correo es requerido.'; msg.className='msg err'; return; }
   const inv = await dialog({ title:'¿Enviar una invitación por correo a '+(name||email)+'?', icon:'mail',
-    text:'Incluirá su usuario y la contraseña temporal, y se le pedirá cambiarla al entrar.',
+    text:'La invitación trae un enlace (72 horas) para que cree su contraseña. Sin invitación se genera una contraseña temporal que verás una sola vez.',
     actions:[ { label:'Cancelar', value:null, kind:'ghost' },
-              { label:'Crear sin invitación', value:'no', kind:'ghost' },
+              { label:'Crear con clave temporal', value:'no', kind:'ghost' },
               { label:'Crear y enviar', value:'yes' } ] });
   if(!inv) return;
   const sendInvite = inv.action === 'yes';
@@ -2648,6 +2680,9 @@ el('createUserBtn').onclick = async () => {
       ? (r.invited ? 'Usuario creado e invitación enviada.' : 'Usuario creado. Nota: el correo no está configurado, así que la invitación no se envió.')
       : 'Usuario creado.';
     msg.className='msg ok';
+    // Sin invitación, el servidor genera la clave temporal y la devuelve una sola vez.
+    if (r && r.temporaryPassword)
+      await infoModal('Usuario creado', 'Comunícale a '+(name||email)+' su contraseña temporal (vence en 72 horas; se le pedirá cambiarla al entrar):', { code:r.temporaryPassword, tone:'ok' });
     el('uEmail').value=''; el('uName').value=''; el('uPass').value='';
     loadUsers();
   }catch(e){ msg.textContent=e.message; msg.className='msg err'; }

@@ -170,6 +170,33 @@ public class AppUser
     public string TwoFactorMode { get; set; } = "none";   // none | email | totp
     public string? TotpSecret { get; set; }               // base32, solo para el modo totp
     public DateTime? TwoFactorConfirmedAt { get; set; }   // null = configurado pero sin confirmar
+
+    // ---- Seguridad de la sesión y del acceso (migración SecurityHardening) ----
+
+    // Sello de seguridad: va en el token (claim "sst") y se compara en cada petición.
+    // Cambiarlo invalida todas las sesiones abiertas: se rota al cambiar o restablecer la
+    // contraseña, al tocar el doble factor, al cambiar el rol y al quitar una membresía.
+    // Las filas que ya existían reciben uno nuevo al migrar (NEWID()).
+    public Guid SecurityStamp { get; set; } = Guid.NewGuid();
+
+    // Bloqueo por contraseña: 5 fallos seguidos bloquean la entrada 15 minutos.
+    public int AccessFailedCount { get; set; }
+    public DateTime? LockoutEnd { get; set; }
+
+    // Bloqueo del segundo factor: 5 códigos fallidos, sumando todos los retos (TOTP y
+    // códigos por correo), bloquean 15 minutos. LastTotpStep es el último paso de 30 s
+    // aceptado: un código ya usado no vuelve a valer aunque siga en su ventana.
+    public int TwoFactorFailedCount { get; set; }
+    public DateTime? TwoFactorLockedUntil { get; set; }
+    public long? LastTotpStep { get; set; }
+
+    // Secreto TOTP nuevo mientras se confirma (alta o cambio de autenticador): el vigente
+    // sigue en TotpSecret hasta que el usuario demuestra que el nuevo funciona.
+    public string? PendingTotpSecret { get; set; }
+
+    // Vencimiento de una contraseña temporal generada por el admin (72 h). Null = la
+    // contraseña la escogió el propio usuario.
+    public DateTime? TempPasswordExpiresAt { get; set; }
 }
 
 // Reto de segundo factor: se crea al validar la contraseña y se consume con el código.
@@ -185,6 +212,12 @@ public class TwoFactorChallenge
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresAt { get; set; }
     public DateTime? UsedAt { get; set; }
+
+    // Reto abierto por /me/switch-company hacia una compañía que exige doble factor: al
+    // verificarlo se emite el token para ESA compañía, sin pasar de la expiración que
+    // tenía la sesión (SessionExpiresAt).
+    public Guid? TargetTenantId { get; set; }
+    public DateTime? SessionExpiresAt { get; set; }
 }
 
 // Token de recuperación de contraseña pedido desde el login.
@@ -197,6 +230,10 @@ public class PasswordResetToken
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresAt { get; set; }
     public DateTime? UsedAt { get; set; }            // no nulo = ya se consumió
+
+    // reset  = "¿Olvidaste tu contraseña?" (10 min)
+    // invite = invitación del admin para que el usuario cree su clave (72 h)
+    public string Purpose { get; set; } = "reset";
 }
 
 public class CatalogAuditLog
@@ -206,6 +243,31 @@ public class CatalogAuditLog
     public string? Detail { get; set; }
     public Guid? UserId { get; set; }
     public DateTime At { get; set; } = DateTime.UtcNow;
+    // IP real de quien hizo la petición (ClientIp.Of). La pone CatalogDbContext al
+    // guardar, a partir de AuditoriaIp; null en los procesos en segundo plano.
+    public string? Ip { get; set; }
+}
+
+// Rastro de seguridad: intentos fallidos, bloqueos, códigos enviados, solicitudes de
+// restablecimiento... Sirve para contar por cuenta (límites por usuario que no dependen
+// de la IP) y para saber desde qué IP pasó cada cosa. Kind: ver EventosSeguridad.
+public class SecurityEvent
+{
+    public long Id { get; set; }
+    public Guid? UserId { get; set; }
+    public Guid? TenantId { get; set; }
+    public string Kind { get; set; } = "";
+    public string? Ip { get; set; }
+    public DateTime At { get; set; } = DateTime.UtcNow;
+}
+
+// IP de la petición en curso, para rellenar CatalogAuditLog.Ip sin pasarla a mano en
+// cada endpoint. La fija un middleware de Program.cs (después de UseForwardedHeaders);
+// es AsyncLocal: cada petición ve la suya.
+public static class AuditoriaIp
+{
+    private static readonly AsyncLocal<string?> _ip = new();
+    public static string? Actual { get => _ip.Value; set => _ip.Value = value; }
 }
 
 // Quién pertenece a una compañía: los que la tienen como principal más los que
@@ -262,6 +324,28 @@ public class CatalogDbContext : DbContext
     public DbSet<TwoFactorChallenge> TwoFactorChallenges => Set<TwoFactorChallenge>();
     public DbSet<UserCompany> UserCompanies => Set<UserCompany>();
     public DbSet<CertificateLink> CertificateLinks => Set<CertificateLink>();
+    public DbSet<SecurityEvent> SecurityEvents => Set<SecurityEvent>();
+
+    // Toda fila nueva de auditoría lleva la IP de la petición que la originó.
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        PonerIpAuditoria();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        PonerIpAuditoria();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void PonerIpAuditoria()
+    {
+        var ip = AuditoriaIp.Actual;
+        if (string.IsNullOrEmpty(ip)) return;
+        foreach (var e in ChangeTracker.Entries<CatalogAuditLog>())
+            if (e.State == EntityState.Added && e.Entity.Ip is null) e.Entity.Ip = ip;
+    }
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -289,6 +373,19 @@ public class CatalogDbContext : DbContext
         b.Entity<CertificateLink>().Property(l => l.Purpose).HasMaxLength(16);
         b.Entity<CertificateLink>().HasIndex(l => l.TokenHash).IsUnique();
         b.Entity<CertificateLink>().HasIndex(l => new { l.TenantId, l.CertificateId });
+
+        // ---- SecurityHardening ----
+        // Filas que ya existían: sello nuevo (NEWID()), contadores en 0, propósito "reset".
+        b.Entity<AppUser>().Property(u => u.SecurityStamp).HasDefaultValueSql("NEWID()");
+        b.Entity<AppUser>().Property(u => u.PendingTotpSecret).HasMaxLength(64);
+        b.Entity<PasswordResetToken>().Property(t => t.Purpose).HasMaxLength(16).HasDefaultValue("reset");
+        b.Entity<CatalogAuditLog>().Property(a => a.Ip).HasMaxLength(64);
+
+        b.Entity<SecurityEvent>().ToTable("SecurityEvent");
+        b.Entity<SecurityEvent>().Property(e => e.Kind).HasMaxLength(40);
+        b.Entity<SecurityEvent>().Property(e => e.Ip).HasMaxLength(64);
+        b.Entity<SecurityEvent>().HasIndex(e => new { e.Kind, e.UserId, e.At });
+        b.Entity<SecurityEvent>().HasIndex(e => new { e.Kind, e.Ip, e.At });
     }
 }
 
