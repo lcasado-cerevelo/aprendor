@@ -192,6 +192,12 @@ public class MediaAsset
     public string RelativePath { get; set; } = "";
     public long Size { get; set; }
     public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+
+    // "course" = material de un curso (lo ve cualquiera de la compañía);
+    // "record" = documento del expediente de una persona (lo ven ella, el autor y el
+    // oficial de cumplimiento). OwnerUserId = la persona dueña del documento.
+    public string Purpose { get; set; } = "course";
+    public Guid? OwnerUserId { get; set; }
 }
 
 public class TenantAuditLog
@@ -305,6 +311,7 @@ public class TenantDbContext : DbContext
         b.Entity<Certificate>().ToTable("Certificate");
         b.Entity<ItemResponse>().ToTable("ItemResponse");
         b.Entity<MediaAsset>().ToTable("MediaAsset");
+        b.Entity<MediaAsset>().Property(m => m.Purpose).HasMaxLength(16).HasDefaultValue("course");
         b.Entity<TenantAuditLog>().ToTable("AuditLog");
         b.Entity<TrainingSet>().ToTable("TrainingSet");
         b.Entity<TrainingSetExclusion>().ToTable("TrainingSetExclusion");

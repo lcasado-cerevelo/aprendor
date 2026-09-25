@@ -5,6 +5,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TrainingPlatform.Catalog;
 using TrainingPlatform.Multitenancy;
@@ -67,11 +69,30 @@ public class CertificateConfig
         DefaultIgnoreCondition = JsonIgnoreCondition.Never
     };
 
+    public const string AcentoPorDefecto = "#1e3a8a";
+
+    // Logo y firma: solo imágenes rasterizadas en base64 (nada de SVG ni de texto que
+    // pueda salirse del atributo src). Color: #rrggbb.
+    public static readonly Regex ImagenValida =
+        new(@"^data:image/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$", RegexOptions.Compiled);
+    public static readonly Regex ColorValido = new("^#[0-9a-fA-F]{6}$", RegexOptions.Compiled);
+
+    // Lectura tolerante. Además descarta lo que no cumpla las reglas de arriba, también
+    // en los snapshots congelados de certificados emitidos antes de que existieran.
     public static CertificateConfig Parse(string? json)
     {
-        if (string.IsNullOrWhiteSpace(json)) return new CertificateConfig();
-        try { return JsonSerializer.Deserialize<CertificateConfig>(json, J) ?? new CertificateConfig(); }
-        catch { return new CertificateConfig(); }
+        CertificateConfig c;
+        if (string.IsNullOrWhiteSpace(json)) c = new CertificateConfig();
+        else
+        {
+            try { c = JsonSerializer.Deserialize<CertificateConfig>(json, J) ?? new CertificateConfig(); }
+            catch { c = new CertificateConfig(); }
+        }
+        if (!string.IsNullOrEmpty(c.LogoDataUrl) && !ImagenValida.IsMatch(c.LogoDataUrl)) c.LogoDataUrl = null;
+        if (!string.IsNullOrEmpty(c.SignatureDataUrl) && !ImagenValida.IsMatch(c.SignatureDataUrl)) c.SignatureDataUrl = null;
+        if (string.IsNullOrWhiteSpace(c.AccentColor) || !ColorValido.IsMatch(c.AccentColor.Trim())) c.AccentColor = AcentoPorDefecto;
+        else c.AccentColor = c.AccentColor.Trim();
+        return c;
     }
 
     public string ToJson() => JsonSerializer.Serialize(this, J);
@@ -356,24 +377,27 @@ public static class CertificateEndpoints
             req.RecipientEmails = Trim(req.RecipientEmails);
             if (!string.IsNullOrEmpty(req.LogoDataUrl))
             {
-                if (!req.LogoDataUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
-                    return Results.BadRequest("El logo debe ser una imagen (data URL).");
                 if (req.LogoDataUrl.Length > 1_500_000)
                     return Results.BadRequest("El logo es demasiado grande (máx. ~1 MB).");
+                if (!CertificateConfig.ImagenValida.IsMatch(req.LogoDataUrl))
+                    return Results.BadRequest("El logo debe ser una imagen PNG, JPEG, WebP o GIF (data URL en base64).");
             }
             if (!string.IsNullOrEmpty(req.SignatureDataUrl))
             {
-                if (!req.SignatureDataUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
-                    return Results.BadRequest("La firma debe ser una imagen (data URL).");
                 if (req.SignatureDataUrl.Length > 1_500_000)
                     return Results.BadRequest("La firma es demasiado grande (máx. ~1 MB).");
+                if (!CertificateConfig.ImagenValida.IsMatch(req.SignatureDataUrl))
+                    return Results.BadRequest("La firma debe ser una imagen PNG, JPEG, WebP o GIF (data URL en base64).");
             }
-            if (string.IsNullOrWhiteSpace(req.AccentColor)) req.AccentColor = "#1e3a8a";
+            if (string.IsNullOrWhiteSpace(req.AccentColor)) req.AccentColor = CertificateConfig.AcentoPorDefecto;
+            req.AccentColor = req.AccentColor.Trim();
+            if (!CertificateConfig.ColorValido.IsMatch(req.AccentColor))
+                return Results.BadRequest("El color de acento debe tener la forma #rrggbb.");
 
             t.CertificateConfigJson = req.ToJson();
             await db.SaveChangesAsync();
             return Results.Ok(req);
-        }).RequireAuthorization();
+        }).RequireAuthorization().WithMetadata(new RequestSizeLimitAttribute(Limites.AutorMaxBytes(app.Configuration)));
 
         // ---- Certificado de un intento: lo ve su dueño o un autor/moderador ----
         app.MapGet("/attempts/{attemptId:guid}/certificate", async (Guid attemptId, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
@@ -416,12 +440,15 @@ public static class CertificateEndpoints
 
         // ---- Verificación por folio (usuario autenticado del cliente) ----
         // Devuelve el estado de un certificado a partir de su folio. La búsqueda es
-        // dentro del cliente (tenant) actual, coherente con el aislamiento por BD.
+        // dentro del cliente (tenant) actual, coherente con el aislamiento por BD, y solo
+        // lo ve su dueño o quien gestiona certificados (autor, moderador, admin, oficial).
         app.MapGet("/certificates/{serial}", async (string serial, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             var cert = await db.Certificates.FirstOrDefaultAsync(c => c.Serial == serial);
             if (cert is null) return Results.NotFound(new { found = false });
+            bool owner = cert.UserId is not null && cert.UserId == tc.UserId;
+            if (!owner && !await PuedeGestionarAsync(catalog, tc)) return Results.Forbid();
             var cfg = CertificateConfig.Parse(cert.ConfigSnapshotJson);
             var issuer = await IssuerNameAsync(catalog, tc.TenantId);
             return Results.Ok(CertificateService.ToView(cert, cfg, issuer));
@@ -440,7 +467,7 @@ public static class CertificateEndpoints
             http.Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
             var inicio = (CertificateLinks.BaseUrl(config["App:BaseUrl"]) ?? "") + "/";
 
-            if (!LimitePorIp.Permitir(http.Connection.RemoteIpAddress?.ToString()))
+            if (!LimitePorIp.Permitir(ClientIp.Of(http)))
                 return Results.Content(CertificateLinks.PaginaNoDisponible(inicio, demasiadas: true),
                     "text/html; charset=utf-8", statusCode: StatusCodes.Status429TooManyRequests);
 
@@ -488,7 +515,7 @@ public static class CertificateEndpoints
                 return Results.Content(CertificateLinks.PaginaNoDisponible(inicio, error: true),
                     "text/html; charset=utf-8", statusCode: StatusCodes.Status503ServiceUnavailable);
             }
-        });
+        }).AllowAnonymous();
 
         // ---- Reenviar el certificado con un enlace nuevo ----
         // El dueño se lo reenvía a sí mismo. Autor/admin/oficial pueden además mandarlo
@@ -731,16 +758,21 @@ public static class CertificateRecipients
 public static class CertificateLinks
 {
     // Origen de la petición en curso (https://host[/base]) para armar enlaces absolutos
-    // cuando App:BaseUrl está vacío (es el caso normal: la URL sale de la petición).
-    // Lo fija un middleware en Program.cs; al ser AsyncLocal, cada petición ve el suyo
-    // aunque corran varias a la vez, y fuera de una petición queda en null.
+    // cuando App:BaseUrl está vacío. SOLO en Development: lo fija un middleware de
+    // Program.cs que solo existe en ese entorno. Al ser AsyncLocal, cada petición ve el
+    // suyo aunque corran varias a la vez, y fuera de una petición queda en null.
     private static readonly AsyncLocal<string?> _origen = new();
     public static string? OrigenPeticion { get => _origen.Value; set => _origen.Value = value; }
 
-    // App:BaseUrl si está configurado; si no, el origen de la petición; si tampoco, null.
+    // true solo en Development (lo fija Program al arrancar). Fuera de Development la
+    // cabecera Host no cuenta nunca: el enlace sale de App:BaseUrl o no sale.
+    public static bool UsarOrigenPeticion { get; set; }
+
+    // App:BaseUrl si está configurado; en desarrollo, si no, el origen de la petición;
+    // si tampoco, null (el correo cae al PDF adjunto).
     public static string? BaseUrl(string? configurada)
     {
-        var b = string.IsNullOrWhiteSpace(configurada) ? OrigenPeticion : configurada;
+        var b = string.IsNullOrWhiteSpace(configurada) ? (UsarOrigenPeticion ? OrigenPeticion : null) : configurada;
         return string.IsNullOrWhiteSpace(b) ? null : b!.Trim().TrimEnd('/');
     }
 

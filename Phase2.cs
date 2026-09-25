@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TrainingPlatform.Catalog;
 using TrainingPlatform.Multitenancy;
@@ -62,7 +63,7 @@ public static class Phase2Endpoints
             db.TrainingItems.Add(item);
             await db.SaveChangesAsync();
             return Results.Ok(item);
-        }).RequireAuthorization();
+        }).RequireAuthorization().WithMetadata(new RequestSizeLimitAttribute(Limites.AutorMaxBytes(app.Configuration)));
 
         app.MapPut("/items/{itemId:guid}", async (Guid itemId, AddItemRequest req, ITenantContext tc, IServiceProvider sp) =>
         {
@@ -80,7 +81,7 @@ public static class Phase2Endpoints
             item.Active = req.Active ?? true;
             await db.SaveChangesAsync();
             return Results.Ok(item);
-        }).RequireAuthorization();
+        }).RequireAuthorization().WithMetadata(new RequestSizeLimitAttribute(Limites.AutorMaxBytes(app.Configuration)));
 
         app.MapPost("/items/{itemId:guid}/active", async (Guid itemId, ActiveRequest req, ITenantContext tc, IServiceProvider sp) =>
         {
@@ -102,6 +103,10 @@ public static class Phase2Endpoints
             if (!CanAuthor(tc.Role)) return Results.Forbid();
             var item = await db.TrainingItems.FindAsync(itemId);
             if (item is null) return Results.NotFound();
+            // Una versión publicada es la evidencia de lo que tomó cada persona: no se toca.
+            var version = await db.TrainingVersions.FindAsync(item.TrainingVersionId);
+            if (version is null || version.Status != "draft")
+                return Results.BadRequest("Solo se pueden eliminar ítems de un borrador.");
             db.TrainingItems.Remove(item);
             await db.SaveChangesAsync();
             return Results.Ok();
@@ -193,7 +198,7 @@ public static class Phase2Endpoints
                 immediateFeedback = PlayerConfig.ImmediateFeedback(t.PlayerConfigJson),
                 presentation = PlayerConfig.Presentation(t.PlayerConfigJson)
             });
-        }).RequireAuthorization();
+        }).RequireAuthorization().WithMetadata(new RequestSizeLimitAttribute(Limites.AutorMaxBytes(app.Configuration)));
 
         // Lo que necesita el reproductor: se resuelve desde la versión para no
         // cambiar la forma de /take, que ya está en uso.
@@ -328,9 +333,16 @@ public static class Phase2Endpoints
             return Results.Ok(safe);
         }).RequireAuthorization();
 
-        app.MapPost("/versions/{versionId:guid}/attempts", async (Guid versionId, Guid? setId, ClaimsPrincipal principal, ITenantContext tc, IServiceProvider sp) =>
+        // El set (versión del examen) lo decide el servidor con las mismas reglas que
+        // /catalog (asignación al usuario, a su grupo o el set por defecto); el ?setId del
+        // cliente se ignora. Las respuestas guardadas solo traen isCorrect si el curso
+        // tiene retroalimentación inmediata.
+        app.MapPost("/versions/{versionId:guid}/attempts", async (Guid versionId, Guid? setId, ClaimsPrincipal principal,
+            ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            var ver = await db.TrainingVersions.FindAsync(versionId);
+            if (ver is null) return Results.NotFound();
 
             // One active attempt per (user, version). "Active" = in-progress or awaiting cancellation approval.
             var active = await db.Attempts.FirstOrDefaultAsync(a =>
@@ -342,19 +354,18 @@ public static class Phase2Endpoints
             var attempt = active;
             if (attempt is null)
             {
-                // Un curso archivado no admite intentos NUEVOS; quien ya lo tenía empezado
-                // (active != null) puede terminarlo.
-                var estado = await (from v in db.TrainingVersions
-                                    where v.Id == versionId
-                                    join t in db.Trainings on v.TrainingId equals t.Id
-                                    select t.Status).FirstOrDefaultAsync();
+                // Solo se empieza sobre una versión publicada, y un curso archivado no admite
+                // intentos NUEVOS; quien ya lo tenía empezado (active != null) puede terminarlo.
+                if (ver.Status != "published")
+                    return Results.BadRequest("Esta versión del adiestramiento no está publicada.");
+                var estado = await db.Trainings.Where(t => t.Id == ver.TrainingId).Select(t => t.Status).FirstOrDefaultAsync();
                 if (estado == "archived")
                     return Results.BadRequest("Este adiestramiento está archivado y ya no se puede tomar.");
 
                 attempt = new Attempt
                 {
                     TrainingVersionId = versionId,
-                    SetId = setId,
+                    SetId = await SetQueLeTocaAsync(db, catalog, tc, ver.TrainingId),
                     UserId = tc.UserId,
                     LearnerName = principal.FindFirst("name")?.Value ?? principal.FindFirst("email")?.Value,
                     Status = "in-progress"
@@ -363,16 +374,27 @@ public static class Phase2Endpoints
                 await db.SaveChangesAsync();
             }
 
+            var feedback = await FeedbackInmediatoAsync(db, attempt.TrainingVersionId);
             var responses = await db.ItemResponses.Where(r => r.AttemptId == attempt.Id)
                 .Select(r => new { r.ItemId, r.AnswerJson, r.IsCorrect }).ToListAsync();
-            return Results.Ok(new { attemptId = attempt.Id, setId = attempt.SetId, responses });
+            return Results.Ok(new
+            {
+                attemptId = attempt.Id, setId = attempt.SetId,
+                responses = responses.Select(r => new { r.ItemId, r.AnswerJson, isCorrect = feedback ? r.IsCorrect : null })
+            });
         }).RequireAuthorization();
 
+        // Guardar una respuesta: solo el dueño y solo mientras el intento esté en curso.
+        // isCorrect y points solo salen si el curso tiene retroalimentación inmediata; si
+        // no, esta respuesta sería un oráculo para probar opciones hasta acertar.
         app.MapPost("/attempts/{attemptId:guid}/answer", async (Guid attemptId, AnswerRequest req, ITenantContext tc, IServiceProvider sp) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             var attempt = await db.Attempts.FindAsync(attemptId);
             if (attempt is null) return Results.NotFound();
+            if (attempt.UserId is null || attempt.UserId != tc.UserId) return Results.Forbid();
+            if (attempt.Status != "in-progress")
+                return Results.Conflict("Este intento ya no está en curso.");
             var item = await db.TrainingItems.FindAsync(req.ItemId);
             if (item is null || item.TrainingVersionId != attempt.TrainingVersionId)
                 return Results.BadRequest("Item does not belong to this attempt.");
@@ -390,7 +412,8 @@ public static class Phase2Endpoints
             resp.NeedsGrading = item.Type == "OpenResponse" && IsGraded(item.PayloadJson);
             resp.AnsweredAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
-            return Results.Ok(new { isCorrect = correct, points });
+            if (!await FeedbackInmediatoAsync(db, attempt.TrainingVersionId)) return Results.Ok(new { saved = true });
+            return Results.Ok(new { saved = true, isCorrect = correct, points });
         }).RequireAuthorization();
 
         // Latido: el reproductor lo manda mientras la pestaña está visible. Acumula tiempo real.
@@ -399,6 +422,7 @@ public static class Phase2Endpoints
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             var attempt = await db.Attempts.FindAsync(attemptId);
             if (attempt is null) return Results.NotFound();
+            if (attempt.UserId is null || attempt.UserId != tc.UserId) return Results.Forbid();
             if (attempt.Status != "in-progress")
                 return Results.Ok(new { activeSeconds = attempt.ActiveSeconds });
             AccrueActive(attempt);
@@ -406,30 +430,43 @@ public static class Phase2Endpoints
             return Results.Ok(new { activeSeconds = attempt.ActiveSeconds });
         }).RequireAuthorization();
 
+        // Terminar el intento. Idempotente: si ya no está en curso devuelve lo guardado sin
+        // volver a mandar correos ni crear enlaces. El paso in-progress -> final es un
+        // UPDATE condicionado, así dos llamadas a la vez no disparan dos veces los avisos.
         app.MapPost("/attempts/{attemptId:guid}/complete", async (Guid attemptId, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog, IEmailSender email, IConfiguration cfg) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             var attempt = await db.Attempts.FindAsync(attemptId);
             if (attempt is null) return Results.NotFound();
+            if (attempt.UserId is null || attempt.UserId != tc.UserId) return Results.Forbid();
+            if (attempt.Status is "completed" or "pending-grading") return Results.Ok(await ResultadoGuardadoAsync(db, attempt));
+            if (attempt.Status != "in-progress") return Results.Conflict("Este intento ya no está en curso.");
+
             AccrueActive(attempt); // cuenta el último tramo visible antes de finalizar
             var version = await db.TrainingVersions.FindAsync(attempt.TrainingVersionId);
             var total = await SetTotalAsync(db, attempt);
             var score = await db.ItemResponses.Where(r => r.AttemptId == attemptId).SumAsync(r => r.PointsAwarded);
-
-            attempt.Score = score;
             var pending = await db.ItemResponses.AnyAsync(r => r.AttemptId == attemptId && r.NeedsGrading);
+            var passed = !pending && (total == 0 || (score * 100 / total) >= (version?.PassPercent ?? 70));
+            var status = pending ? "pending-grading" : "completed";
+            var ahora = DateTime.UtcNow;
+            var segundos = attempt.ActiveSeconds;
+            var latido = attempt.LastHeartbeatAt;
+
+            var n = await db.Attempts.Where(a => a.Id == attemptId && a.Status == "in-progress")
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(a => a.Score, score)
+                    .SetProperty(a => a.Passed, passed)
+                    .SetProperty(a => a.Status, status)
+                    .SetProperty(a => a.CompletedAt, ahora)
+                    .SetProperty(a => a.ActiveSeconds, segundos)
+                    .SetProperty(a => a.LastHeartbeatAt, latido));
+            // La entidad rastreada queda igual a la fila: que ningún SaveChanges posterior la reescriba.
+            await db.Entry(attempt).ReloadAsync();
+            if (n == 0) return Results.Ok(await ResultadoGuardadoAsync(db, attempt));   // otra llamada ganó
+
             if (pending)
-            {
-                attempt.Passed = false;
-                attempt.Status = "pending-grading";
-                attempt.CompletedAt = DateTime.UtcNow;
-                await db.SaveChangesAsync();
                 return Results.Ok(new { attempt.Score, total, attempt.Passed, status = "pending-grading", pendingGrading = true, activeSeconds = attempt.ActiveSeconds });
-            }
-            attempt.Passed = total == 0 ? true : (score * 100 / total) >= (version?.PassPercent ?? 70);
-            attempt.Status = "completed";
-            attempt.CompletedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync();
 
             string? certificateSerial = null;
             if (attempt.Passed)
@@ -447,41 +484,85 @@ public static class Phase2Endpoints
         }).RequireAuthorization();
 
         // ---------------- Media (upload & serve files) ----------------
-        app.MapPost("/media", async (IFormFile file, ITenantContext tc, IServiceProvider sp, IWebHostEnvironment env, IConfiguration cfg) =>
+        // Subida: lista blanca por extensión Y por firma de bytes (ver MediaTipos); el
+        // Content-Type lo decide el servidor, nunca el navegador que sube. Nada de HTML,
+        // SVG, XML ni JS. ?purpose=record&ownerUserId=... marca un documento del expediente
+        // (también lo marca POST /certifications al enlazarlo).
+        var mediaMax = Limites.MediaMaxBytes(app.Configuration);
+        app.MapPost("/media", async (IFormFile file, string? purpose, Guid? ownerUserId, ITenantContext tc,
+            IServiceProvider sp, IWebHostEnvironment env, IConfiguration cfg, CatalogDbContext catalog) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             if (!CanAuthor(tc.Role)) return Results.Forbid();
             if (file is null || file.Length == 0) return Results.BadRequest("Empty file.");
+            if (file.Length > mediaMax)
+                return Results.Json(new { error = $"El archivo pasa del máximo permitido ({mediaMax / (1024 * 1024)} MB)." },
+                    statusCode: StatusCodes.Status413PayloadTooLarge);
+
+            var proposito = (purpose ?? "course").Trim().ToLowerInvariant();
+            if (proposito is not ("course" or "record")) return Results.BadRequest("purpose debe ser course o record.");
+            if (proposito == "record" && ownerUserId is not null && !await Membresias.EsMiembroAsync(catalog, tc.TenantId!.Value, ownerUserId))
+                return Results.BadRequest("La persona no pertenece a esta compañía.");
+
+            var ext = Path.GetExtension(file.FileName ?? "").ToLowerInvariant();
+            var tipo = MediaTipos.PorExtension(ext);
+            if (tipo is null)
+                return Results.BadRequest("Tipo de archivo no permitido. Se aceptan: " + MediaTipos.ListaLegible + ".");
+            await using (var s = file.OpenReadStream())
+                if (!MediaTipos.FirmaValida(ext, s))
+                    return Results.BadRequest("El contenido del archivo no corresponde a su extensión.");
 
             var root = Path.Combine(env.ContentRootPath, cfg["Storage:UploadsPath"] ?? "App_Data/uploads");
             Directory.CreateDirectory(Path.Combine(root, tc.TenantId!.Value.ToString()));
             var id = Guid.NewGuid();
-            var rel = Path.Combine(tc.TenantId.Value.ToString(), id + Path.GetExtension(file.FileName));
+            var rel = Path.Combine(tc.TenantId.Value.ToString(), id + ext);
             await using (var fs = File.Create(Path.Combine(root, rel)))
                 await file.CopyToAsync(fs);
 
             var asset = new MediaAsset
             {
                 Id = id,
-                FileName = file.FileName,
-                ContentType = string.IsNullOrEmpty(file.ContentType) ? "application/octet-stream" : file.ContentType,
+                FileName = Path.GetFileName(file.FileName ?? "archivo" + ext),
+                ContentType = tipo,
                 RelativePath = rel,
-                Size = file.Length
+                Size = file.Length,
+                Purpose = proposito,
+                OwnerUserId = proposito == "record" ? ownerUserId : null
             };
             db.MediaAssets.Add(asset);
             await db.SaveChangesAsync();
             return Results.Ok(new { id, url = $"/media/{id}", asset.ContentType });
-        }).RequireAuthorization().DisableAntiforgery();
+        }).RequireAuthorization().DisableAntiforgery().WithMetadata(new RequestSizeLimitAttribute(mediaMax + 1_000_000));
 
-        app.MapGet("/media/{id:guid}", async (Guid id, ITenantContext tc, IServiceProvider sp, IWebHostEnvironment env, IConfiguration cfg) =>
+        // Servir: el tipo sale de la extensión guardada (los archivos subidos antes de la
+        // lista blanca con un tipo peligroso salen como descarga), con nosniff y una CSP
+        // sandbox propia. Imagen, audio, video y PDF se ven en línea; lo demás se descarga.
+        // Los documentos del expediente solo los ven su dueño, el autor y el oficial.
+        app.MapGet("/media/{id:guid}", async (Guid id, HttpContext http, ITenantContext tc, IServiceProvider sp,
+            IWebHostEnvironment env, IConfiguration cfg, CatalogDbContext catalog) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             var asset = await db.MediaAssets.FindAsync(id);
             if (asset is null) return Results.NotFound();
+            if (asset.Purpose == "record" && asset.OwnerUserId != tc.UserId && !CanAuthor(tc.Role)
+                && !await ComplianceAccess.EsOficialAsync(catalog, tc))
+                return Results.Forbid();
             var root = Path.Combine(env.ContentRootPath, cfg["Storage:UploadsPath"] ?? "App_Data/uploads");
             var full = Path.Combine(root, asset.RelativePath);
             if (!File.Exists(full)) return Results.NotFound();
-            return Results.File(full, asset.ContentType, enableRangeProcessing: true);
+
+            var tipo = MediaTipos.PorExtension(Path.GetExtension(asset.RelativePath).ToLowerInvariant()) ?? "application/octet-stream";
+            var h = http.Response.Headers;
+            h["X-Content-Type-Options"] = "nosniff";
+            h["Content-Security-Policy"] = MediaTipos.EnLinea(tipo)
+                ? MediaTipos.CspEnLinea(tipo)
+                : "sandbox; default-src 'none'; img-src 'self'; media-src 'self'";
+            h["Referrer-Policy"] = "no-referrer";
+            h.CacheControl = "private, no-store";
+            if (MediaTipos.EnLinea(tipo))
+                return Results.File(full, tipo, enableRangeProcessing: true);
+            return Results.File(full, tipo, fileDownloadName: string.IsNullOrWhiteSpace(asset.FileName) ? "archivo" : asset.FileName,
+                enableRangeProcessing: true);
         }).RequireAuthorization();
 
         // ---------------- History & reporting ----------------
@@ -505,6 +586,9 @@ public static class Phase2Endpoints
             var attempt = await db.Attempts.FindAsync(attemptId);
             if (attempt is null) return Results.NotFound();
             if (attempt.UserId != tc.UserId) return Results.Forbid();
+            // Las respuestas correctas solo se ven con el intento ya entregado.
+            if (attempt.Status is not ("completed" or "pending-grading"))
+                return Results.Conflict("La revisión está disponible cuando terminas el intento.");
 
             var items = await db.TrainingItems.Where(i => i.TrainingVersionId == attempt.TrainingVersionId)
                 .OrderBy(i => i.Order)
@@ -598,7 +682,7 @@ public static class Phase2Endpoints
 
         // ---------------- Expediente de certificaciones ----------------
         // Certificaciones tomadas fuera de la plataforma, registradas por el autor.
-        app.MapPost("/certifications", async (ExternalCertRequest req, ITenantContext tc, IServiceProvider sp) =>
+        app.MapPost("/certifications", async (ExternalCertRequest req, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             if (!CanAuthor(tc.Role)) return Results.Forbid();
@@ -608,6 +692,12 @@ public static class Phase2Endpoints
                 return Results.BadRequest("Sube el documento o enlaza el que está en el otro sistema.");
             if (req.ExpiresOn is DateTime e && e.Date < req.IssuedOn.Date)
                 return Results.BadRequest("La fecha de vencimiento no puede ser anterior a la de emisión.");
+            if (!await Membresias.EsMiembroAsync(catalog, tc.TenantId!.Value, req.UserId))
+                return Results.BadRequest("La persona no pertenece a esta compañía.");
+            if (!UrlExternaValida(req.ExternalUrl))
+                return Results.BadRequest("El enlace del documento debe ser una dirección http o https completa.");
+            if (req.MediaAssetId is Guid mid && !await MarcarDocumentoAsync(db, mid, req.UserId))
+                return Results.BadRequest("El documento subido no existe.");
 
             var cert = new ExternalCertification
             {
@@ -635,6 +725,11 @@ public static class Phase2Endpoints
             if (!CanAuthor(tc.Role)) return Results.Forbid();
             var cert = await db.ExternalCertifications.FindAsync(certId);
             if (cert is null) return Results.NotFound();
+            if (string.IsNullOrWhiteSpace(req.Title)) return Results.BadRequest("Pon el nombre de la certificación.");
+            if (!UrlExternaValida(req.ExternalUrl))
+                return Results.BadRequest("El enlace del documento debe ser una dirección http o https completa.");
+            if (req.MediaAssetId is Guid mid && !await MarcarDocumentoAsync(db, mid, cert.UserId))
+                return Results.BadRequest("El documento subido no existe.");
             cert.Title = req.Title.Trim();
             cert.Issuer = req.Issuer?.Trim();
             cert.CredentialId = req.CredentialId?.Trim();
@@ -743,6 +838,12 @@ public static class Phase2Endpoints
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             if (!CanAuthor(tc.Role)) return Results.Forbid();
+            var intento = await db.Attempts.FindAsync(attemptId);
+            if (intento is null) return Results.NotFound();
+            if (intento.UserId is not null && intento.UserId == tc.UserId)
+                return Results.BadRequest("No puedes calificar tus propias respuestas.");
+            if (intento.Status != "pending-grading")
+                return Results.Conflict("Este intento no está pendiente de calificación.");
             var resp = await db.ItemResponses.FirstOrDefaultAsync(r => r.AttemptId == attemptId && r.ItemId == req.ItemId);
             if (resp is null) return Results.NotFound();
             var item = await db.TrainingItems.FindAsync(req.ItemId);
@@ -789,6 +890,7 @@ public static class Phase2Endpoints
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             if (string.IsNullOrWhiteSpace(req.Comment)) return Results.BadRequest("Se requiere un comentario.");
+            if (req.Comment.Trim().Length > MaxComentario) return Results.BadRequest($"El comentario no puede pasar de {MaxComentario} caracteres.");
             var attempt = await db.Attempts.FindAsync(attemptId);
             if (attempt is null) return Results.NotFound();
             if (attempt.UserId != tc.UserId) return Results.Forbid();
@@ -821,6 +923,7 @@ public static class Phase2Endpoints
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             if (!CanAuthor(tc.Role)) return Results.Forbid();
             if (string.IsNullOrWhiteSpace(req.Comment)) return Results.BadRequest("Se requiere un comentario.");
+            if (req.Comment.Trim().Length > MaxComentario) return Results.BadRequest($"El comentario no puede pasar de {MaxComentario} caracteres.");
             var attempt = await db.Attempts.FindAsync(attemptId);
             if (attempt is null) return Results.NotFound();
             if (attempt.Status != "cancellation-requested") return Results.BadRequest("Esta solicitud ya no está pendiente.");
@@ -887,11 +990,13 @@ public static class Phase2Endpoints
 
         // Añadir un miembro: queda registrada la fecha de ingreso al grupo (JoinedAt),
         // desde la que corre el plazo del plan de onboarding.
-        app.MapPost("/user-groups/{id:guid}/members", async (Guid id, UserRefRequest req, ITenantContext tc, IServiceProvider sp) =>
+        app.MapPost("/user-groups/{id:guid}/members", async (Guid id, UserRefRequest req, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             if (!CanAuthor(tc.Role)) return Results.Forbid();
             if (!await db.UserGroups.AnyAsync(g => g.Id == id)) return Results.NotFound();
+            if (!await Membresias.EsMiembroAsync(catalog, tc.TenantId!.Value, req.UserId))
+                return Results.BadRequest("La persona no pertenece a esta compañía.");
             var m = await db.UserGroupMembers.FirstOrDefaultAsync(m => m.UserGroupId == id && m.UserId == req.UserId);
             if (m is null)
             {
@@ -1095,11 +1200,15 @@ public static class Phase2Endpoints
             return Results.Ok(asg);
         }).RequireAuthorization();
 
-        app.MapPost("/trainings/{id:guid}/assignments", async (Guid id, AssignRequest req, ITenantContext tc, IServiceProvider sp) =>
+        app.MapPost("/trainings/{id:guid}/assignments", async (Guid id, AssignRequest req, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             if (!CanAuthor(tc.Role)) return Results.Forbid();
             if (req.TargetType is not ("user" or "group")) return Results.BadRequest("targetType inválido.");
+            if (req.TargetType == "user" && !await Membresias.EsMiembroAsync(catalog, tc.TenantId!.Value, req.TargetId))
+                return Results.BadRequest("La persona no pertenece a esta compañía.");
+            if (req.TargetType == "group" && !await db.UserGroups.AnyAsync(g => g.Id == req.TargetId))
+                return Results.BadRequest("El grupo no existe.");
             var set = await db.TrainingSets.FirstOrDefaultAsync(s => s.Id == req.SetId && s.TrainingId == id);
             if (set is null) return Results.BadRequest("El set no pertenece a este adiestramiento.");
             var existing = await db.Assignments.FirstOrDefaultAsync(a => a.TrainingId == id && a.TargetType == req.TargetType && a.TargetId == req.TargetId);
@@ -1121,6 +1230,62 @@ public static class Phase2Endpoints
     }
 
     // ---------------- helpers ----------------
+
+    // Largo máximo de los comentarios de cancelación (solicitud y aprobación).
+    private const int MaxComentario = 1000;
+
+    // El set que le corresponde a quien llama para un curso: el mismo que le muestra
+    // /catalog (asignación directa, la de su grupo o el set por defecto). Si el curso no
+    // está en su catálogo, el set por defecto del curso (o ninguno si no tiene sets).
+    private static async Task<Guid?> SetQueLeTocaAsync(TenantDbContext db, CatalogDbContext catalog, ITenantContext tc, Guid trainingId)
+    {
+        var groupIds = await db.UserGroupMembers.Where(m => m.UserId == tc.UserId).Select(m => m.UserGroupId).ToListAsync();
+        var ingreso = await CatalogLogic.FechaIngresoAsync(catalog, tc.UserId, tc.TenantId);
+        var mio = (await CatalogLogic.ResolveAsync(db, tc.UserId, groupIds, ingreso)).FirstOrDefault(p => p.TrainingId == trainingId);
+        if (mio is not null) return mio.SetId;
+        var sets = await db.TrainingSets.Where(s => s.TrainingId == trainingId).OrderBy(s => s.CreatedAt).ToListAsync();
+        return (sets.FirstOrDefault(s => s.IsDefault) ?? sets.FirstOrDefault())?.Id;
+    }
+
+    // ¿El curso de esta versión muestra el veredicto de cada pregunta al contestarla?
+    private static async Task<bool> FeedbackInmediatoAsync(TenantDbContext db, Guid versionId)
+    {
+        var cfg = await (from v in db.TrainingVersions
+                         where v.Id == versionId
+                         join t in db.Trainings on v.TrainingId equals t.Id
+                         select t.PlayerConfigJson).FirstOrDefaultAsync();
+        return PlayerConfig.ImmediateFeedback(cfg);
+    }
+
+    // Lo que /complete devuelve para un intento ya entregado, sin efectos (ni correos ni enlaces).
+    private static async Task<object> ResultadoGuardadoAsync(TenantDbContext db, Attempt attempt)
+    {
+        var total = await SetTotalAsync(db, attempt);
+        if (attempt.Status == "pending-grading")
+            return new { attempt.Score, total, attempt.Passed, status = "pending-grading", pendingGrading = true, activeSeconds = attempt.ActiveSeconds };
+        var serial = await db.Certificates.Where(c => c.AttemptId == attempt.Id).Select(c => c.Serial).FirstOrDefaultAsync();
+        return new { attempt.Score, total, attempt.Passed, status = attempt.Status, activeSeconds = attempt.ActiveSeconds, certificateSerial = serial };
+    }
+
+    // Enlace externo del expediente: vacío, o una URL absoluta http/https (nada de
+    // javascript:, data: ni rutas relativas).
+    private static bool UrlExternaValida(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return true;
+        return Uri.TryCreate(url.Trim(), UriKind.Absolute, out var u)
+               && (u.Scheme == Uri.UriSchemeHttps || u.Scheme == Uri.UriSchemeHttp);
+    }
+
+    // Un archivo enlazado a una certificación externa pasa a ser documento del
+    // expediente de esa persona: solo lo ven ella, el autor y el oficial de cumplimiento.
+    private static async Task<bool> MarcarDocumentoAsync(TenantDbContext db, Guid mediaId, Guid dueño)
+    {
+        var asset = await db.MediaAssets.FindAsync(mediaId);
+        if (asset is null) return false;
+        asset.Purpose = "record";
+        asset.OwnerUserId = dueño;
+        return true;
+    }
 
     // Plan de onboarding de un grupo tal como lo devuelven GET/PUT /groups/{id}/plan:
     // plazo del grupo, cursos con su plazo propio y el set del grupo para cada curso
@@ -1293,6 +1458,85 @@ public static class Phase2Endpoints
             return (null, 0); // Info, ModuleHeader, etc. are not scored
         }
         catch { return (null, 0); }
+    }
+}
+
+// Tipos de archivo que se aceptan en /media: la extensión decide el Content-Type (el
+// del navegador no cuenta) y los primeros bytes tienen que coincidir con ella. Fuera de
+// la lista (html, htm, svg, xml, xhtml, js y todo lo demás) no se sube nada.
+public static class MediaTipos
+{
+    private static readonly Dictionary<string, string> Tipos = new()
+    {
+        [".png"] = "image/png",
+        [".jpg"] = "image/jpeg",
+        [".jpeg"] = "image/jpeg",
+        [".gif"] = "image/gif",
+        [".webp"] = "image/webp",
+        [".mp3"] = "audio/mpeg",
+        [".mp4"] = "video/mp4",
+        [".webm"] = "video/webm",
+        [".pdf"] = "application/pdf",
+        [".docx"] = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        [".pptx"] = "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        [".xlsx"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    };
+
+    public const string ListaLegible = "png, jpg, gif, webp, mp3, mp4, webm, pdf, docx, pptx y xlsx";
+
+    public static string? PorExtension(string ext) => Tipos.TryGetValue(ext, out var t) ? t : null;
+
+    // Se ven en la pestaña: imagen, audio, video y PDF. Lo demás se descarga.
+    public static bool EnLinea(string tipo)
+        => tipo.StartsWith("image/") || tipo.StartsWith("audio/") || tipo.StartsWith("video/") || tipo == "application/pdf";
+
+    // CSP de lo que se sirve en línea. Chrome y Edge no abren un PDF dentro de un
+    // documento con sandbox (muestran la página bloqueada), así que el PDF va sin
+    // sandbox pero sin poder cargar nada (default-src 'none'); con nosniff y la firma
+    // %PDF- comprobada al subir, no puede interpretarse como HTML.
+    public static string CspEnLinea(string tipo)
+        => tipo == "application/pdf"
+            ? "default-src 'none'; img-src 'self'; media-src 'self'; object-src 'self'"
+            : "sandbox; default-src 'none'; img-src 'self'; media-src 'self'";
+
+    public static bool FirmaValida(string ext, Stream s)
+    {
+        try
+        {
+            var b = new byte[16];
+            int n = 0, leidos;
+            while (n < b.Length && (leidos = s.Read(b, n, b.Length - n)) > 0) n += leidos;
+            bool Empieza(params byte[] firma) => n >= firma.Length && firma.Select((x, i) => b[i] == x).All(ok => ok);
+            bool Ascii(int desde, string texto) => n >= desde + texto.Length
+                && texto.Select((c, i) => b[desde + i] == (byte)c).All(ok => ok);
+
+            switch (ext)
+            {
+                case ".png": return Empieza(0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A);
+                case ".jpg": case ".jpeg": return Empieza(0xFF, 0xD8, 0xFF);
+                case ".gif": return Ascii(0, "GIF87a") || Ascii(0, "GIF89a");
+                case ".webp": return Ascii(0, "RIFF") && Ascii(8, "WEBP");
+                case ".mp3": return Ascii(0, "ID3") || (n >= 2 && b[0] == 0xFF && (b[1] & 0xE0) == 0xE0);
+                case ".mp4": return Ascii(4, "ftyp");
+                case ".webm": return Empieza(0x1A, 0x45, 0xDF, 0xA3);
+                case ".pdf": return Ascii(0, "%PDF-");
+                case ".docx": return Office(s, b, n, "word/");
+                case ".pptx": return Office(s, b, n, "ppt/");
+                case ".xlsx": return Office(s, b, n, "xl/");
+                default: return false;
+            }
+        }
+        catch { return false; }
+    }
+
+    // Documento de Office: un ZIP con [Content_Types].xml y la carpeta propia del tipo.
+    private static bool Office(Stream s, byte[] b, int n, string carpeta)
+    {
+        if (n < 4 || b[0] != 0x50 || b[1] != 0x4B || b[2] != 0x03 || b[3] != 0x04 || !s.CanSeek) return false;
+        s.Seek(0, SeekOrigin.Begin);
+        using var zip = new System.IO.Compression.ZipArchive(s, System.IO.Compression.ZipArchiveMode.Read, leaveOpen: true);
+        return zip.Entries.Any(e => e.FullName == "[Content_Types].xml")
+            && zip.Entries.Any(e => e.FullName.StartsWith(carpeta, StringComparison.Ordinal));
     }
 }
 

@@ -1,3 +1,10 @@
+using System.Net;
+using System.Security.Claims;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Caching.Memory;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -16,11 +23,53 @@ var builder = WebApplication.CreateBuilder(args);
 // no chocar con otras variables de entorno en una máquina que corre varios proyectos.
 builder.Configuration.AddEnvironmentVariables(prefix: "APRENDOR_");
 var cfg = builder.Configuration;
+var esDesarrollo = builder.Environment.IsDevelopment();
+var modoMigracion = args.Length > 0 && args[0].Equals("migrate", StringComparison.OrdinalIgnoreCase);
 
-// Bitácora en texto plano en App_Data\logs\app-log.txt — para ver errores reales
-// (como un envío de correo que falla) sin depender de cómo esté hospedada la app.
+// Arranque seguro: fuera de Development la app NO arranca con la clave JWT de ejemplo
+// ni sin la URL pública (los enlaces de los correos se arman solo con ella). El modo
+// "migrate" solo toca la base, así que no lo exige.
+if (!esDesarrollo && !modoMigracion) ArranqueSeguro.Validar(cfg);
+
+// Bitácora en texto plano en App_Data\logs\app-log-AAAAMMDD.txt (un archivo por día,
+// se guardan los últimos 14) — para ver errores reales (como un envío de correo que
+// falla) sin depender de cómo esté hospedada la app.
 builder.Logging.AddProvider(new SimpleFileLoggerProvider(
     Path.Combine(builder.Environment.ContentRootPath, "App_Data", "logs", "app-log.txt")));
+
+// ---- Red: IP real detrás de un proxy, tamaño de petición y cabecera Server ----
+// Solo se cree X-Forwarded-For (o CF-Connecting-IP con Cloudflare) si la conexión
+// viene de loopback (cloudflared/IIS en la misma máquina) o de una IP listada en
+// Security:TrustedProxies. ForwardLimit = 1: solo el salto inmediato.
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    o.ForwardLimit = 1;
+    o.KnownNetworks.Clear();
+    o.KnownProxies.Clear();
+    o.KnownProxies.Add(IPAddress.Loopback);
+    o.KnownProxies.Add(IPAddress.IPv6Loopback);
+    foreach (var p in ArranqueSeguro.Lista(cfg, "Security:TrustedProxies"))
+        if (IPAddress.TryParse(p, out var ip)) o.KnownProxies.Add(ip);
+    var cabecera = cfg["Security:ForwardedForHeader"];
+    if (!string.IsNullOrWhiteSpace(cabecera)) o.ForwardedForHeaderName = cabecera.Trim();
+});
+
+// Cuerpo de petición: 1 MB por defecto (Security:MaxRequestBytes). Los endpoints que
+// lo necesitan suben su propio límite con RequestSizeLimit (medios, contenido del autor).
+var maxPeticion = cfg.GetValue<long?>("Security:MaxRequestBytes") ?? 1_000_000;
+builder.Services.Configure<IISServerOptions>(o => o.MaxRequestBodySize = maxPeticion);
+builder.WebHost.ConfigureKestrel(o =>
+{
+    o.Limits.MaxRequestBodySize = maxPeticion;
+    o.AddServerHeader = false;
+});
+builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = Limites.MediaMaxBytes(cfg) + 1_000_000);
+
+// HSTS (solo fuera de Development). Sin UseHttpsRedirection: detrás del túnel la app
+// recibe http y el HTTPS lo fuerza el borde (Cloudflare).
+builder.Services.AddHsts(o => o.MaxAge = TimeSpan.FromDays(365));
+builder.Services.AddMemoryCache();
 
 // Catalog context: fixed connection from config.
 builder.Services.AddDbContext<CatalogDbContext>(o =>
@@ -52,10 +101,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         o.MapInboundClaims = false; // keep "sub" / "role" / "tenant_id" as-is
         o.Events = new JwtBearerEvents
         {
+            // El token por query (?access_token=) solo se acepta para /media: <img>, <video>
+            // y los enlaces de documentos no pueden mandar la cabecera Authorization. En
+            // cualquier otra ruta se ignora, para que no acabe en logs ni en el historial.
             OnMessageReceived = ctx =>
             {
-                string? t = ctx.Request.Query["access_token"];
-                if (!string.IsNullOrEmpty(t)) ctx.Token = t;
+                if (ctx.Request.Path.StartsWithSegments("/media"))
+                {
+                    string? t = ctx.Request.Query["access_token"];
+                    if (!string.IsNullOrEmpty(t)) ctx.Token = t;
+                }
                 return Task.CompletedTask;
             }
         };
@@ -71,13 +126,35 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+// Autorización:
+//  - Por defecto y como respaldo (FallbackPolicy), usuario autenticado: un endpoint
+//    nuevo nace protegido aunque se olvide .RequireAuthorization(). Los anónimos lo
+//    declaran con .AllowAnonymous().
+//  - "Admin": rol Admin, de plataforma o de compañía (los endpoints que la usan
+//    acotan después a la compañía activa).
+//  - "PlatformAdmin": Admin sin compañía, confirmado en el catálogo.
+builder.Services.AddScoped<IAuthorizationHandler, PlatformAdminHandler>();
 builder.Services.AddAuthorization(o =>
-    o.AddPolicy("Admin", p => p.RequireClaim("role", "Admin")));
+{
+    o.DefaultPolicy = PoliticasAcceso.Usuario();
+    o.FallbackPolicy = PoliticasAcceso.Usuario();
+    o.AddPolicy("Admin", p => PoliticasAcceso.Base(p).RequireClaim("role", "Admin"));
+    o.AddPolicy(AdminPlataforma.Politica, p => PoliticasAcceso.Base(p)
+        .RequireClaim("role", "Admin")
+        .RequireAssertion(c => !c.User.HasClaim(x => x.Type == "tenant_id"))
+        .AddRequirements(new PlatformAdminRequirement()));
+});
 
 var app = builder.Build();
 
+// Los enlaces de seguridad (restablecer contraseña, /c/{token}) se arman solo con
+// App:BaseUrl fuera de Development; el origen de la petición solo vale en desarrollo.
+CertificateLinks.UsarOrigenPeticion = app.Environment.IsDevelopment();
+// Los códigos y enlaces que no se pudieron mandar solo van al log en desarrollo.
+DosFactores.RegistrarCodigosEnLog = app.Environment.IsDevelopment();
+
 // ---- CLI mode: apply migrations to the catalog + every tenant database ----
-if (args.Length > 0 && args[0].Equals("migrate", StringComparison.OrdinalIgnoreCase))
+if (modoMigracion)
 {
     await MigrationRunner.RunAsync(app.Services);
     return;
@@ -88,23 +165,45 @@ using (var scope = app.Services.CreateScope())
 {
     var catalog = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
     catalog.Database.Migrate();
-    await Bootstrap.SeedAdminAsync(catalog, cfg);
+    await Bootstrap.SeedAdminAsync(catalog, cfg, app.Environment,
+        scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Bootstrap"));
 }
+
+// Primero: la IP y el esquema reales (X-Forwarded-For / CF-Connecting-IP, X-Forwarded-Proto).
+app.UseForwardedHeaders();
+if (!app.Environment.IsDevelopment()) app.UseHsts();
+
+// Cabeceras de seguridad para todo (estáticos incluidos).
+app.Use(async (ctx, next) =>
+{
+    CabecerasSeguridad.Aplicar(ctx.Response.Headers);
+    await next();
+});
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
+
+// Lo que pasa de aquí no es un archivo estático: respuestas de la API, que llevan datos
+// personales y no deben quedar en cachés intermedias ni del navegador.
+app.Use(async (ctx, next) =>
+{
+    ctx.Response.Headers.CacheControl = "no-store";
+    await next();
+});
 
 app.UseAuthentication();
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 
-// Origen de la petición en curso: con App:BaseUrl vacío, el enlace del certificado
-// (/c/{token}) que sale por correo se arma con el host por el que entró la petición.
-app.Use(async (ctx, next) =>
-{
-    CertificateLinks.OrigenPeticion = $"{ctx.Request.Scheme}://{ctx.Request.Host}{ctx.Request.PathBase}";
-    await next();
-});
+// Solo en desarrollo: con App:BaseUrl vacío, el enlace del certificado (/c/{token}) que
+// sale por correo se arma con el host por el que entró la petición. Fuera de
+// Development nunca se usa la cabecera Host para armar enlaces (envenenamiento de Host).
+if (app.Environment.IsDevelopment())
+    app.Use(async (ctx, next) =>
+    {
+        CertificateLinks.OrigenPeticion = $"{ctx.Request.Scheme}://{ctx.Request.Host}{ctx.Request.PathBase}";
+        await next();
+    });
 
 // ---------- Auth ----------
 app.MapPost("/auth/login", async (LoginRequest req, CatalogDbContext catalog, JwtTokenService jwt,
@@ -136,7 +235,7 @@ app.MapPost("/auth/login", async (LoginRequest req, CatalogDbContext catalog, Jw
                      isComplianceOfficer = await ComplianceOfficers.EsOficialAsync(catalog, user.Id, user.TenantId),
                      companies = compañias }
     });
-});
+}).AllowAnonymous();
 
 // Cambiar de compañía sin volver a escribir la contraseña: emite un token nuevo
 // para otra compañía a la que el usuario pertenezca.
@@ -185,7 +284,7 @@ app.MapPost("/auth/2fa/verify", async (TwoFactorVerifyRequest req, CatalogDbCont
         user = new { user.Id, user.Email, user.Name, user.Role, user.TenantId, user.MustChangePassword,
                      user.TwoFactorMode, emailVerified = user.EmailVerifiedAt is not null }
     });
-});
+}).AllowAnonymous();
 
 // Reenviar el código por correo si no llegó (solo aplica al modo email).
 app.MapPost("/auth/2fa/resend", async (ResendRequest req, CatalogDbContext catalog,
@@ -199,7 +298,7 @@ app.MapPost("/auth/2fa/resend", async (ResendRequest req, CatalogDbContext catal
 
     var nuevo = await DosFactores.AbrirRetoAsync(catalog, user, viejo.Purpose, email, logs, cfg);
     return Results.Ok(new { challengeId = nuevo.Id, message = "Te reenviamos el código." });
-});
+}).AllowAnonymous();
 
 // ---------- Validación del correo del usuario ----------
 // Se pide la primera vez que entra. Reusa el mismo mecanismo de retos con código
@@ -302,7 +401,7 @@ app.MapPost("/me/2fa/disable", async (DisableTwoFactorRequest req, ITenantContex
 // Pedir el enlace. Responde SIEMPRE lo mismo exista o no el correo: si dijéramos
 // "ese correo no existe" estaríamos regalando una lista de usuarios válidos.
 app.MapPost("/auth/forgot-password", async (ForgotPasswordRequest req, HttpRequest http,
-    CatalogDbContext catalog, IEmailSender email, IConfiguration cfg, ILoggerFactory logs) =>
+    CatalogDbContext catalog, IEmailSender email, IConfiguration cfg, ILoggerFactory logs, IWebHostEnvironment env) =>
 {
     var generico = Results.Ok(new { message = "Si el correo está registrado, te enviamos un enlace para restablecer la contraseña." });
     var correo = (req.Email ?? "").Trim();
@@ -333,9 +432,17 @@ app.MapPost("/auth/forgot-password", async (ForgotPasswordRequest req, HttpReque
     });
     await catalog.SaveChangesAsync();
 
-    var baseUrl = (cfg["App:BaseUrl"] ?? "").TrimEnd('/');
-    if (string.IsNullOrWhiteSpace(baseUrl)) baseUrl = $"{http.Scheme}://{http.Host}";
-    var enlace = $"{baseUrl}/index.html?reset={token}";
+    // Fuera de Development el enlace sale SOLO de App:BaseUrl (el arranque exige que
+    // exista y sea https): la cabecera Host la controla quien pide el correo. El token
+    // va en el fragmento (#reset=), que el navegador nunca manda al servidor ni a logs.
+    var baseUrl = (cfg["App:BaseUrl"] ?? "").Trim().TrimEnd('/');
+    if (string.IsNullOrWhiteSpace(baseUrl) && env.IsDevelopment()) baseUrl = $"{http.Scheme}://{http.Host}{http.PathBase}";
+    if (string.IsNullOrWhiteSpace(baseUrl))
+    {
+        logs.CreateLogger("PasswordReset").LogError("App:BaseUrl no está configurado: no se envió el enlace de recuperación.");
+        return generico;
+    }
+    var enlace = $"{baseUrl}/index.html#reset={token}";
 
     try
     {
@@ -346,16 +453,22 @@ app.MapPost("/auth/forgot-password", async (ForgotPasswordRequest req, HttpReque
     {
         logs.CreateLogger("PasswordReset").LogWarning(ex, "No se pudo enviar el correo de recuperación a {Email}", user.Email);
     }
-    // Sin la API de correo configurada no hay forma de entregar el enlace, así que
-    // queda en el log para que un administrador pueda hacérselo llegar. Configurada,
-    // NUNCA se escribe el enlace en el log.
+    // Sin la API de correo configurada no hay forma de entregar el enlace. En desarrollo
+    // queda en el log para poder probar; fuera de Development NUNCA se escribe el enlace
+    // (el log no es un canal seguro), solo que no se envió.
     if (string.IsNullOrWhiteSpace(cfg["Email:ApiKey"]))
-        logs.CreateLogger("PasswordReset").LogWarning(
-            "Email:ApiKey no está configurado: no se envió correo. Enlace de recuperación para {Email}: {Enlace}",
-            user.Email, enlace);
+    {
+        if (env.IsDevelopment())
+            logs.CreateLogger("PasswordReset").LogWarning(
+                "Email:ApiKey no está configurado: no se envió correo. Enlace de recuperación para {Email}: {Enlace}",
+                user.Email, enlace);
+        else
+            logs.CreateLogger("PasswordReset").LogError(
+                "Email:ApiKey no está configurado: no se envió el correo de recuperación a {Email}.", user.Email);
+    }
 
     return generico;
-});
+}).AllowAnonymous();
 
 // Consumir el enlace y fijar la contraseña nueva.
 app.MapPost("/auth/reset-password", async (ResetWithTokenRequest req, CatalogDbContext catalog) =>
@@ -387,7 +500,7 @@ app.MapPost("/auth/reset-password", async (ResetWithTokenRequest req, CatalogDbC
     catalog.AuditLogs.Add(new CatalogAuditLog { Action = "password-reset", Detail = user.Email, UserId = user.Id });
     await catalog.SaveChangesAsync();
     return Results.Ok(new { message = "Contraseña actualizada. Ya puedes entrar." });
-});
+}).AllowAnonymous();
 
 // Cambiar la propia contraseña (también limpia el flag de cambio obligatorio).
 app.MapPost("/me/password", async (ChangePasswordRequest req, ITenantContext tc, CatalogDbContext catalog) =>
@@ -412,29 +525,82 @@ app.MapGet("/me", async (ITenantContext tc, CatalogDbContext catalog) =>
                      isComplianceOfficer = await ComplianceOfficers.EsOficialAsync(catalog, tc.UserId, tc.TenantId) }))
     .RequireAuthorization();
 
-// ---------- Admin: tenants & users (platform admin only) ----------
-app.MapPost("/admin/tenants", async (CreateTenantRequest req, CatalogDbContext catalog) =>
-{
-    if (await catalog.Tenants.AnyAsync(t => t.Name == req.Name))
-        return Results.Conflict("A tenant with that name already exists.");
+// ---------- Admin: tenants & users ----------
+// Compañías, procesos globales y membresías: solo el admin de plataforma
+// (política PlatformAdmin). Usuarios: también el Admin de una compañía, acotado a la
+// suya (ver AdminUsuarios).
 
-    var tenant = new Tenant { Name = req.Name, ConnectionString = req.ConnectionString };
+// Si el servidor tiene Tenants:ConnectionTemplate (con {db}), la cadena de conexión se
+// arma aquí con el nombre de base validado y se ignora cualquier cadena del cliente.
+// Sin plantilla (instalaciones antiguas) se acepta la cadena del admin de plataforma.
+app.MapPost("/admin/tenants", async (CreateTenantRequest req, CatalogDbContext catalog,
+    IConfiguration config, ILoggerFactory logs) =>
+{
+    var nombre = (req.Name ?? "").Trim();
+    if (nombre.Length < 2 || nombre.Length > 200) return Results.BadRequest("El nombre de la compañía debe tener entre 2 y 200 caracteres.");
+    if (await catalog.Tenants.AnyAsync(t => t.Name == nombre))
+        return Results.Conflict("Ya existe una compañía con ese nombre.");
+
+    string conexion;
+    string? baseDatos = null;
+    var plantilla = PlantillaTenant.Leer(config);
+    if (plantilla is not null)
+    {
+        baseDatos = string.IsNullOrWhiteSpace(req.DatabaseName) ? PlantillaTenant.NombrePorDefecto(nombre) : req.DatabaseName.Trim();
+        if (!PlantillaTenant.NombreValido(baseDatos))
+            return Results.BadRequest("Nombre de base de datos inválido: de 3 a 50 letras, números o guion bajo.");
+        conexion = plantilla.Replace("{db}", baseDatos);
+        if (await catalog.Tenants.AnyAsync(t => t.ConnectionString == conexion))
+            return Results.Conflict("Otra compañía ya usa esa base de datos.");
+    }
+    else
+    {
+        if (string.IsNullOrWhiteSpace(req.ConnectionString))
+            return Results.BadRequest("Falta la cadena de conexión (el servidor no tiene Tenants:ConnectionTemplate).");
+        conexion = req.ConnectionString.Trim();
+    }
+
+    var tenant = new Tenant { Name = nombre, ConnectionString = conexion };
     catalog.Tenants.Add(tenant);
     await catalog.SaveChangesAsync();
 
     // Create + migrate the new tenant's database right away.
-    var opts = new DbContextOptionsBuilder<TenantDbContext>()
-        .UseSqlServer(tenant.ConnectionString).Options;
-    await using (var tdb = new TenantDbContext(opts))
+    try
+    {
+        var opts = new DbContextOptionsBuilder<TenantDbContext>().UseSqlServer(tenant.ConnectionString).Options;
+        await using var tdb = new TenantDbContext(opts);
         await tdb.Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        // Sin base no hay compañía: se deshace el alta para poder reintentar.
+        logs.CreateLogger("Tenants").LogError(ex, "No se pudo crear la base de datos de la compañía {Nombre}", nombre);
+        catalog.Tenants.Remove(tenant);
+        await catalog.SaveChangesAsync();
+        return Results.Json(new { error = "No se pudo crear la base de datos de la compañía. Revisa el log del servidor." },
+            statusCode: StatusCodes.Status500InternalServerError);
+    }
 
-    return Results.Ok(new { tenant.Id, tenant.Name });
-}).RequireAuthorization("Admin");
+    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "tenant-created", Detail = $"{tenant.Name} ({baseDatos ?? "cadena manual"})" });
+    await catalog.SaveChangesAsync();
+    return Results.Ok(new { tenant.Id, tenant.Name, databaseName = baseDatos });
+}).RequireAuthorization(AdminPlataforma.Politica);
+
+// Lo que la pantalla de alta necesita saber: si el servidor arma la cadena con su
+// plantilla (se pide solo el nombre de la base) o si hay que escribirla.
+app.MapGet("/admin/tenants/options", (IConfiguration config) =>
+    Results.Ok(new
+    {
+        usesTemplate = PlantillaTenant.Leer(config) is not null,
+        databasePrefix = PlantillaTenant.Prefijo,
+        databasePattern = PlantillaTenant.Patron
+    }))
+    .RequireAuthorization(AdminPlataforma.Politica);
 
 app.MapGet("/admin/tenants", async (CatalogDbContext catalog) =>
     Results.Ok(await catalog.Tenants.OrderBy(t => t.Name)
-        .Select(t => new { t.Id, t.Name, t.Status }).ToListAsync()))
-    .RequireAuthorization("Admin");
+        .Select(t => new { t.Id, t.Name, t.Status, t.TwoFactorPolicy }).ToListAsync()))
+    .RequireAuthorization(AdminPlataforma.Politica);
 
 // Dispara el resumen semanal de inmediato (para probar o forzar un envío).
 // Vista previa de las plantillas de correo, para revisar cómo se ven sin enviar nada.
@@ -448,7 +614,7 @@ app.MapGet("/admin/email-preview", (string? kind) =>
                     "open", null, "https://aprendor.advancelogisticspr.com"),
         "invite" => EmailTemplates.Invitation("María Rivera", "maria.rivera@advancelogisticspr.com", "Temporal2026!",
                     "https://aprendor.advancelogisticspr.com"),
-        "reset" => EmailTemplates.PasswordReset("María Rivera", "https://aprendor.advancelogisticspr.com/index.html?reset=demo", 60),
+        "reset" => EmailTemplates.PasswordReset("María Rivera", "https://aprendor.advancelogisticspr.com/index.html#reset=demo", 60),
         "2fa" => EmailTemplates.TwoFactorCode("María Rivera", "428913", 10),
         "completion" => EmailTemplates.Completion("María Rivera", "Cumplimiento HIPAA para transporte y logística", 270, 300),
         "certificate" or "certificate-officer" => EmailTemplates.CertificateIssued("María Rivera",
@@ -474,21 +640,24 @@ app.MapGet("/admin/email-preview", (string? kind) =>
                     "due15", DateTime.UtcNow.AddDays(15), "https://aprendor.advancelogisticspr.com"),
     };
     return Results.Content(html, "text/html; charset=utf-8");
-}).RequireAuthorization("Admin");
+}).RequireAuthorization(AdminPlataforma.Politica);
 
-// Dispara los recordatorios de inmediato (para probar o forzar un envío).
+// Dispara los recordatorios de inmediato (para probar o forzar un envío). Recorre
+// todas las compañías: solo el admin de plataforma.
 app.MapPost("/admin/run-reminders", async (IServiceProvider sp, IEmailSender email, IConfiguration configuracion) =>
 {
     var n = await ReminderRunner.RunAsync(sp, email, configuracion);
     return Results.Ok(new { sent = n });
-}).RequireAuthorization("Admin");
+}).RequireAuthorization(AdminPlataforma.Politica);
 
 // Dispara el resumen de cumplimiento de inmediato, sin mirar la cadencia ni el marcador
 // (para probar o forzar un envío). Respeta la idempotencia de los vencidos: uno ya
 // avisado hace poco no se repite. El Admin de una compañía solo corre la suya.
-app.MapPost("/admin/run-compliance-digest", async (Guid? tenantId, ITenantContext tc, IServiceProvider sp,
-    IEmailSender email, IConfiguration configuracion) =>
+app.MapPost("/admin/run-compliance-digest", async (Guid? tenantId, ITenantContext tc, ClaimsPrincipal principal,
+    CatalogDbContext catalog, IMemoryCache cache, IServiceProvider sp, IEmailSender email, IConfiguration configuracion) =>
 {
+    // Sin compañía en el token solo puede ser el admin de plataforma (confirmado en el catálogo).
+    if (tc.TenantId is null && !await AdminPlataforma.EsAsync(principal, catalog, cache)) return Results.Forbid();
     var soloTenant = tc.TenantId ?? tenantId;
     var r = await ComplianceDigestRunner.RunAsync(sp, email, configuracion, soloTenant);
     return Results.Ok(new
@@ -508,23 +677,44 @@ app.MapPost("/admin/run-digest", async (IServiceProvider sp, IEmailSender email)
 {
     var sent = await DigestRunner.RunAsync(sp, email);
     return Results.Ok(new { ran = true, sent });
-}).RequireAuthorization("Admin");
+}).RequireAuthorization(AdminPlataforma.Politica);
 
-app.MapPost("/admin/users", async (CreateUserRequest req, CatalogDbContext catalog, IEmailSender email, IConfiguration cfg) =>
+// Alta de usuario. El admin de plataforma lo crea en cualquier compañía (o sin
+// compañía); el Admin de una compañía solo en la suya (otro tenantId -> 403).
+app.MapPost("/admin/users", async (CreateUserRequest req, ITenantContext tc, ClaimsPrincipal principal,
+    CatalogDbContext catalog, IMemoryCache cache, IEmailSender email, IConfiguration cfg) =>
 {
-    if (await catalog.Users.AnyAsync(u => u.Email == req.Email))
-        return Results.Conflict("Email already exists.");
+    var alcance = await AdminUsuarios.AlcanceAsync(tc, principal, catalog, cache);
+    if (alcance is null) return Results.Forbid();
+
+    var correo = (req.Email ?? "").Trim();
+    if (correo.Length == 0 || !correo.Contains('@')) return Results.BadRequest("Correo inválido.");
+    if (string.IsNullOrEmpty(req.Password)) return Results.BadRequest("Falta la contraseña temporal.");
+    if (!AdminUsuarios.Roles.Contains(req.Role)) return Results.BadRequest("Rol inválido.");
+
+    var compañia = req.TenantId;
+    if (alcance.Compañia is Guid suya)
+    {
+        if (compañia is not null && compañia != suya) return Results.Forbid();
+        compañia = suya;
+    }
+    else if (compañia is not null && !await catalog.Tenants.AnyAsync(t => t.Id == compañia))
+        return Results.BadRequest("Compañía no encontrada.");
+
+    if (await catalog.Users.AnyAsync(u => u.Email == correo))
+        return Results.Conflict("Ya existe un usuario con ese correo.");
 
     var user = new AppUser
     {
-        Email = req.Email,
-        Name = req.Name,
+        Email = correo,
+        Name = (req.Name ?? "").Trim(),
         Role = req.Role,
-        TenantId = req.TenantId,
+        TenantId = compañia,
         MustChangePassword = true,   // primer login: obliga a cambiarla
         PasswordHash = PasswordHasher.Hash(req.Password)
     };
     catalog.Users.Add(user);
+    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "user-created", Detail = $"{user.Email} ({user.Role})", UserId = tc.UserId });
     await catalog.SaveChangesAsync();
 
     bool invited = false;
@@ -541,9 +731,47 @@ app.MapPost("/admin/users", async (CreateUserRequest req, CatalogDbContext catal
     return Results.Ok(new { user.Id, user.Email, user.Role, user.TenantId, invited });
 }).RequireAuthorization("Admin");
 
-// Listar usuarios (opcionalmente filtrados por cliente).
-app.MapGet("/admin/users", async (Guid? tenantId, CatalogDbContext catalog) =>
+// Listar usuarios (opcionalmente filtrados por cliente). El Admin de una compañía ve
+// solo la suya (principal o por UserCompany), con el rol que tienen ahí, sin admins de
+// plataforma y sin sus membresías en otras compañías.
+app.MapGet("/admin/users", async (Guid? tenantId, ITenantContext tc, ClaimsPrincipal principal,
+    CatalogDbContext catalog, IMemoryCache cache) =>
 {
+    var alcance = await AdminUsuarios.AlcanceAsync(tc, principal, catalog, cache);
+    if (alcance is null) return Results.Forbid();
+
+    if (alcance.Compañia is Guid suya)
+    {
+        if (tenantId is not null && tenantId != suya) return Results.Forbid();
+        var extras = catalog.UserCompanies.Where(m => m.TenantId == suya).Select(m => m.UserId);
+        var gente = await catalog.Users
+            .Where(u => (u.TenantId == suya || extras.Contains(u.Id)) && !(u.TenantId == null && u.Role == "Admin"))
+            .OrderBy(u => u.Name)
+            .Select(u => new { u.Id, u.Email, u.Name, u.Role, u.TenantId, u.MustChangePassword }).ToListAsync();
+        var ids = gente.Select(u => u.Id).ToList();
+        var aqui = await catalog.UserCompanies.Where(m => m.TenantId == suya && ids.Contains(m.UserId))
+            .Select(m => new { m.Id, m.UserId, m.TenantId, m.Role, m.IsComplianceOfficer }).ToListAsync();
+
+        return Results.Ok(gente.Select(u =>
+        {
+            var m = aqui.FirstOrDefault(x => x.UserId == u.Id);
+            var principalAqui = u.TenantId == suya;
+            return new
+            {
+                u.Id, u.Email, u.Name,
+                role = principalAqui ? u.Role : (m?.Role ?? u.Role),
+                tenantId = (Guid?)suya,
+                u.MustChangePassword,
+                isComplianceOfficer = m?.IsComplianceOfficer == true,
+                memberships = m is null ? Array.Empty<object>() : new object[]
+                {
+                    new { membershipId = m.Id, tenantId = m.TenantId, role = principalAqui ? u.Role : m.Role,
+                          principal = principalAqui, isComplianceOfficer = m.IsComplianceOfficer }
+                }
+            };
+        }));
+    }
+
     var q = catalog.Users.AsQueryable();
     if (tenantId is not null) q = q.Where(u => u.TenantId == tenantId);
     var users = await q.OrderBy(u => u.Name)
@@ -551,8 +779,8 @@ app.MapGet("/admin/users", async (Guid? tenantId, CatalogDbContext catalog) =>
         .ToListAsync();
 
     // Membresías (UserCompany) de esos usuarios, con la marca de oficial de cumplimiento.
-    var ids = users.Select(u => u.Id).ToList();
-    var membresias = await catalog.UserCompanies.Where(m => ids.Contains(m.UserId))
+    var todos = users.Select(u => u.Id).ToList();
+    var membresias = await catalog.UserCompanies.Where(m => todos.Contains(m.UserId))
         .Select(m => new { m.Id, m.UserId, m.TenantId, m.Role, m.IsComplianceOfficer }).ToListAsync();
 
     return Results.Ok(users.Select(u =>
@@ -576,48 +804,93 @@ app.MapGet("/admin/users", async (Guid? tenantId, CatalogDbContext catalog) =>
     }));
 }).RequireAuthorization("Admin");
 
-// Cambiar el rol de un usuario.
-app.MapPost("/admin/users/{id:guid}/role", async (Guid id, RoleRequest req, CatalogDbContext catalog) =>
+// Cambiar el rol de un usuario. El Admin de una compañía cambia el rol que la persona
+// tiene EN SU compañía: el de la cuenta si es su principal, el de la membresía si no.
+app.MapPost("/admin/users/{id:guid}/role", async (Guid id, RoleRequest req, ITenantContext tc, ClaimsPrincipal principal,
+    CatalogDbContext catalog, IMemoryCache cache) =>
 {
-    var allowed = new[] { "Admin", "Author", "Moderator", "Learner" };
-    if (!allowed.Contains(req.Role)) return Results.BadRequest("Rol inválido.");
+    if (!AdminUsuarios.Roles.Contains(req.Role)) return Results.BadRequest("Rol inválido.");
+    var alcance = await AdminUsuarios.AlcanceAsync(tc, principal, catalog, cache);
+    if (alcance is null) return Results.Forbid();
     var user = await catalog.Users.FindAsync(id);
     if (user is null) return Results.NotFound();
-    user.Role = req.Role;
-    // La fila "espejo" de la compañía principal (la que guarda la marca de oficial de
-    // cumplimiento) sigue el rol de la cuenta.
-    foreach (var espejo in await catalog.UserCompanies.Where(m => m.UserId == id && m.TenantId == user.TenantId).ToListAsync())
-        espejo.Role = req.Role;
+    if (!await AdminUsuarios.PuedeGestionarAsync(alcance, user, catalog)) return Results.Forbid();
+
+    if (alcance.Compañia is Guid suya && user.TenantId != suya)
+    {
+        var m = await catalog.UserCompanies.FirstAsync(x => x.UserId == id && x.TenantId == suya);
+        m.Role = req.Role;
+    }
+    else
+    {
+        user.Role = req.Role;
+        // La fila "espejo" de la compañía principal (la que guarda la marca de oficial de
+        // cumplimiento) sigue el rol de la cuenta.
+        foreach (var espejo in await catalog.UserCompanies.Where(m => m.UserId == id && m.TenantId == user.TenantId).ToListAsync())
+            espejo.Role = req.Role;
+    }
+    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "user-role", Detail = $"{user.Email} -> {req.Role}", UserId = tc.UserId });
     await catalog.SaveChangesAsync();
+    AdminPlataforma.Olvidar(cache, id);
     return Results.Ok();
 }).RequireAuthorization("Admin");
 
 // Resetear la contraseña de un usuario: el usuario deberá cambiarla al próximo login.
-app.MapPost("/admin/users/{id:guid}/reset-password", async (Guid id, ResetPasswordRequest req, CatalogDbContext catalog) =>
+app.MapPost("/admin/users/{id:guid}/reset-password", async (Guid id, ResetPasswordRequest req, ITenantContext tc,
+    ClaimsPrincipal principal, CatalogDbContext catalog, IMemoryCache cache) =>
 {
     if (string.IsNullOrWhiteSpace(req.TempPassword) || req.TempPassword.Length < 6)
         return Results.BadRequest("La contraseña temporal debe tener al menos 6 caracteres.");
+    var alcance = await AdminUsuarios.AlcanceAsync(tc, principal, catalog, cache);
+    if (alcance is null) return Results.Forbid();
     var user = await catalog.Users.FindAsync(id);
     if (user is null) return Results.NotFound();
+    if (!await AdminUsuarios.PuedeGestionarAsync(alcance, user, catalog)) return Results.Forbid();
     user.PasswordHash = PasswordHasher.Hash(req.TempPassword);
     user.MustChangePassword = true;
+    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "admin-password-reset", Detail = user.Email, UserId = tc.UserId });
     await catalog.SaveChangesAsync();
     return Results.Ok();
 }).RequireAuthorization("Admin");
 
-// Eliminar un usuario (no puedes eliminarte a ti mismo).
-app.MapDelete("/admin/users/{id:guid}", async (Guid id, ITenantContext tc, CatalogDbContext catalog) =>
+// Eliminar un usuario (no puedes eliminarte a ti mismo). El Admin de una compañía no
+// borra cuentas que también existen en otra: a quien llega por UserCompany solo lo saca
+// de su compañía; a quien la tiene de principal pero pertenece a otras, no lo toca.
+app.MapDelete("/admin/users/{id:guid}", async (Guid id, ITenantContext tc, ClaimsPrincipal principal,
+    CatalogDbContext catalog, IMemoryCache cache) =>
 {
     if (tc.UserId == id) return Results.BadRequest("No puedes eliminar tu propio usuario.");
+    var alcance = await AdminUsuarios.AlcanceAsync(tc, principal, catalog, cache);
+    if (alcance is null) return Results.Forbid();
     var user = await catalog.Users.FindAsync(id);
     if (user is null) return Results.NotFound();
+    if (!await AdminUsuarios.PuedeGestionarAsync(alcance, user, catalog)) return Results.Forbid();
+
+    var membresias = await catalog.UserCompanies.Where(m => m.UserId == id).ToListAsync();
+    if (alcance.Compañia is Guid suya)
+    {
+        if (user.TenantId != suya)
+        {
+            catalog.UserCompanies.RemoveRange(membresias.Where(m => m.TenantId == suya));
+            catalog.AuditLogs.Add(new CatalogAuditLog { Action = "membership-removed", Detail = user.Email, UserId = tc.UserId });
+            await catalog.SaveChangesAsync();
+            return Results.Ok(new { removedMembership = true });
+        }
+        if (membresias.Any(m => m.TenantId != suya))
+            return Results.Conflict("Esta persona también pertenece a otra compañía; pide al administrador de la plataforma que la dé de baja.");
+    }
+
+    catalog.UserCompanies.RemoveRange(membresias);
     catalog.Users.Remove(user);
+    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "user-deleted", Detail = user.Email, UserId = tc.UserId });
     await catalog.SaveChangesAsync();
+    AdminPlataforma.Olvidar(cache, id);
     return Results.Ok();
 }).RequireAuthorization("Admin");
 
 // Política de doble factor de una compañía: la decide la compañía, no cada usuario.
-app.MapPost("/admin/tenants/{id:guid}/two-factor", async (Guid id, TwoFactorPolicyRequest req, CatalogDbContext catalog) =>
+app.MapPost("/admin/tenants/{id:guid}/two-factor", async (Guid id, TwoFactorPolicyRequest req, ITenantContext tc,
+    CatalogDbContext catalog) =>
 {
     var permitidas = new[] { "off", "optional", "required" };
     var p = (req.Policy ?? "").Trim().ToLowerInvariant();
@@ -626,16 +899,15 @@ app.MapPost("/admin/tenants/{id:guid}/two-factor", async (Guid id, TwoFactorPoli
     var t = await catalog.Tenants.FindAsync(id);
     if (t is null) return Results.NotFound();
     t.TwoFactorPolicy = p;
-    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "2fa-policy", Detail = $"{t.Name} -> {p}" });
+    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "2fa-policy", Detail = $"{t.Name} -> {p}", UserId = tc.UserId });
     await catalog.SaveChangesAsync();
     return Results.Ok(new { t.Id, t.Name, t.TwoFactorPolicy });
-}).RequireAuthorization("Admin");
+}).RequireAuthorization(AdminPlataforma.Politica);
 
 // Añadir un usuario a otra compañía (con el rol que tendrá allí).
-app.MapPost("/admin/user-companies", async (CompanyMembershipRequest req, CatalogDbContext catalog) =>
+app.MapPost("/admin/user-companies", async (CompanyMembershipRequest req, ITenantContext tc, CatalogDbContext catalog) =>
 {
-    var roles = new[] { "Admin", "Author", "Moderator", "Learner" };
-    if (!roles.Contains(req.Role)) return Results.BadRequest("Rol inválido.");
+    if (!AdminUsuarios.Roles.Contains(req.Role)) return Results.BadRequest("Rol inválido.");
     var user = await catalog.Users.FindAsync(req.UserId);
     if (user is null) return Results.NotFound("Usuario no encontrado.");
     var tenant = await catalog.Tenants.FindAsync(req.TenantId);
@@ -646,9 +918,10 @@ app.MapPost("/admin/user-companies", async (CompanyMembershipRequest req, Catalo
         return Results.Conflict("El usuario ya pertenece a esa compañía.");
 
     catalog.UserCompanies.Add(new UserCompany { UserId = req.UserId, TenantId = req.TenantId, Role = req.Role });
+    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "membership-added", Detail = $"{user.Email} @ {tenant.Name} ({req.Role})", UserId = tc.UserId });
     await catalog.SaveChangesAsync();
     return Results.Ok(new { req.UserId, req.TenantId, req.Role });
-}).RequireAuthorization("Admin");
+}).RequireAuthorization(AdminPlataforma.Politica);
 
 // Marcar o desmarcar a un oficial de cumplimiento en una compañía. Cuerpo { "isOfficer": true|false,
 // "tenantId": opcional }. {id} es el Id de la membresía (UserCompany); también se acepta el
@@ -657,8 +930,10 @@ app.MapPost("/admin/user-companies", async (CompanyMembershipRequest req, Catalo
 // tiene fila en UserCompany, se crea una "espejo" (mismo rol y fecha de alta que la
 // cuenta) solo para guardar la marca. El Admin de una compañía solo gestiona la suya.
 app.MapPost("/admin/user-companies/{id:guid}/compliance-officer", async (Guid id, ComplianceOfficerRequest req,
-    ITenantContext tc, CatalogDbContext catalog) =>
+    ITenantContext tc, ClaimsPrincipal principal, CatalogDbContext catalog, IMemoryCache cache) =>
 {
+    // Sin compañía en el token solo puede ser el admin de plataforma (confirmado en el catálogo).
+    if (tc.TenantId is null && !await AdminPlataforma.EsAsync(principal, catalog, cache)) return Results.Forbid();
     var m = await catalog.UserCompanies.FirstOrDefaultAsync(x => x.Id == id);
     if (m is null)
     {
@@ -695,26 +970,28 @@ app.MapPost("/admin/user-companies/{id:guid}/compliance-officer", async (Guid id
     return Results.Ok(new { membershipId = (Guid?)m.Id, userId = m.UserId, tenantId = (Guid?)m.TenantId, isComplianceOfficer = m.IsComplianceOfficer });
 }).RequireAuthorization("Admin");
 
-app.MapDelete("/admin/user-companies", async (Guid userId, Guid tenantId, CatalogDbContext catalog) =>
+app.MapDelete("/admin/user-companies", async (Guid userId, Guid tenantId, ITenantContext tc, CatalogDbContext catalog) =>
 {
     var m = await catalog.UserCompanies.FirstOrDefaultAsync(x => x.UserId == userId && x.TenantId == tenantId);
     if (m is null) return Results.NotFound();
     catalog.UserCompanies.Remove(m);
+    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "membership-removed", Detail = $"{userId} @ {tenantId}", UserId = tc.UserId });
     await catalog.SaveChangesAsync();
     return Results.Ok();
-}).RequireAuthorization("Admin");
+}).RequireAuthorization(AdminPlataforma.Politica);
 
 // Activar / desactivar una compañía.
-app.MapPost("/admin/tenants/{id:guid}/status", async (Guid id, StatusRequest req, CatalogDbContext catalog) =>
+app.MapPost("/admin/tenants/{id:guid}/status", async (Guid id, StatusRequest req, ITenantContext tc, CatalogDbContext catalog) =>
 {
     var allowed = new[] { "active", "inactive" };
     if (!allowed.Contains(req.Status)) return Results.BadRequest("Estado inválido.");
     var tenant = await catalog.Tenants.FindAsync(id);
     if (tenant is null) return Results.NotFound();
     tenant.Status = req.Status;
+    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "tenant-status", Detail = $"{tenant.Name} -> {req.Status}", UserId = tc.UserId });
     await catalog.SaveChangesAsync();
     return Results.Ok();
-}).RequireAuthorization("Admin");
+}).RequireAuthorization(AdminPlataforma.Politica);
 
 // ---------- Tenant-scoped content (proves multitenancy end to end) ----------
 app.MapGet("/categories", (ITenantContext tc, IServiceProvider sp) =>
@@ -727,27 +1004,46 @@ app.MapGet("/categories", (ITenantContext tc, IServiceProvider sp) =>
 app.MapPost("/categories", async (CreateCategoryRequest req, ITenantContext tc, IServiceProvider sp) =>
 {
     if (tc.TenantId is null) return Results.BadRequest("No tenant context for this user.");
+    if (!ContenidoAcceso.PuedeCrear(tc.Role)) return Results.Forbid();
+    var nombre = (req.Name ?? "").Trim();
+    if (nombre.Length is < 1 or > 200) return Results.BadRequest("El nombre de la categoría debe tener entre 1 y 200 caracteres.");
     var db = sp.GetRequiredService<TenantDbContext>();
-    var cat = new Category { Name = req.Name, ParentId = req.ParentId };
+    var cat = new Category { Name = nombre, ParentId = req.ParentId };
     db.Categories.Add(cat);
     await db.SaveChangesAsync();
     return Results.Ok(cat);
 }).RequireAuthorization();
 
-app.MapGet("/trainings", (ITenantContext tc, IServiceProvider sp) =>
+// Autores: todos los cursos con todos sus campos. Resto: solo los publicados, con lo
+// que las tarjetas del catálogo necesitan (título, descripción, categoría y portada).
+app.MapGet("/trainings", async (ITenantContext tc, IServiceProvider sp) =>
 {
     if (tc.TenantId is null) return Results.BadRequest("No tenant context for this user.");
     var db = sp.GetRequiredService<TenantDbContext>();
-    return Results.Ok(db.Trainings.OrderByDescending(t => t.CreatedAt).ToList());
+    if (ContenidoAcceso.PuedeCrear(tc.Role))
+        return Results.Ok(await db.Trainings.OrderByDescending(t => t.CreatedAt).ToListAsync());
+
+    var publicados = await db.Trainings.Where(t => t.Status == "published")
+        .OrderByDescending(t => t.CreatedAt)
+        .Select(t => new { t.Id, t.Title, t.Description, t.CategoryId, t.Status, t.PlayerConfigJson })
+        .ToListAsync();
+    return Results.Ok(publicados.Select(t => new
+    {
+        t.Id, t.Title, t.Description, t.CategoryId, t.Status,
+        playerConfigJson = ContenidoAcceso.SoloPortada(t.PlayerConfigJson)
+    }));
 }).RequireAuthorization();
 
 app.MapPost("/trainings", async (CreateTrainingRequest req, ITenantContext tc, IServiceProvider sp) =>
 {
     if (tc.TenantId is null) return Results.BadRequest("No tenant context for this user.");
+    if (!ContenidoAcceso.PuedeCrear(tc.Role)) return Results.Forbid();
+    var titulo = (req.Title ?? "").Trim();
+    if (titulo.Length is < 3 or > 300) return Results.BadRequest("El título debe tener entre 3 y 300 caracteres.");
     var db = sp.GetRequiredService<TenantDbContext>();
     var t = new Training
     {
-        Title = req.Title,
+        Title = titulo,
         Description = req.Description,
         CategoryId = req.CategoryId,
         CreatedByUserId = tc.UserId
@@ -837,6 +1133,9 @@ static class DosFactores
     public const int VigenciaMinutos = 10;
     public const int MaxIntentos = 5;
 
+    // true solo en Development (lo fija Program al arrancar).
+    public static bool RegistrarCodigosEnLog { get; set; }
+
     public static async Task<TwoFactorChallenge> AbrirRetoAsync(CatalogDbContext catalog, AppUser user,
         string proposito, IEmailSender email, ILoggerFactory logs, IConfiguration cfg, string? modoForzado = null)
     {
@@ -879,9 +1178,16 @@ static class DosFactores
                 logs.CreateLogger("DosFactores").LogWarning(ex, "No se pudo enviar el código a {Email}", user.Email);
             }
             // Igual que con la recuperación: sin la API de correo no hay forma de entregarlo.
+            // El código solo va al log en desarrollo; fuera, solo que no se envió.
             if (string.IsNullOrWhiteSpace(cfg["Email:ApiKey"]))
-                logs.CreateLogger("DosFactores").LogWarning(
-                    "Email:ApiKey no está configurado: código de verificación para {Email}: {Codigo}", user.Email, codigo);
+            {
+                if (RegistrarCodigosEnLog)
+                    logs.CreateLogger("DosFactores").LogWarning(
+                        "Email:ApiKey no está configurado: código de verificación para {Email}: {Codigo}", user.Email, codigo);
+                else
+                    logs.CreateLogger("DosFactores").LogError(
+                        "Email:ApiKey no está configurado: no se envió el código de verificación a {Email}.", user.Email);
+            }
         }
         return reto;
     }
@@ -923,18 +1229,38 @@ static class DosFactores
 
 static class Bootstrap
 {
-    public static async Task SeedAdminAsync(CatalogDbContext catalog, IConfiguration cfg)
+    public const string ClaveDeEjemplo = "ChangeMe123!";
+
+    // Crea el admin de plataforma solo si el catálogo está vacío. Fuera de Development
+    // no siembra con la contraseña de ejemplo ni sin contraseña (se registra el error y
+    // la app sigue sin admin: se define Bootstrap:AdminEmail/AdminPassword por variable
+    // de entorno y se reinicia). Siempre nace con cambio de contraseña obligatorio.
+    public static async Task SeedAdminAsync(CatalogDbContext catalog, IConfiguration cfg, IHostEnvironment env, ILogger log)
     {
+        if (!env.IsDevelopment() &&
+            await catalog.Users.AnyAsync(u => u.Email == "admin@local" && u.TenantId == null && u.Role == "Admin"))
+            log.LogError("Existe el admin de plataforma admin@local: cámbiale el correo por uno real y activa su doble factor.");
+
         if (await catalog.Users.AnyAsync()) return;
 
-        var email = cfg["Bootstrap:AdminEmail"] ?? "admin@local";
-        var pass = cfg["Bootstrap:AdminPassword"] ?? "ChangeMe123!";
+        var email = (cfg["Bootstrap:AdminEmail"] ?? "").Trim();
+        var pass = cfg["Bootstrap:AdminPassword"] ?? "";
+        if (!env.IsDevelopment() && (email.Length == 0 || pass.Length == 0 || pass == ClaveDeEjemplo))
+        {
+            log.LogError("No se creó el admin de plataforma: define Bootstrap:AdminEmail y Bootstrap:AdminPassword " +
+                         "(APRENDOR_Bootstrap__AdminEmail / APRENDOR_Bootstrap__AdminPassword) con una contraseña propia.");
+            return;
+        }
+        if (email.Length == 0) email = "admin@local";
+        if (pass.Length == 0) pass = ClaveDeEjemplo;   // solo en desarrollo
+
         catalog.Users.Add(new AppUser
         {
             Email = email,
             Name = "Platform Admin",
             Role = "Admin",
             TenantId = null,
+            MustChangePassword = true,
             PasswordHash = PasswordHasher.Hash(pass)
         });
         await catalog.SaveChangesAsync();
@@ -942,9 +1268,170 @@ static class Bootstrap
     }
 }
 
+// Comprobaciones de arranque fuera de Development: si algo falta, la app no arranca y
+// el mensaje dice qué variable definir.
+static class ArranqueSeguro
+{
+    public static void Validar(IConfiguration cfg)
+    {
+        var key = cfg["Jwt:Key"];
+        if (string.IsNullOrWhiteSpace(key) || key.Contains("CHANGE-ME", StringComparison.OrdinalIgnoreCase)
+            || Encoding.UTF8.GetByteCount(key) < 32)
+            throw new InvalidOperationException(
+                "Jwt:Key no está configurada, es la de ejemplo o mide menos de 32 bytes. Define APRENDOR_Jwt__Key " +
+                "con al menos 32 bytes aleatorios (por ejemplo, 64 caracteres base64) en las variables de entorno del servidor.");
+
+        var baseUrl = cfg["App:BaseUrl"];
+        if (string.IsNullOrWhiteSpace(baseUrl)
+            || !Uri.TryCreate(baseUrl.Trim(), UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
+            throw new InvalidOperationException(
+                "App:BaseUrl no está configurada o no es https. Define APRENDOR_App__BaseUrl con la URL pública " +
+                "(p. ej. https://aprendor.midominio.com): los enlaces de los correos se arman solo con ella.");
+    }
+
+    // Lista de configuración: acepta un arreglo (Security:TrustedProxies:0, :1...) o un
+    // valor único separado por comas o punto y coma (cómodo en una variable de entorno).
+    public static List<string> Lista(IConfiguration cfg, string clave)
+    {
+        var s = cfg.GetSection(clave);
+        var valores = s.GetChildren().Select(c => c.Value).ToList();
+        if (!string.IsNullOrWhiteSpace(s.Value)) valores.Add(s.Value);
+        return valores.Where(v => !string.IsNullOrWhiteSpace(v))
+            .SelectMany(v => v!.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .ToList();
+    }
+}
+
+// Límites de tamaño de petición por endpoint (el global es Security:MaxRequestBytes).
+static class Limites
+{
+    // Subida de medios: Media:MaxBytes, 50 MB por defecto.
+    public static long MediaMaxBytes(IConfiguration cfg) => cfg.GetValue<long?>("Media:MaxBytes") ?? 50L * 1024 * 1024;
+
+    // Contenido del autor (ítems con imágenes embebidas, portada, logo y firma del
+    // certificado): Security:AuthoringMaxRequestBytes, 8 MB por defecto.
+    public static long AutorMaxBytes(IConfiguration cfg) => cfg.GetValue<long?>("Security:AuthoringMaxRequestBytes") ?? 8L * 1024 * 1024;
+}
+
+// Punto único de las políticas de autorización. S2 añadirá aquí la exigencia de
+// scope=full (tokens restringidos) para que valga en DefaultPolicy, FallbackPolicy,
+// "Admin" y "PlatformAdmin" a la vez.
+static class PoliticasAcceso
+{
+    public static AuthorizationPolicyBuilder Base(AuthorizationPolicyBuilder p)
+        => p.RequireAuthenticatedUser();
+
+    public static AuthorizationPolicy Usuario() => Base(new AuthorizationPolicyBuilder()).Build();
+}
+
+// Cabeceras de seguridad de toda respuesta. La CSP no es estricta ('unsafe-inline'):
+// el front usa un script en línea y manejadores onclick; permite Google Fonts,
+// Turnstile de Cloudflare y los videos de YouTube que los cursos pueden incrustar.
+// /media pone además la suya, más estricta. object-src admite 'self' y blob: (no
+// 'none'): Chrome muestra los PDF con un visor embebido que obedece object-src, y los
+// PDF de /c/{token} y los que el front abre como blob (heredan la CSP de la página)
+// quedarían en blanco.
+static class CabecerasSeguridad
+{
+    public const string Csp =
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; " +
+        "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://www.youtube.com; " +
+        "img-src 'self' data: blob: https:; " +
+        "media-src 'self' blob:; " +
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+        "font-src 'self' data: https://fonts.gstatic.com; " +
+        "connect-src 'self'; " +
+        "object-src 'self' blob:; " +
+        "base-uri 'self'; " +
+        "form-action 'self'; " +
+        "frame-ancestors 'self'";
+
+    public static void Aplicar(IHeaderDictionary h)
+    {
+        h["X-Content-Type-Options"] = "nosniff";
+        h["X-Frame-Options"] = "SAMEORIGIN";
+        h["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        h["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+        h["Content-Security-Policy"] = Csp;
+    }
+}
+
+// Alta de compañías con plantilla de conexión (Tenants:ConnectionTemplate con {db}).
+static class PlantillaTenant
+{
+    public const string Prefijo = "TP_";
+    public const string Patron = "^[A-Za-z0-9_]{3,50}$";
+    private static readonly Regex Nombre = new(Patron, RegexOptions.Compiled);
+
+    public static string? Leer(IConfiguration cfg)
+    {
+        var p = cfg["Tenants:ConnectionTemplate"];
+        return !string.IsNullOrWhiteSpace(p) && p.Contains("{db}") ? p : null;
+    }
+
+    public static bool NombreValido(string? s) => s is not null && Nombre.IsMatch(s);
+
+    // TP_ + el nombre de la compañía sin acentos, con solo letras, números y guion bajo.
+    public static string NombrePorDefecto(string compañia)
+    {
+        var sinAcentos = new string(compañia.Normalize(NormalizationForm.FormD)
+            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+            .ToArray());
+        var slug = Regex.Replace(sinAcentos, "[^A-Za-z0-9]+", "_").Trim('_');
+        var nombre = Prefijo + (slug.Length == 0 ? "Compania" : slug);
+        return nombre.Length > 50 ? nombre[..50].TrimEnd('_') : nombre;
+    }
+}
+
+// Roles con permiso para crear contenido en la compañía activa.
+static class ContenidoAcceso
+{
+    public static bool PuedeCrear(string? rol) => rol is "Admin" or "Author" or "Moderator";
+
+    // De la configuración del reproductor, solo la portada (lo que pinta la tarjeta del catálogo).
+    public static string SoloPortada(string? json)
+    {
+        try
+        {
+            var cover = System.Text.Json.Nodes.JsonNode.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json!)?["presentation"]?["cover"];
+            var salida = new System.Text.Json.Nodes.JsonObject();
+            if (cover is not null)
+                salida["presentation"] = new System.Text.Json.Nodes.JsonObject { ["cover"] = cover.DeepClone() };
+            return salida.ToJsonString();
+        }
+        catch { return "{}"; }
+    }
+}
+
+// Qué usuarios puede gestionar quien llama a /admin/users*: el admin de plataforma,
+// todos; el Admin de una compañía, solo los de su compañía activa (principal o por
+// UserCompany) y nunca a un admin de plataforma.
+static class AdminUsuarios
+{
+    public static readonly string[] Roles = { "Admin", "Author", "Moderator", "Learner" };
+
+    // Compañia null = admin de plataforma (sin límite).
+    public record Alcance(Guid? Compañia);
+
+    public static async Task<Alcance?> AlcanceAsync(ITenantContext tc, ClaimsPrincipal principal,
+        CatalogDbContext catalog, IMemoryCache cache)
+    {
+        if (tc.TenantId is Guid tid) return tc.Role == "Admin" ? new Alcance(tid) : null;
+        return await AdminPlataforma.EsAsync(principal, catalog, cache) ? new Alcance(null) : null;
+    }
+
+    public static async Task<bool> PuedeGestionarAsync(Alcance alcance, AppUser u, CatalogDbContext catalog)
+    {
+        if (alcance.Compañia is not Guid tid) return true;
+        if (u.TenantId is null && u.Role == "Admin") return false;   // admin de plataforma
+        return await Membresias.EsMiembroAsync(catalog, tid, u.Id);
+    }
+}
+
 // ---- Request DTOs ----
 record LoginRequest(string Email, string Password);
-record CreateTenantRequest(string Name, string ConnectionString);
+record CreateTenantRequest(string Name, string? ConnectionString = null, string? DatabaseName = null);
 record CreateUserRequest(string Email, string Name, string Password, string Role, Guid? TenantId, bool? SendInvite);
 record CreateCategoryRequest(string Name, Guid? ParentId);
 record CreateTrainingRequest(string Title, string? Description, Guid? CategoryId);
