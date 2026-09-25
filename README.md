@@ -368,3 +368,21 @@ Solo cambia `wwwroot/index.html`; usa los endpoints de S1–S3 tal cual.
   ficha de seguridad (la política de doble factor se ve pero la cambia el admin de plataforma), altas
   por invitación o clave temporal, rol, contraseña, reiniciar doble factor y quitar de la compañía. No
   ve compañías, otras compañías ni admins de plataforma.
+
+## Escapado y saneado de contenido (septiembre 2026, bloque F2)
+
+- **Saneado en el servidor** (`ContentSanitizer.cs`, paquete NuGet `HtmlSanitizer`): al guardar un
+  ítem (`POST /trainings/{id}/items`, `PUT /items/{id}`) se sanea el HTML de `blocks[].html`,
+  `bodyHtml` y `description` con una lista blanca de formato (p, listas, títulos, tablas, figure,
+  enlaces http/https/mailto, imágenes `data:image/…;base64`, `/media/…` o `https:`, y el SVG simple
+  de los íconos de portada). El CSS de `style` se conserva tal cual por declaración si la propiedad
+  está en la lista y el valor no trae `url()`, `expression`, escapes ni `position: fixed`. `photo`
+  solo admite `data:image/`, `/media/` o `https:`; `mediaUrl`, `/media/` o `https:`; `photoPos` y
+  `variant` solo valores simples. Un `payloadJson` que no sea un objeto JSON responde 400. El mismo
+  saneado se aplica al servir (`/draft`, `/take`, `/preview`, `/review`), así lo guardado antes queda
+  cubierto sin resembrar. Con los cuatro cursos de `content/` el resultado se ve idéntico al original.
+- **Front**: `player.html` escapa títulos, subtítulos, rótulos, preguntas, opciones y pareo, el título
+  del curso que llega por la URL y los mensajes de error; el token de `/media` ya no se añade a URL de
+  otros servidores. `certificate.html` crea el logo y la firma con `createElement` (solo `data:image`
+  png/jpeg/webp/gif) y valida el color de acento. `index.html` escapa Cancelaciones y el editor de
+  ítems (nombre de archivo, opciones y pareo, vista previa del logo y la firma).

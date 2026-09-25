@@ -4120,7 +4120,7 @@ function slideHtml(page, pres, num, total){
                     tt + body, pos ? `--ppos:${pos}` : '');
       }
       if (layout === 'split'){
-        const v = (p.variant && p.variant !== 'left') ? ' ' + p.variant : '', np = th.panel === false ? ' no-panel' : '';
+        const v = (p.variant === 'right' || p.variant === 'lines') ? ' ' + p.variant : '', np = th.panel === false ? ' no-panel' : '';
         return wrap('sl-split' + v + np, `<div class="panel"></div><h1 class="ptitle">${esc(ptitle)}</h1>${np ? `<div class="sl-kicker">${esc(ptitle)}</div>` : ''}`, tt + body);
       }
       const sub = (p.title && !/<h3[\s>]/i.test(body)) ? `<h3>${esc(p.title)}</h3>` : '';
@@ -4524,7 +4524,7 @@ function renderCertDelivery(){
 }
 function renderCertLogoPreview(){
   el('certLogoPreview').innerHTML = certLogoData
-    ? `<img src="${certLogoData}" alt="Logo" style="max-height:48px;max-width:160px;border:1px solid var(--line);border-radius:6px;padding:2px">
+    ? `<img src="${esc(certLogoData)}" alt="Logo" style="max-height:48px;max-width:160px;border:1px solid var(--line);border-radius:6px;padding:2px">
        <button type="button" class="btn sm ghost" onclick="certLogoData=null;renderCertLogoPreview();certTouched()">Quitar</button>`
     : '<span class="hint">Sin logo.</span>';
 }
@@ -4538,7 +4538,7 @@ el('certLogoFile').onchange = e => {
 };
 function renderCertSignPreview(){
   el('certSignPreview').innerHTML = certSignData
-    ? `<img src="${certSignData}" alt="Firma" style="max-height:44px;max-width:180px;border:1px solid var(--line);border-radius:6px;padding:2px;background:#fff">
+    ? `<img src="${esc(certSignData)}" alt="Firma" style="max-height:44px;max-width:180px;border:1px solid var(--line);border-radius:6px;padding:2px;background:#fff">
        <button type="button" class="btn sm ghost" onclick="certSignData=null;renderCertSignPreview();certTouched()">Quitar</button>`
     : '<span class="hint">Sin firma escaneada.</span>';
 }
@@ -4737,7 +4737,7 @@ function renderBlocks(){
       return `<div class="qbox"><div class="item" style="border:none;padding:0 0 6px"><span class="hint">Texto</span>${ctrls}</div><div class="rtedit blockText" data-i="${i}" contenteditable="true">${b.html||''}</div></div>`;
     }
     const icon = b.kind==='image'?'🖼️':b.kind==='audio'?'🔊':b.kind==='video'?'🎬':'📎';
-    return `<div class="qbox"><div class="item" style="border:none;padding:0"><span>${icon} ${b.fileName||'archivo'}</span>${ctrls}</div></div>`;
+    return `<div class="qbox"><div class="item" style="border:none;padding:0"><span>${icon} ${esc(b.fileName||'archivo')}</span>${ctrls}</div></div>`;
   }).join('') : `<div class="empty">Sin bloques. Añade texto o medios.</div>`;
   [...document.querySelectorAll('.blockText')].forEach(d=>{
     d.oninput = () => { infoBlocks[+d.dataset.i].html = d.innerHTML; };
@@ -4765,7 +4765,7 @@ function renderOptRows(){
   let html='';
   for(let i=0;i<optCount;i++){
     const mark = isMulti ? `<input type="checkbox" class="optMark" />` : `<input type="radio" name="optMark" class="optMark" />`;
-    const val = existing[i] ? existing[i].replace(/"/g,'&quot;') : '';
+    const val = existing[i] ? esc(existing[i]) : '';
     html += `<div class="opt optrow">${mark}<input type="text" class="field optText" placeholder="Opción ${String.fromCharCode(65+i)}" value="${val}" /></div>`;
   }
   el('optRows').innerHTML = html;
@@ -4776,15 +4776,15 @@ el('addOptBtn').onclick = () => { optCount++; renderOptRows(); };
 function newId(prefix, arr){ let n=1; while(arr.some(x=>x.id===prefix+n)) n++; return prefix+n; }
 function renderMatchChoices(){
   el('mtChoices').innerHTML = matchChoices.length ? matchChoices.map((ch,i)=>`
-    <div class="opt optrow"><input type="text" class="field" value="${(ch.text||'').replace(/"/g,'&quot;')}" oninput="setChoiceText(${i}, this.value)" placeholder="Opción ${i+1}" />
+    <div class="opt optrow"><input type="text" class="field" value="${esc(ch.text||'')}" oninput="setChoiceText(${i}, this.value)" placeholder="Opción ${i+1}" />
       <button type="button" class="btn sm danger" onclick="removeChoice(${i})">✕</button></div>`).join('') : `<div class="empty">Sin opciones.</div>`;
   renderMatchPrompts();
 }
 function renderMatchPrompts(){
   el('mtPrompts').innerHTML = matchPrompts.length ? matchPrompts.map((pr,i)=>{
-    const opts = `<option value="">— correcta —</option>` + matchChoices.map(ch=>`<option value="${ch.id}" ${pr.correctChoiceId===ch.id?'selected':''}>${(ch.text||'(sin texto)')}</option>`).join('');
+    const opts = `<option value="">— correcta —</option>` + matchChoices.map(ch=>`<option value="${esc(ch.id)}" ${pr.correctChoiceId===ch.id?'selected':''}>${esc(ch.text||'(sin texto)')}</option>`).join('');
     return `<div style="display:flex;gap:8px;align-items:center;margin:6px 0">
-      <input type="text" class="field" value="${(pr.text||'').replace(/"/g,'&quot;')}" oninput="setPromptText(${i}, this.value)" placeholder="Palabra o frase ${i+1}" />
+      <input type="text" class="field" value="${esc(pr.text||'')}" oninput="setPromptText(${i}, this.value)" placeholder="Palabra o frase ${i+1}" />
       <select class="field" style="max-width:200px" onchange="setPromptCorrect(${i}, this.value)">${opts}</select>
       <button type="button" class="btn sm danger" onclick="removePrompt(${i})">✕</button></div>`;
   }).join('') : `<div class="empty">Sin pares.</div>`;
@@ -5645,9 +5645,9 @@ async function loadPending(){
   try{
     const rows = await api('/cancellations/pending');
     el('pendingList').innerHTML = rows.length ? rows.map(p=>`
-      <div class="item">${p.learnerName||'(learner)'} — ${p.title}
-        <div class="hint" style="margin:2px 0">Motivo: “${(p.cancelRequestComment||'')}”</div>
-        <span class="sp"><button class="btn sm" onclick="approveCancel('${p.id}')">Aprobar cancelación</button></span></div>`).join('')
+      <div class="item">${esc(p.learnerName||'(learner)')} — ${esc(p.title)}
+        <div class="hint" style="margin:2px 0">Motivo: “${esc(p.cancelRequestComment||'')}”</div>
+        <span class="sp"><button class="btn sm" onclick="approveCancel('${esc(p.id)}')">Aprobar cancelación</button></span></div>`).join('')
       : `<div class="empty">No hay solicitudes pendientes.</div>`;
   }catch(e){}
 }

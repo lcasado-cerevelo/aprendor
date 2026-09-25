@@ -25,8 +25,11 @@ public static class Phase2Endpoints
             if (!CanAuthor(tc.Role)) return Results.Forbid();
             var version = await GetOrCreateDraftAsync(db, id);
             if (version is null) return Results.NotFound("Training not found.");
-            var items = await db.TrainingItems.Where(i => i.TrainingVersionId == version.Id)
+            // Sin seguimiento: el payload se sanea al leer (contenido guardado antes del
+            // saneado del bloque F2) y ese cambio no debe volver a la base.
+            var items = await db.TrainingItems.AsNoTracking().Where(i => i.TrainingVersionId == version.Id)
                 .OrderBy(i => i.Order).ToListAsync();
+            foreach (var it in items) it.PayloadJson = ContentSanitizer.SanitizePayload(it.PayloadJson) ?? it.PayloadJson;
             return Results.Ok(new { versionId = version.Id, status = version.Status, version.PassPercent, items });
         }).RequireAuthorization();
 
@@ -37,6 +40,9 @@ public static class Phase2Endpoints
             var version = await GetOrCreateDraftAsync(db, id);
             if (version is null) return Results.NotFound();
             if (version.Status != "draft") return Results.BadRequest("Version already published; create a new draft.");
+            // El HTML del autor se sanea aquí (bloque F2): el reproductor lo pinta tal cual.
+            var payload = ContentSanitizer.SanitizePayload(req.PayloadJson);
+            if (payload is null) return Results.BadRequest("El contenido del ítem no es un JSON válido.");
 
             var siblings = await db.TrainingItems.Where(i => i.TrainingVersionId == version.Id)
                 .OrderBy(i => i.Order).ThenBy(i => i.Id).ToListAsync();
@@ -55,7 +61,7 @@ public static class Phase2Endpoints
                 TrainingVersionId = version.Id,
                 Order = insertAt,
                 Type = req.Type,
-                PayloadJson = req.PayloadJson,
+                PayloadJson = payload,
                 Points = req.Points,
                 Required = req.Required,
                 Active = req.Active ?? true
@@ -74,8 +80,10 @@ public static class Phase2Endpoints
             var version = await db.TrainingVersions.FindAsync(item.TrainingVersionId);
             if (version is null || version.Status != "draft")
                 return Results.BadRequest("Solo se pueden editar ítems de un borrador.");
+            var payload = ContentSanitizer.SanitizePayload(req.PayloadJson);
+            if (payload is null) return Results.BadRequest("El contenido del ítem no es un JSON válido.");
             item.Type = req.Type;
-            item.PayloadJson = req.PayloadJson;
+            item.PayloadJson = payload;
             item.Points = req.Points;
             item.Required = req.Required;
             item.Active = req.Active ?? true;
@@ -616,6 +624,7 @@ public static class Phase2Endpoints
                 var excl = await db.TrainingSetExclusions.Where(e => e.SetId == attempt.SetId).Select(e => e.StableKey).ToListAsync();
                 if (excl.Count > 0) items = items.Where(i => !excl.Contains(i.StableKey)).ToList();
             }
+            items = items.Select(i => i with { PayloadJson = ContentSanitizer.SanitizePayload(i.PayloadJson) ?? i.PayloadJson }).ToList();
             var responses = await db.ItemResponses.Where(r => r.AttemptId == attemptId)
                 .Select(r => new { r.ItemId, r.AnswerJson, r.IsCorrect, r.PointsAwarded, r.GraderComment, r.NeedsGrading }).ToListAsync();
             var title = await (from v in db.TrainingVersions
@@ -1398,9 +1407,11 @@ public static class Phase2Endpoints
         return draft;
     }
 
-    // Hide the correct answer when serving an item to a learner.
+    // Hide the correct answer when serving an item to a learner. El HTML se vuelve a sanear
+    // al servirlo (bloque F2): cubre el contenido guardado antes de sanear al guardar.
     private static string Sanitize(string type, string payloadJson)
     {
+        payloadJson = ContentSanitizer.SanitizePayload(payloadJson) ?? payloadJson;
         try
         {
             var node = JsonNode.Parse(payloadJson)?.AsObject();

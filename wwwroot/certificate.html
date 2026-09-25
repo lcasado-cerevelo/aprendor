@@ -79,7 +79,16 @@
 const qs = new URLSearchParams(location.search);
 const token = localStorage.getItem('tp_token');
 const fmt = iso => iso ? new Date(iso).toLocaleDateString('es', {day:'2-digit',month:'long',year:'numeric'}) : '';
-const esc = s => (s??'').toString().replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc = s => (s??'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Logo y firma: solo imágenes embebidas png/jpeg/webp/gif (la misma regla del servidor).
+const IMG_OK = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/;
+const COLOR_OK = /^#[0-9a-fA-F]{6}$/;
+function imgEl(cls, src, alt){
+  if(typeof src !== 'string' || !IMG_OK.test(src)) return null;
+  const im = document.createElement('img');
+  im.className = cls; im.alt = alt; im.src = src;
+  return im;
+}
 
 async function load(){
   if(qs.get('preview')){ return preview(); }
@@ -91,8 +100,10 @@ async function load(){
   if(!path){ return fail('Falta el parámetro <code>attempt</code> o <code>serial</code>.'); }
   try{
     const r = await fetch(path, { headers:{ 'Authorization':'Bearer '+token } });
-    if(!r.ok){ return fail(r.status===404 ? 'No se encontró el certificado.'
-                         : (await r.text()) || 'No se pudo cargar el certificado.'); }
+    if(!r.ok){
+      let txt = ''; try{ const t = await r.text(); try{ const d = JSON.parse(t); txt = typeof d === 'string' ? d : (d && (d.error || d.title)) || ''; }catch{ txt = t; } }catch{}
+      return fail(r.status===404 ? 'No se encontró el certificado.' : esc(txt || 'No se pudo cargar el certificado.'));
+    }
     render(await r.json());
   }catch(e){ fail('Error de red al cargar el certificado.'); }
 }
@@ -100,7 +111,7 @@ async function load(){
 function fail(html){ document.getElementById('root').innerHTML = '<div class="msg">'+html+'</div>'; }
 
 function render(c, isPreview){
-  document.documentElement.style.setProperty('--accent', c.accentColor || '#1e3a8a');
+  document.documentElement.style.setProperty('--accent', COLOR_OK.test(c.accentColor || '') ? c.accentColor : '#1e3a8a');
   document.title = 'Certificado · '+ (c.learnerName||'');
 
   let validity = '';
@@ -112,13 +123,14 @@ function render(c, isPreview){
       `<b class="${c.validity==='expired'?'badge-exp':'badge-ok'}">${fmt(c.expiresAt)}</b></div>`;
   }
   const score = c.showScore
-    ? `<div><span class="lbl">Calificación</span><b>${c.scorePercent}%</b></div>` : '';
+    ? `<div><span class="lbl">Calificación</span><b>${Number(c.scorePercent)||0}%</b></div>` : '';
 
-  const logo = c.logoDataUrl ? `<img class="logo" src="${c.logoDataUrl}" alt="logo">` : '';
+  // Logo y firma se crean con createElement y .src (nunca interpolados en el HTML).
+  const logoImg = imgEl('logo', c.logoDataUrl, 'logo');
+  const sigImg = imgEl('sigimg', c.signatureDataUrl, 'firma');
   const statement = c.statement ? `<p class="statement">${esc(c.statement)}</p>` : '';
-  const sigImg = c.signatureDataUrl ? `<img class="sigimg" src="${c.signatureDataUrl}" alt="firma">` : '';
-  const sign = (c.signatoryName || c.signatoryTitle || c.signatureDataUrl)
-    ? `<div class="sign">${sigImg}<div class="line">${esc(c.signatoryName||'')}</div>`+
+  const sign = (c.signatoryName || c.signatoryTitle || sigImg)
+    ? `<div class="sign">${sigImg ? '<span id="certSig"></span>' : ''}<div class="line">${esc(c.signatoryName||'')}</div>`+
       `<div class="role">${esc(c.signatoryTitle||'')}</div></div>`
     : `<div class="sign"><div class="line">&nbsp;</div><div class="role">Firma autorizada</div></div>`;
 
@@ -126,7 +138,7 @@ function render(c, isPreview){
     <div class="sheet">
       <div class="frame"></div>
       <div class="inner">
-        ${logo}
+        ${logoImg ? '<span id="certLogo"></span>' : ''}
         <div class="issuer">${esc(c.issuerName||'')}</div>
         <div class="kicker">Certificado de aprobación</div>
         <div class="h1">Constancia de cumplimiento</div>
@@ -143,12 +155,14 @@ function render(c, isPreview){
         <div class="foot">
           ${sign}
           <div class="seal"><span class="s1">APROBADO</span><span class="s2">✓</span>
-            <span class="s1">${c.passPercent}% mín.</span></div>
+            <span class="s1">${Number(c.passPercent)||0}% mín.</span></div>
         </div>
       </div>
       <div class="serial">Folio: ${esc(c.serial)} · Verificable con el emisor<br>
         <span class="platform">Administrado a través de Aprendor</span></div>
     </div>`;
+  if(logoImg) document.getElementById('certLogo').replaceWith(logoImg);
+  if(sigImg) document.getElementById('certSig').replaceWith(sigImg);
   if(isPreview){
     const b = document.createElement('div');
     b.className = 'pvbanner';

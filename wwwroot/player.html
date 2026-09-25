@@ -253,17 +253,23 @@ async function api(path, method='GET', body=null){
   const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : null });
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
-  if (!res.ok) throw new Error((data && (data.title || data)) || ('Error ' + res.status));
+  if (!res.ok) throw new Error((data && (typeof data === 'string' ? data : (data.error || data.title))) || ('Error ' + res.status));
   return data;
 }
-function mediaSrc(url){ return url + (url.includes('?')?'&':'?') + 'access_token=' + encodeURIComponent(token); }
+// Todo texto del autor o del servidor que se pinta con innerHTML pasa por esc(). El HTML
+// de los bloques de texto (b.html, bodyHtml, description) ya llega saneado del servidor.
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+// Foto de lámina o de portada: solo data:image/, /media/ o https:.
+function safePhoto(u){ return (typeof u==='string' && /^(data:image\/|\/media\/|https:)/i.test(u.trim())) ? u.trim() : ''; }
+// El token solo va en las URL del propio /media (nunca a otro servidor).
+function mediaSrc(url){ return /^\/media\//.test(url) ? url + (url.includes('?')?'&':'?') + 'access_token=' + encodeURIComponent(token) : url; }
 function mediaEl(url,type){
-  if(!url) return '';
-  const s=mediaSrc(url);
+  if(!url || !/^(\/media\/|https:)/i.test(url)) return '';
+  const s=esc(mediaSrc(url));
   if(type&&type.indexOf('image')===0) return `<img src="${s}" />`;
   if(type&&type.indexOf('audio')===0) return `<audio controls src="${s}"></audio>`;
   if(type&&type.indexOf('video')===0) return `<video controls src="${s}"></video>`;
-  return `<a href="${s}" target="_blank">📎 Abrir documento</a>`;
+  return `<a href="${s}" target="_blank" rel="noopener">📎 Abrir documento</a>`;
 }
 function blockHtml(b){
   if(b.type==='text') return `<div>${b.html||''}</div>`;
@@ -288,9 +294,9 @@ function infoBody(p){
 }
 function renderInfo(p){
   if(p.layout==='intro') return introClassicHtml(p);
-  let h = p.title ? `<h2>${p.title}</h2>` : '';
+  let h = p.title ? `<h2>${esc(p.title)}</h2>` : '';
   // Foto de lámina (cover / photo-left): en modo clásico se muestra como una imagen más.
-  if(p.photo) h += `<img src="${p.photo}" alt="" />`;
+  if(safePhoto(p.photo)) h += `<img src="${esc(safePhoto(p.photo))}" alt="" />`;
   if(Array.isArray(p.blocks)){
     const bl=p.blocks; let i=0;
     while(i<bl.length){
@@ -319,7 +325,7 @@ function introPayload(it){
 }
 function introDescHtml(d){
   d = d || '';
-  return /<[a-z][\s\S]*>/i.test(d) ? d : `<p>${d.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</p>`;
+  return /<[a-z][\s\S]*>/i.test(d) ? d : `<p>${esc(d)}</p>`;   // con etiquetas: HTML ya saneado en el servidor
 }
 // Datos del curso: láminas = pantallas Info sin contar el intro; puntos = suma de Points.
 function introStats(p){
@@ -343,8 +349,8 @@ function introClassicHtml(p){
     row(`📝 ${st.questions} ${plural(st.questions,'pregunta','preguntas')} (${st.points} puntos)`) +
     (st.pass!=null ? row(`✅ Aprobación: <b>${st.pass}%</b>`) : '') +
     `</div>`;
-  const img = p.photo ? `<img src="${p.photo}" alt="" style="width:100%;max-height:260px;object-fit:cover" />` : '';
-  return `<h1 style="margin:0 0 10px">${p.title||''}</h1>${img}<div style="font-size:16px;line-height:1.6">${introDescHtml(p.description)}</div>${box}`;
+  const img = safePhoto(p.photo) ? `<img src="${esc(safePhoto(p.photo))}" alt="" style="width:100%;max-height:260px;object-fit:cover" />` : '';
+  return `<h1 style="margin:0 0 10px">${esc(p.title)}</h1>${img}<div style="font-size:16px;line-height:1.6">${introDescHtml(p.description)}</div>${box}`;
 }
 // Mismo contenido para #presStart (y réplica en content/<curso>/seed.mjs --preview).
 function introScreenHtml(p, st){
@@ -366,6 +372,7 @@ function isAnswered(it){
   return true;
 }
 function guard(){ if(!token){ el('screen').innerHTML=`<div class="center">Inicia sesión primero en <a href="/">la página principal</a>.</div>`; return false; } return true; }
+function showError(e){ el('screen').innerHTML=`<div class="center">${esc(e && e.message || e)}</div>`; }
 
 // ---------- Tiempo activo (latidos) ----------
 function fmtTime(s){
@@ -451,7 +458,7 @@ async function startTake(){
     presBegin();
     renderStep();
     startHeartbeat();
-  }catch(e){ el('screen').innerHTML=`<div class="center">${e.message}</div>`; }
+  }catch(e){ showError(e); }
 }
 
 function questionCount(){ return T.items.filter(isQuestion).length; }
@@ -507,34 +514,34 @@ function renderStep(){
 function itemHtml(it){
   let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
   if(it.type==='ModuleHeader'){
-    return `<div class="module"><span class="tag">Módulo</span><h1 style="margin:14px 0 8px">${p.title||''}</h1><p style="color:#475569">${p.subtitle||''}</p></div>`;
+    return `<div class="module"><span class="tag">Módulo</span><h1 style="margin:14px 0 8px">${esc(p.title)}</h1><p style="color:#475569">${esc(p.subtitle)}</p></div>`;
   } else if(it.type==='Info'){
     return renderInfo(p);
   } else if(it.type==='MultipleChoice'){
     const sel=(T.answers[it.id]||{}).selectedOptionId; const nm='w_'+it.id;
     const locked = immediateFeedback && T.revealed[it.id]!==undefined;
-    return `<b>${p.question||''}</b>${locked?verdictBadge(T.revealed[it.id]):''}${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">`+
-      (p.options||[]).map(o=>`<label class="opt"><input type="radio" name="${nm}" value="${o.id}" ${sel===o.id?'checked':''} ${locked?'disabled':''}/> ${o.text}</label>`).join('')+`</div>`;
+    return `<b>${esc(p.question)}</b>${locked?verdictBadge(T.revealed[it.id]):''}${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">`+
+      (p.options||[]).map(o=>`<label class="opt"><input type="radio" name="${nm}" value="${esc(o.id)}" ${sel===o.id?'checked':''} ${locked?'disabled':''}/> ${esc(o.text)}</label>`).join('')+`</div>`;
   } else if(it.type==='MultiSelect'){
     const sel=((T.answers[it.id]||{}).selectedOptionIds)||[]; const nm='w_'+it.id;
     const locked = immediateFeedback && T.revealed[it.id]!==undefined;
-    return `<b>${p.question||''}</b> <span style="color:#64748b;font-size:13px">(varias correctas)</span>${locked?verdictBadge(T.revealed[it.id]):''}${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">`+
-      (p.options||[]).map(o=>`<label class="opt"><input type="checkbox" name="${nm}" value="${o.id}" ${sel.indexOf(o.id)>=0?'checked':''} ${locked?'disabled':''}/> ${o.text}</label>`).join('')+`</div>`;
+    return `<b>${esc(p.question)}</b> <span style="color:#64748b;font-size:13px">(varias correctas)</span>${locked?verdictBadge(T.revealed[it.id]):''}${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">`+
+      (p.options||[]).map(o=>`<label class="opt"><input type="checkbox" name="${nm}" value="${esc(o.id)}" ${sel.indexOf(o.id)>=0?'checked':''} ${locked?'disabled':''}/> ${esc(o.text)}</label>`).join('')+`</div>`;
   } else if(it.type==='Matching'){
     const saved=((T.answers[it.id]||{}).matches)||{};
     const choices=p.choices||[];
     const locked = immediateFeedback && T.revealed[it.id]!==undefined;
     const rows=(p.prompts||[]).map(pr=>`
-      <div class="matchrow"><div class="mp">${pr.text}</div>
-        <select class="match" data-item="${it.id}" data-pid="${pr.id}" ${locked?'disabled':''}>
+      <div class="matchrow"><div class="mp">${esc(pr.text)}</div>
+        <select class="match" data-item="${it.id}" data-pid="${esc(pr.id)}" ${locked?'disabled':''}>
           <option value="">— elige —</option>
-          ${choices.map(c=>`<option value="${c.id}" ${saved[pr.id]===c.id?'selected':''}>${c.text}</option>`).join('')}
+          ${choices.map(c=>`<option value="${esc(c.id)}" ${saved[pr.id]===c.id?'selected':''}>${esc(c.text)}</option>`).join('')}
         </select></div>`).join('');
-    return `<b>${p.question||''}</b> <span style="color:#64748b;font-size:13px">(empareja cada uno)</span>${locked?verdictBadge(T.revealed[it.id]):''}${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">${rows}</div>`;
+    return `<b>${esc(p.question)}</b> <span style="color:#64748b;font-size:13px">(empareja cada uno)</span>${locked?verdictBadge(T.revealed[it.id]):''}${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">${rows}</div>`;
   } else if(it.type==='OpenResponse'){
     const saved=((T.answers[it.id]||{}).text)||'';
     const note = p.graded ? ' <span style="color:#64748b;font-size:13px">(la evaluará el moderador)</span>' : ' <span style="color:#64748b;font-size:13px">(respuesta abierta)</span>';
-    return `<b>${p.question||''}</b>${note}${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px"><textarea id="open_${it.id}" class="opentext" placeholder="Escribe tu respuesta…">${saved.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea></div>`;
+    return `<b>${esc(p.question)}</b>${note}${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px"><textarea id="open_${it.id}" class="opentext" placeholder="Escribe tu respuesta…">${saved.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea></div>`;
   }
   return '';
 }
@@ -542,12 +549,12 @@ function itemHtml(it){
 function summaryRows(){
   return T.items.map(it=>{
     let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
-    if(it.type==='ModuleHeader') return `<div class="sumrow">📂 Módulo: ${p.title||''}</div>`;
+    if(it.type==='ModuleHeader') return `<div class="sumrow">📂 Módulo: ${esc(p.title)}</div>`;
     if(it.type==='Info' && p.layout==='intro') return '';   // la pantalla de entrada no es contenido
-    if(it.type==='Info') return `<div class="sumrow">📄 ${p.title||'Contenido'}</div>`;
+    if(it.type==='Info') return `<div class="sumrow">📄 ${esc(p.title||'Contenido')}</div>`;
     const answered = !T.review && isAnswered(it);
     const mk = T.review ? '' : `<span class="st">${answered?'✓ contestada':'✗ sin contestar'}</span>`;
-    return `<div class="sumrow">❓ ${p.question||'Pregunta'} ${mk}</div>`;
+    return `<div class="sumrow">❓ ${esc(p.question||'Pregunta')} ${mk}</div>`;
   }).join('');
 }
 
@@ -612,7 +619,7 @@ el('prevBtn').onclick = goPrev;
 el('nextBtn').onclick = goNext;
 // Pantalla final (resultado): en modo presentación va como lámina; si no, al panel de siempre.
 function showFinal(html){
-  if(PRES){ presShow(`<div class="sl sl-dark"><h1 class="sl-kicker">${panelTitle()}</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit">${html}</div></div></div>`, 1); presChrome(true); }
+  if(PRES){ presShow(`<div class="sl sl-dark"><h1 class="sl-kicker">${esc(panelTitle())}</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit">${html}</div></div></div>`, 1); presChrome(true); }
   else el('screen').innerHTML=html;
 }
 el('finishBtn').onclick = async () => {
@@ -650,7 +657,7 @@ async function startReview(){
     el('nav').style.display='flex';
     el('finishBtn').classList.add('hidden');
     renderStepReview();
-  }catch(e){ el('screen').innerHTML=`<div class="center">${e.message}</div>`; }
+  }catch(e){ showError(e); }
 }
 function renderStepReview(){
   const N=T.pages.length;
@@ -670,28 +677,28 @@ function renderStepReview(){
 }
 function itemReviewHtml(it){
   let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
-  if(it.type==='ModuleHeader'){ return `<div class="module"><span class="tag">Módulo</span><h1 style="margin:14px 0 8px">${p.title||''}</h1><p style="color:#475569">${p.subtitle||''}</p></div>`; }
+  if(it.type==='ModuleHeader'){ return `<div class="module"><span class="tag">Módulo</span><h1 style="margin:14px 0 8px">${esc(p.title)}</h1><p style="color:#475569">${esc(p.subtitle)}</p></div>`; }
   if(it.type==='Info'){ return renderInfo(p); }
   const resp=T.respMap[it.id]; let ans={}; try{ ans=resp?JSON.parse(resp.answerJson):{}; }catch{}
   if(it.type==='Matching'){
     const m=ans.matches||{};
-    const choiceText=id=>{ const c=(p.choices||[]).find(x=>x.id===id); return c?c.text:'—'; };
+    const choiceText=id=>{ const c=(p.choices||[]).find(x=>x.id===id); return esc(c?c.text:'—'); };
     const rows=(p.prompts||[]).map(pr=>{
       const sel=m[pr.id]; const corr=pr.correctChoiceId; const ok=sel&&sel===corr;
       const detail = ok ? `${choiceText(sel)} ✔` : `${sel?choiceText(sel):'(sin responder)'} · correcta: ${choiceText(corr)}`;
-      return `<div class="matchrow"><div class="mp">${pr.text}</div><div class="opt ${ok?'correct':'wrong'}" style="flex:1">${detail}</div></div>`;
+      return `<div class="matchrow"><div class="mp">${esc(pr.text)}</div><div class="opt ${ok?'correct':'wrong'}" style="flex:1">${detail}</div></div>`;
     }).join('');
     const verdict = resp && resp.isCorrect ? '✅' : (resp ? '❌' : '—');
-    return `<b>${p.question||''}</b> <span style="color:#64748b">${verdict}</span>${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">${rows}</div>`;
+    return `<b>${esc(p.question)}</b> <span style="color:#64748b">${verdict}</span>${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">${rows}</div>`;
   }
   if(it.type==='OpenResponse'){
     const txt=(ans.text||'(sin respuesta)');
     let box='';
     if(p.graded){
       if(resp && resp.needsGrading) box=`<div class="hintbox">Pendiente de evaluación del moderador.</div>`;
-      else box=`<div class="opt correct">Puntos otorgados: ${resp?resp.pointsAwarded:0}${(resp&&resp.graderComment)?` · ${resp.graderComment}`:''}</div>`;
+      else box=`<div class="opt correct">Puntos otorgados: ${resp?resp.pointsAwarded:0}${(resp&&resp.graderComment)?` · ${esc(resp.graderComment)}`:''}</div>`;
     }
-    return `<b>${p.question||''}</b>${mediaEl(p.mediaUrl,p.mediaType)}<div class="opentext-ro">${txt.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>${box}`;
+    return `<b>${esc(p.question)}</b>${mediaEl(p.mediaUrl,p.mediaType)}<div class="opentext-ro">${txt.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>${box}`;
   }
   const correctIds = it.type==='MultiSelect' ? (p.correctOptionIds||[]) : (p.correctOptionId?[p.correctOptionId]:[]);
   const selIds = it.type==='MultiSelect' ? (ans.selectedOptionIds||[]) : (ans.selectedOptionId?[ans.selectedOptionId]:[]);
@@ -700,10 +707,10 @@ function itemReviewHtml(it){
     const isSel=selIds.indexOf(o.id)>=0;
     let cls='opt'; if(isCorrect) cls+=' correct'; else if(isSel) cls+=' wrong';
     let mk=''; if(isCorrect) mk='✔ correcta'; if(isSel) mk += (mk?' · ':'')+'tu respuesta';
-    return `<div class="${cls}">${o.text}<span class="mk">${mk}</span></div>`;
+    return `<div class="${cls}">${esc(o.text)}<span class="mk">${mk}</span></div>`;
   }).join('');
   const verdict = resp && resp.isCorrect ? '✅' : (resp ? '❌' : '—');
-  return `<b>${p.question||''}</b> <span style="color:#64748b">${verdict}</span>${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">${opts}</div>`;
+  return `<b>${esc(p.question)}</b> <span style="color:#64748b">${verdict}</span>${mediaEl(p.mediaUrl,p.mediaType)}<div style="margin-top:10px">${opts}</div>`;
 }
 
 // ---------- PREVIEW (author, no attempt) ----------
@@ -720,7 +727,7 @@ async function startPreview(){
     el('nav').style.display='flex';
     presBegin();
     renderStep();
-  }catch(e){ el('screen').innerHTML=`<div class="center">${e.message}</div>`; }
+  }catch(e){ showError(e); }
 }
 
 // ---------- REPASO (learner, curso ya aprobado: sin intento ni puntuación) ----------
@@ -737,7 +744,7 @@ async function startRepaso(){
     el('prevBtn').classList.remove('hidden');   // en repaso siempre se puede ir y venir
     presBegin();
     renderStep();
-  }catch(e){ el('screen').innerHTML=`<div class="center">${e.message}</div>`; }
+  }catch(e){ showError(e); }
 }
 
 // ---------- MODO PRESENTACIÓN ----------
@@ -797,7 +804,7 @@ function firstCoverPhoto(){
   for(const pg of T.pages) for(const it of pg.items){
     if(it.type!=='Info') continue;
     let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
-    if(p.layout==='cover' && p.photo) return p.photo;
+    if(p.layout==='cover' && safePhoto(p.photo)) return safePhoto(p.photo);
   }
   return '';
 }
@@ -809,9 +816,8 @@ function presBegin(){
   if(!PRES) return;
   const intro = T && T.intro;
   el('presStart').classList.toggle('intro', !!intro);
-  if(intro) el('presStartTitle').innerHTML = intro.title || title;
-  else el('presStartTitle').textContent = title;
-  const photo = intro ? (intro.photo || firstCoverPhoto()) : '';
+  el('presStartTitle').textContent = (intro && intro.title) || title;
+  const photo = intro ? (safePhoto(intro.photo) || firstCoverPhoto()) : '';
   if(photo) el('presStartPhoto').src = photo;
   el('presStartPhoto').classList.toggle('hidden', !photo);
   el('presStartShade').classList.toggle('hidden', !photo);
@@ -903,23 +909,23 @@ function slideWrap(cls, chrome, body, style){
 function presInfoSlide(p){
   const layout = p.layout || 'dark';
   const body = infoBody(p);
-  const tt = p.title ? `<h2>${p.title}</h2>` : '';
+  const tt = p.title ? `<h2>${esc(p.title)}</h2>` : '';
   // Un 'intro' fuera de la primera posición (seed.mjs no lo deja pasar) se ve como lámina oscura.
   if(layout==='intro')
-    return slideWrap('sl-dark', `<h1 class="sl-kicker">${panelTitle()}</h1><div class="sl-rule"></div>`, (p.title?`<h3>${p.title}</h3>`:'')+introDescHtml(p.description));
+    return slideWrap('sl-dark', `<h1 class="sl-kicker">${esc(panelTitle())}</h1><div class="sl-rule"></div>`, (p.title?`<h3>${esc(p.title)}</h3>`:'')+introDescHtml(p.description));
   if(layout==='cover')
-    return slideWrap('sl-cover', `<img class="cover-photo" src="${p.photo||''}" alt="" /><div class="cover-band"><h1>${p.title||''}</h1></div>`, body);
+    return slideWrap('sl-cover', `<img class="cover-photo" src="${esc(safePhoto(p.photo))}" alt="" /><div class="cover-band"><h1>${esc(p.title)}</h1></div>`, body);
   if(layout==='photo-left')
-    return slideWrap('sl-photo', `<img class="photo" src="${p.photo||''}" alt="" /><h1 class="sl-kicker">${p.kicker||panelTitle()}</h1><div class="sl-rule"></div>`,
-                     tt+body, p.photoPos ? `--ppos:${p.photoPos}` : '');
+    return slideWrap('sl-photo', `<img class="photo" src="${esc(safePhoto(p.photo))}" alt="" /><h1 class="sl-kicker">${esc(p.kicker||panelTitle())}</h1><div class="sl-rule"></div>`,
+                     tt+body, p.photoPos ? `--ppos:${esc(String(p.photoPos).replace(/[^\w%.\s-]/g, ''))}` : '');
   if(layout==='split'){
-    const v = (p.variant && p.variant!=='left') ? ' '+p.variant : '';
+    const v = (p.variant==='right' || p.variant==='lines') ? ' '+p.variant : '';
     const np = PRES.theme.panel===false ? ' no-panel' : '';
-    return slideWrap('sl-split'+v+np, `<div class="panel"></div><h1 class="ptitle">${panelTitle()}</h1>${np?`<div class="sl-kicker">${panelTitle()}</div>`:''}`, tt+body);
+    return slideWrap('sl-split'+v+np, `<div class="panel"></div><h1 class="ptitle">${esc(panelTitle())}</h1>${np?`<div class="sl-kicker">${esc(panelTitle())}</div>`:''}`, tt+body);
   }
   // dark: el título va en el cuerpo como subtítulo en mayúsculas, salvo que el cuerpo ya traiga uno.
-  const sub = (p.title && !/<h3[\s>]/i.test(body)) ? `<h3>${p.title}</h3>` : '';
-  return slideWrap('sl-dark', `<h1 class="sl-kicker">${p.kicker||panelTitle()}</h1><div class="sl-rule"></div>`, sub+body);
+  const sub = (p.title && !/<h3[\s>]/i.test(body)) ? `<h3>${esc(p.title)}</h3>` : '';
+  return slideWrap('sl-dark', `<h1 class="sl-kicker">${esc(p.kicker||panelTitle())}</h1><div class="sl-rule"></div>`, sub+body);
 }
 function qNumber(it){ return T.items.filter(isQuestion).indexOf(it)+1; }
 function presPageHtml(page){
@@ -928,7 +934,7 @@ function presPageHtml(page){
     const it=items[0]; let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
     if(it.type==='Info') return presInfoSlide(p);
     if(it.type==='ModuleHeader')
-      return slideWrap('sl-dark sl-mod', `<h1 class="sl-kicker">${p.title||''}</h1><div class="sl-rule"></div>`, `<p>${p.subtitle||''}</p>`);
+      return slideWrap('sl-dark sl-mod', `<h1 class="sl-kicker">${esc(p.title)}</h1><div class="sl-rule"></div>`, `<p>${esc(p.subtitle)}</p>`);
   }
   // Pregunta(s) — o varios ítems en la misma página: lámina oscura con marco de acento.
   const qs = items.filter(isQuestion);
@@ -940,7 +946,7 @@ function presSummaryHtml(){
   const rows = T.items.filter(isQuestion).map(it=>{
     let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
     const ok = isAnswered(it);
-    return `<div class="sumrow">${ok?'✓':'✗'} ${p.question||'Pregunta'}<span class="st">${ok?'contestada':'sin contestar'}</span></div>`;
+    return `<div class="sumrow">${ok?'✓':'✗'} ${esc(p.question||'Pregunta')}<span class="st">${ok?'contestada':'sin contestar'}</span></div>`;
   }).join('');
   let actions='';
   if(!T.review){
