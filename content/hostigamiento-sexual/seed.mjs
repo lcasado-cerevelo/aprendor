@@ -289,21 +289,22 @@ function introOf() {
 }
 // Réplica de introStats/introScreenHtml de player.html: mismos datos que calcula el
 // reproductor (láminas = Info sin el intro, preguntas, suma de puntos, aprobación y
-// minutos). La aprobación del reproductor sale de la configuración si la trae; aquí se
-// usa el 70 % que asume el resumen de este script. Si cambia una, cambiar la otra.
+// minutos). La aprobación del reproductor sale de la configuración si la trae, y hoy
+// ni /config ni /take la envían: aquí se omite igual, para que la vista previa muestre
+// lo mismo que verá el empleado. Si cambia una, cambiar la otra.
 function introDescHtml(d) { return /<[a-z][\s\S]*>/i.test(d || '') ? d : `<p>${esc(d || '')}</p>`; }
 function introStats(p) {
   return {
     slides: course.items.filter(it => it.type === 'Info' && it.payload.layout !== 'intro').length,
     questions: course.items.filter(it => ['MultipleChoice', 'MultiSelect', 'Matching', 'OpenResponse'].includes(it.type)).length,
     points: course.items.reduce((s, it) => s + (Number(it.points) || 0), 0),
-    pass: 70,
+    pass: null,
     minutes: Number(p.minutes) || 0,
   };
 }
 function introScreenHtml(p, st) {
   const pl = (n, uno, varios) => n === 1 ? uno : varios;
-  const cells = [[st.slides, pl(st.slides, 'lámina', 'láminas')], [st.questions, pl(st.questions, 'pregunta', 'preguntas')], [st.points, 'puntos']];
+  const cells = [[st.slides, pl(st.slides, 'lámina de contenido', 'láminas de contenido')], [st.questions, pl(st.questions, 'pregunta', 'preguntas')], [st.points, 'puntos']];
   if (st.pass != null) cells.push([st.pass + ' %', 'para aprobar']);
   if (st.minutes) cells.push([st.minutes + ' min', 'tiempo estimado']);
   return `<div class="ps-rule"></div><div class="ps-desc">${introDescHtml(p.description)}</div>` +
@@ -432,7 +433,8 @@ function buildSlidePreview(pres) {
   const root = document.documentElement;
   root.style.setProperty('--pbg', ${JSON.stringify(theme.bg)});
   root.style.setProperty('--pacc', ${JSON.stringify(theme.accent)});
-  function fit(){ document.querySelectorAll('.frame').forEach(f => f.querySelector('.pstage').style.setProperty('--pk', f.clientWidth / 1280)); }
+  // Solo los marcos con escenario: la tarjeta de entrada (.frame.entry) no tiene .pstage.
+  function fit(){ document.querySelectorAll('.frame').forEach(f => { const st = f.querySelector('.pstage'); if (st) st.style.setProperty('--pk', f.clientWidth / 1280); }); }
   function check(){
     document.querySelectorAll('.sl').forEach(s => {
       const body = s.querySelector('.sl-body'), fitEl = s.querySelector('.sl-fit');
@@ -456,7 +458,7 @@ function buildClassicPreview() {
       const st = introStats(p);
       return `<section class="screen"><span class="tag">Pantalla de entrada</span>
                 <h3>${esc(p.title || '')}</h3>${introDescHtml(p.description)}
-                <p class="tag">${st.slides} pantallas · ${st.questions} preguntas (${st.points} puntos) · aprueba con ${st.pass}%${st.minutes ? ` · ${st.minutes} min` : ''}</p></section>`;
+                <p class="tag">${st.slides} pantallas · ${st.questions} preguntas (${st.points} puntos)${st.pass != null ? ` · aprueba con ${st.pass}%` : ''}${st.minutes ? ` · ${st.minutes} min` : ''}</p></section>`;
     }
     if (it.type === 'Info')
       return `<section class="screen"><span class="tag">Pantalla ${++n}</span>

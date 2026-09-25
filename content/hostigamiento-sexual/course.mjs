@@ -7,9 +7,10 @@
 //
 // 21 láminas en el orden del deck (1 portada; 2-3 instrucciones y objetivo; 4-13
 // contenido; 14-20 las 7 preguntas de 10 puntos) más una lámina final de recursos
-// adicionales. Antes de la portada va la pantalla de entrada (intro(): resumen del curso
-// y tiempo estimado), que no cuenta como lámina. Se toma en modo presentación (PlayerConfig.presentation): cada
-// lámina se dibuja en un escenario 16:9 con el estilo del deck.
+// adicionales. Antes de la portada va la pantalla de entrada (intro(): resumen del
+// curso y tiempo estimado), que no cuenta como lámina. Se toma en modo presentación
+// (PlayerConfig.presentation): cada lámina se dibuja en un escenario 16:9 con el
+// estilo del deck.
 // El umbral de aprobación de la versión es 70% (TrainingVersion.PassPercent).
 // ============================================================================
 

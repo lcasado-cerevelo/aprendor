@@ -72,11 +72,15 @@ $course = Get-Content -Path $CoursePath -Raw -Encoding UTF8 | ConvertFrom-Json
 $items = @($course.items)
 $preguntas = @($items | Where-Object { $_.points -gt 0 })
 $puntos = ($preguntas | Measure-Object -Property points -Sum).Sum
+# La pantalla de entrada (Info con layout 'intro') no cuenta como pantalla de contenido.
+$esIntro = { param($it) $it.type -eq 'Info' -and $it.payload -and $it.payload.layout -eq 'intro' }
+$pantallas = @($items | Where-Object { $_.type -eq 'Info' -and -not (& $esIntro $_) }).Count
+$conIntro = @($items | Where-Object { & $esIntro $_ }).Count -gt 0
 
 Write-Output ''
 Write-Output "Curso:     $($course.training.title)"
 Write-Output "Servidor:  $base"
-Write-Output "Items:     $($items.Count)  ($(@($items | Where-Object { $_.type -eq 'Info' }).Count) pantallas, $($preguntas.Count) preguntas, $puntos puntos)"
+Write-Output "Items:     $($items.Count)  ($pantallas pantallas, $($preguntas.Count) preguntas, $puntos puntos$(if ($conIntro) { ' + pantalla de entrada' }))"
 Write-Output ''
 
 # ---- Login ----

@@ -5,6 +5,8 @@ export default [
   // Pantalla de entrada (no es lámina): el resumen del curso que antes daba la página de
   // apertura con resumen(). El reproductor le añade láminas, preguntas y puntos, y en modo
   // presentación la dibuja antes del botón «Comenzar» con la portada atenuada de fondo.
+  // Sin `photo`: el reproductor (y seed.mjs --preview) usa la de la primera lámina cover,
+  // así la portada no viaja dos veces en course.json ni en cada /take.
   intro({
     title: 'Hostigamiento Sexual en el Empleo',
     description:
@@ -13,7 +15,6 @@ export default [
       'o supervisor, cómo se reporta y se investiga una situación en la empresa, y por qué está prohibido ' +
       'tomar represalias contra quien reporta.</p>',
     minutes: 25,
-    photo: photo(import.meta.url, './img/portada.jpg'),
   }),
 
   // Lámina 1 — portada: la foto del deck (image12.jpeg) a sangre con la banda de título.

@@ -348,7 +348,7 @@ function introClassicHtml(p){
 }
 // Mismo contenido para #presStart (y réplica en content/<curso>/seed.mjs --preview).
 function introScreenHtml(p, st){
-  const cells = [[st.slides, plural(st.slides,'lámina','láminas')], [st.questions, plural(st.questions,'pregunta','preguntas')], [st.points, 'puntos']];
+  const cells = [[st.slides, plural(st.slides,'lámina de contenido','láminas de contenido')], [st.questions, plural(st.questions,'pregunta','preguntas')], [st.points, 'puntos']];
   if(st.pass!=null) cells.push([st.pass+' %', 'para aprobar']);
   if(st.minutes) cells.push([st.minutes+' min', 'tiempo estimado']);
   return `<div class="ps-rule"></div><div class="ps-desc">${introDescHtml(p.description)}</div>` +
@@ -443,9 +443,10 @@ async function startTake(){
       if(checkable.length>0 && checkable.every(it=>revealed[it.id]!==undefined)) revealedPages[i]=true;
     });
     T = { attemptId:s.attemptId, items, pages, idx:0, answers, revealed, revealedPages, review:false, intro };
-    // Modo presentación: un intento en progreso se retoma en la lámina donde iba (la
-    // pantalla de entrada lo anuncia con «Continuar»).
-    if(PRES) T.idx = presResumeIdx(s.attemptId, pages, answers);
+    // Modo presentación con pantalla de entrada: un intento en progreso se retoma en la
+    // lámina donde iba (la entrada lo anuncia con «Continuar»). Sin ítem intro se arranca
+    // en la primera página, como siempre.
+    if(PRES && intro) T.idx = presResumeIdx(s.attemptId, pages, answers);
     el('nav').style.display='flex';
     presBegin();
     renderStep();
@@ -542,6 +543,7 @@ function summaryRows(){
   return T.items.map(it=>{
     let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
     if(it.type==='ModuleHeader') return `<div class="sumrow">📂 Módulo: ${p.title||''}</div>`;
+    if(it.type==='Info' && p.layout==='intro') return '';   // la pantalla de entrada no es contenido
     if(it.type==='Info') return `<div class="sumrow">📄 ${p.title||'Contenido'}</div>`;
     const answered = !T.review && isAnswered(it);
     const mk = T.review ? '' : `<span class="st">${answered?'✓ contestada':'✗ sin contestar'}</span>`;
@@ -776,9 +778,10 @@ function presTakeIntro(pages){
   if(p) pages.shift();
   return p;
 }
-// Lámina donde retomar un intento en progreso: la última guardada en este navegador o,
-// si las respuestas del servidor van más adelante (otro equipo), la siguiente a la última
-// página con alguna pregunta contestada. Nunca pasa del resumen (índice = nº de páginas).
+// Lámina donde retomar un intento en progreso (solo cursos con pantalla de entrada): la
+// última guardada en este navegador o, si las respuestas del servidor van más adelante
+// (otro equipo), la siguiente a la última página con alguna pregunta contestada. Nunca
+// pasa del resumen (índice = nº de páginas).
 function presResumeIdx(attemptId, pages, answers){
   let saved = 0;
   try{ saved = parseInt(localStorage.getItem('tp_pos_'+attemptId)||'0',10) || 0; }catch{}
@@ -787,7 +790,7 @@ function presResumeIdx(attemptId, pages, answers){
   return Math.max(0, Math.min(pages.length, Math.max(saved, last+1)));
 }
 function presSavePos(){
-  if(!T || !T.attemptId || T.preview || T.review) return;
+  if(!T || !T.intro || !T.attemptId || T.preview || T.review) return;
   try{ localStorage.setItem('tp_pos_'+T.attemptId, String(T.idx)); }catch{}
 }
 function firstCoverPhoto(){
@@ -816,7 +819,7 @@ function presBegin(){
   el('presStartIntro').classList.toggle('hidden', !intro);
   el('presStartHelp').classList.toggle('hidden', !!intro);
   el('presStartHint').classList.toggle('hidden', !intro);
-  const resume = !!T && T.idx>0;
+  const resume = !!intro && T.idx>0;
   el('presStartBtn').textContent = resume ? 'Continuar' : 'Comenzar';
   el('presStartResume').textContent = resume ? `Vas por la lámina ${T.idx+1} de ${T.pages.length+1}` : '';
   el('presStartResume').classList.toggle('hidden', !resume);
