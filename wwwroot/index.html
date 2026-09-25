@@ -141,6 +141,17 @@
   .dlg .dlg-err{color:var(--err);font-size:13.5px;margin:10px 0 0;}
   .dlg .dlg-err:empty{display:none;}
   .dlg .code{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;font:600 16px ui-monospace,Consolas,monospace;letter-spacing:1px;word-break:break-all;margin-top:12px;user-select:all;}
+  .dlg .code-row{display:flex;gap:8px;align-items:stretch;margin-top:12px;} .dlg .code-row .code{flex:1;margin-top:0;}
+  /* ===== Acceso: Turnstile, clave del autenticador y avisos ===== */
+  .ts-slot{margin-top:16px;display:flex;justify-content:center;} .ts-slot:empty{display:none;}
+  .secret{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;font:600 15px ui-monospace,Consolas,monospace;letter-spacing:2px;word-break:break-all;user-select:all;}
+  .login-card h2{margin:14px 0 4px;font-size:19px;}
+  .login-card .linkrow{margin:12px 0 0;text-align:center;font-size:14px;}
+  .login-card .linkrow a{color:var(--brand);text-decoration:none;} .login-card .linkrow a.gray{color:var(--muted);} .login-card .linkrow a:not(.hidden) ~ a{margin-left:12px;}
+  .login-card .linkrow a:hover{text-decoration:underline;}
+  .callout{background:var(--info-bg);color:#1e3a8a;border-radius:var(--r-sm);padding:10px 12px;font-size:13px;margin:12px 0 0;}
+  .callout.warn{background:var(--warn-bg);color:#78350f;}
+  .netbox{font:13.5px/1.5 ui-monospace,Consolas,monospace;}
   /* Interruptor */
   .swrow{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line);}
   .swrow:last-child{border-bottom:none;}
@@ -429,6 +440,8 @@
     <input id="email" class="field" type="email" placeholder="tu@empresa.com" autocomplete="username" />
     <label>Contraseña</label>
     <input id="password" class="field" type="password" placeholder="••••••••" autocomplete="current-password" />
+    <!-- Verificación de seguridad de Cloudflare (solo si el servidor la pide: /auth/config) -->
+    <div class="ts-slot" id="tsLogin"></div>
     <button class="btn full" id="loginBtn">Entrar</button>
     <p class="msg err" id="loginMsg"></p>
     <p class="sub" style="margin:10px 0 0;text-align:center">
@@ -482,8 +495,76 @@
     <p class="msg" id="tfMsg"></p>
     <p class="sub" style="margin:10px 0 0;text-align:center">
       <a href="#" id="tfResend" style="color:#4f46e5;text-decoration:none;display:none">Reenviar código</a>
+      <a href="#" id="tfLost" style="color:#4f46e5;text-decoration:none">Perdí mi autenticador</a>
       <a href="#" id="tfCancel" style="color:#64748b;text-decoration:none;margin-left:12px">Cancelar</a>
     </p>
+  </div>
+</div>
+
+<!-- «Perdí mi autenticador»: código al correo validado para quitar la app y volver a entrar -->
+<div id="recoverView" class="login-wrap hidden">
+  <div class="login-card">
+    <div class="brand">
+      <svg class="logo" width="34" height="34" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="apLogo8" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
+        <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#apLogo8)"/>
+        <path d="M9 19 L16 11 L23 19" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M11 22.5 L21 22.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".75"/>
+      </svg>
+      Aprendor
+    </div>
+    <h2>Perdí mi autenticador</h2>
+    <!-- Paso 1: pedir el código al correo -->
+    <div id="rcStep1">
+      <p class="sub" style="margin-bottom:0">Te enviaremos un código de 6 dígitos a tu correo validado. Al confirmarlo quitamos la app autenticadora de tu cuenta, cerramos tus otras sesiones y te avisamos por correo; si tu compañía la exige, tendrás que registrar una nueva al entrar.</p>
+      <div class="ts-slot" id="tsRecover"></div>
+      <button class="btn full" id="rcStartBtn">Enviarme un código</button>
+    </div>
+    <!-- Paso 2: canjear el código -->
+    <div id="rcStep2" class="hidden">
+      <p class="sub" id="rcSub" style="margin-bottom:0">Si tu cuenta permite recuperar el acceso por correo, te enviamos un código.</p>
+      <label>Código de 6 dígitos</label>
+      <input id="rcCode" class="field" type="text" inputmode="numeric" autocomplete="one-time-code"
+             maxlength="6" placeholder="000000" style="letter-spacing:6px;text-align:center;font-size:20px" />
+      <button class="btn full" id="rcBtn">Confirmar y entrar</button>
+      <p class="callout">¿No llega? Revisa el correo no deseado. Si tu compañía desactivó esta opción o tu correo no está validado, no se envía nada: pide al administrador de tu compañía que reinicie tu verificación en dos pasos.</p>
+    </div>
+    <p class="msg" id="rcMsg"></p>
+    <p class="linkrow">
+      <a href="#" id="rcResend" class="hidden">Reenviar código</a>
+      <a href="#" id="rcBack" class="gray">Volver al inicio de sesión</a>
+    </p>
+  </div>
+</div>
+
+<!-- Alta obligatoria del doble factor (token restringido enroll-2fa) -->
+<div id="enrollView" class="login-wrap hidden">
+  <div class="login-card">
+    <div class="brand">
+      <svg class="logo" width="34" height="34" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="apLogo9" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
+        <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#apLogo9)"/>
+        <path d="M9 19 L16 11 L23 19" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M11 22.5 L21 22.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".75"/>
+      </svg>
+      Aprendor
+    </div>
+    <h2>Activa la verificación en dos pasos</h2>
+    <p class="sub" style="margin-bottom:0">Tu compañía la exige. Además de la contraseña, al entrar se pedirá el código de una app autenticadora (Google Authenticator, Microsoft Authenticator, Authy, 1Password…).</p>
+    <div id="enStart">
+      <button class="btn full" id="enStartBtn">Empezar</button>
+    </div>
+    <div id="enSecretBox" class="hidden">
+      <p class="sub" style="margin:16px 0 6px">En la app, elige «Introducir una clave de configuración» y escribe esta clave:</p>
+      <div class="secret" id="enSecret"></div>
+      <p class="sub" style="margin:8px 0 0">Cuenta: <b id="enCuenta"></b> · Emisor: <b>Aprendor</b> · <a href="#" id="enUri" style="color:#4f46e5">abrir en la app (en el teléfono)</a></p>
+      <label>Código de 6 dígitos que muestra la app</label>
+      <input id="enCode" class="field" type="text" inputmode="numeric" autocomplete="one-time-code"
+             maxlength="6" placeholder="000000" style="letter-spacing:6px;text-align:center;font-size:20px" />
+      <button class="btn full" id="enBtn">Confirmar y entrar</button>
+    </div>
+    <p class="msg" id="enMsg"></p>
+    <p class="linkrow"><a href="#" id="enLogout" class="gray">Salir</a></p>
   </div>
 </div>
 
@@ -502,6 +583,7 @@
     <p class="sub">Escribe tu correo y te enviamos un enlace para crear una contraseña nueva.</p>
     <label>Correo</label>
     <input id="fgEmail" class="field" type="email" autocomplete="username" placeholder="tucorreo@dominio.com" />
+    <div class="ts-slot" id="tsForgot"></div>
     <button class="btn full" id="fgBtn">Enviar enlace</button>
     <p class="msg" id="fgMsg"></p>
     <p class="sub" style="margin:10px 0 0;text-align:center">
@@ -522,11 +604,19 @@
       </svg>
       Aprendor
     </div>
-    <p class="sub">Crea tu contraseña nueva.</p>
+    <h2 id="rsTitle">Crea tu contraseña nueva</h2>
+    <p class="sub" id="rsSub">Mínimo 10 caracteres, distinta de tu correo y que no sea fácil de adivinar.</p>
     <label>Nueva contraseña</label>
-    <input id="rsNew" class="field" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres" />
+    <input id="rsNew" class="field" type="password" autocomplete="new-password" placeholder="Mínimo 10 caracteres" />
     <label>Confirmar nueva</label>
     <input id="rsNew2" class="field" type="password" autocomplete="new-password" placeholder="Repítela" />
+    <!-- Solo si la cuenta tiene app autenticadora (el servidor responde requiresTotp) -->
+    <div id="rsTotpRow" class="hidden">
+      <label>Código de tu app autenticadora</label>
+      <input id="rsTotp" class="field" type="text" inputmode="numeric" autocomplete="one-time-code"
+             maxlength="6" placeholder="000000" style="letter-spacing:6px;text-align:center;font-size:18px" />
+    </div>
+    <div class="ts-slot" id="tsReset"></div>
     <button class="btn full" id="rsBtn">Guardar contraseña</button>
     <p class="msg" id="rsMsg"></p>
     <p class="sub" style="margin:10px 0 0;text-align:center">
@@ -547,15 +637,16 @@
       </svg>
       Aprendor
     </div>
-    <p class="sub">Tu contraseña fue reseteada. Crea una nueva para continuar.</p>
+    <p class="sub">Entraste con una contraseña temporal. Crea la tuya para continuar: mínimo 10 caracteres y distinta de tu correo.</p>
     <label>Contraseña temporal</label>
     <input id="fcCur" class="field" type="password" autocomplete="current-password" placeholder="La que te dieron" />
     <label>Nueva contraseña</label>
-    <input id="fcNew" class="field" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres" />
+    <input id="fcNew" class="field" type="password" autocomplete="new-password" placeholder="Mínimo 10 caracteres" />
     <label>Confirmar nueva</label>
     <input id="fcNew2" class="field" type="password" autocomplete="new-password" />
     <button class="btn full" id="fcBtn">Guardar y continuar</button>
     <p class="msg err" id="fcMsg"></p>
+    <p class="linkrow"><a href="#" id="fcLogout" class="gray">Salir</a></p>
   </div>
 </div>
 
@@ -588,10 +679,13 @@
     <div id="adminView" class="hidden">
       <div class="card">
         <h2>Compañías</h2>
-        <p class="hint">Cada compañía vive en su propia base de datos, con un Database= ÚNICO.</p>
+        <p class="hint" id="tenantHint">Cada compañía vive en su propia base de datos.</p>
         <div class="row">
-          <div><label>Nombre</label><input id="tName" class="field" placeholder="Compañía A" /></div>
-          <div style="flex:2"><label>Connection string de su base</label>
+          <div><label for="tName">Nombre</label><input id="tName" class="field" placeholder="Compañía A" /></div>
+          <!-- Con Tenants:ConnectionTemplate en el servidor solo se escoge el nombre de la base -->
+          <div id="tDbWrap" class="hidden"><label for="tDb">Nombre de la base de datos</label>
+            <input id="tDb" class="field" placeholder="TP_CompaniaA" maxlength="50" /></div>
+          <div id="tConnWrap" style="flex:2"><label for="tConn">Connection string de su base</label>
             <input id="tConn" class="field" placeholder="Server=localhost;Database=TP_CompaniaA;Trusted_Connection=True;TrustServerCertificate=True;" /></div>
           <button class="btn sm" id="createTenantBtn">Crear</button>
         </div>
@@ -600,21 +694,23 @@
       </div>
       <div class="card">
         <h2>Usuarios</h2>
+        <p class="hint">Nadie recibe su contraseña por correo: la invitación trae un enlace (72 horas) para que la persona cree la suya; con clave temporal, el sistema genera una que verás una sola vez y que vence en 72 horas.</p>
         <div class="row">
-          <div><label>Correo</label><input id="uEmail" class="field" placeholder="autor@compania.com" /></div>
-          <div><label>Nombre</label><input id="uName" class="field" placeholder="Autora" /></div>
-          <!-- La clave ya no la escribe el admin: invitación con enlace o temporal generada por el servidor. -->
-          <div class="hidden"><label>Contraseña</label><input id="uPass" class="field" type="text" /></div>
-          <div><label>Rol</label><select id="uRole" class="field">
-            <option>Author</option><option>Moderator</option><option>Learner</option><option>Admin</option></select></div>
-          <div><label>Compañía</label><select id="uTenant" class="field"></select></div>
-          <button class="btn sm" id="createUserBtn">Crear</button>
+          <div><label for="uEmail">Correo</label><input id="uEmail" class="field" placeholder="autor@compania.com" /></div>
+          <div><label for="uName">Nombre</label><input id="uName" class="field" placeholder="Autora" /></div>
+          <div><label for="uRole">Rol</label><select id="uRole" class="field">
+            <option value="Author">Autor</option><option value="Moderator">Moderador</option><option value="Learner">Aprendiz</option><option value="Admin">Administrador</option></select></div>
+          <div><label for="uTenant">Compañía</label><select id="uTenant" class="field"></select></div>
+        </div>
+        <div class="inline" style="margin-top:12px">
+          <button class="btn sm" id="createUserBtn">Enviar invitación</button>
+          <button class="btn sm ghost" id="createUserTempBtn">Crear con clave temporal</button>
         </div>
         <p class="msg" id="userMsg"></p>
       </div>
       <div class="card">
         <h2>Usuarios existentes</h2>
-        <p class="hint">Cambia el rol, resetea la contraseña (obliga a cambiarla al entrar) o elimina.</p>
+        <p class="hint">Cambia el rol, restablece la contraseña (obliga a cambiarla al entrar), reinicia la verificación en dos pasos de quien perdió su app o elimina.</p>
         <div class="row" style="margin-bottom:6px">
           <div style="max-width:260px"><select id="userFilter" class="field" onchange="loadUsers()"></select></div>
           <button class="btn sm ghost" onclick="loadUsers()">Actualizar</button>
@@ -824,6 +920,40 @@
               <div id="compRight"></div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN: Usuarios y seguridad (solo el Admin de la compañía, sobre la suya) -->
+      <div class="section hidden" id="sec-admin">
+        <button class="back-link" onclick="showDash()">← Inicio</button>
+        <div class="pagehead">
+          <div><h1>Usuarios y seguridad</h1><p>La gente de tu compañía y cómo entra a la plataforma.</p></div>
+          <button type="button" class="btn dim" onclick="loadCompanyAdmin()">Actualizar</button>
+        </div>
+        <div class="two" style="align-items:start">
+          <div>
+            <div class="card">
+              <h2>Nuevo usuario</h2>
+              <p class="hint">Nadie recibe su contraseña por correo: la invitación trae un enlace (72 horas) para que la persona cree la suya; con clave temporal, el sistema genera una que verás una sola vez.</p>
+              <label for="caEmail">Correo</label><input id="caEmail" class="field" type="email" placeholder="persona@compania.com" />
+              <label for="caName">Nombre</label><input id="caName" class="field" placeholder="Nombre y apellido" />
+              <label for="caRole">Rol</label>
+              <select id="caRole" class="field">
+                <option value="Learner">Aprendiz</option><option value="Moderator">Moderador</option>
+                <option value="Author">Autor</option><option value="Admin">Administrador</option></select>
+              <div class="inline" style="margin-top:14px">
+                <button type="button" class="btn sm" id="caInviteBtn">Enviar invitación</button>
+                <button type="button" class="btn sm ghost" id="caTempBtn">Crear con clave temporal</button>
+              </div>
+              <p class="msg" id="caMsg"></p>
+            </div>
+            <div class="card">
+              <h2>Usuarios</h2>
+              <p class="hint">Cambia el rol, restablece la contraseña, reinicia la verificación en dos pasos de quien perdió su app o quítalo de la compañía. Lo que afecta a una cuenta que también está en otra compañía lo hace el administrador de la plataforma.</p>
+              <div class="list" id="caUsers" style="margin-top:0"></div>
+            </div>
+          </div>
+          <div class="card" id="caSecurity"><h2>Seguridad de acceso</h2><p class="hint">Cargando…</p></div>
         </div>
       </div>
 
@@ -1123,7 +1253,8 @@ function dialog(opts){
       <div class="dlg-head"><div class="dlg-ic ${tone}">${ic(icono,20)}</div>
         <div style="flex:1;min-width:0"><h3 id="${titleId}">${esc(opts.title||'')}</h3>
         ${opts.text ? `<p class="dlg-text">${esc(opts.text)}</p>` : ''}${opts.html||''}</div></div>
-      ${opts.code ? `<div class="code">${esc(opts.code)}</div>` : ''}
+      ${opts.code ? `<div class="code-row"><div class="code">${esc(opts.code)}</div>
+        <button type="button" class="btn sm ghost" data-copy>${ic('doc',14)} Copiar</button></div>` : ''}
       <div class="dlg-fields"></div>
       <p class="dlg-err" role="alert"></p>
       <div class="modal-actions">${actions.map((a,i)=>
@@ -1208,6 +1339,14 @@ function dialog(opts){
     wrap.querySelector('.modal-actions').addEventListener('click', e => {
       const b = e.target.closest('[data-a]'); if(b) act(+b.dataset.a);
     });
+    // Copiar el código (contraseña temporal, por ejemplo) sin tener que seleccionarlo.
+    const copiar = wrap.querySelector('[data-copy]');
+    if(copiar) copiar.addEventListener('click', async () => {
+      const ok = await copiarTexto(opts.code);
+      copiar.innerHTML = ok ? ic('check',14) + ' Copiada' : 'Selecciónala y cópiala';
+      if(!ok){ const n = wrap.querySelector('.code'); const r = document.createRange(); r.selectNodeContents(n);
+        const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+    });
     // Clic fuera cierra sólo los avisos sin campos: en un formulario se perdería lo escrito.
     wrap.addEventListener('mousedown', e => { if(e.target===wrap && !opts.noCancel && !fields.length) close(null); });
     document.addEventListener('keydown', onKey, true);
@@ -1215,6 +1354,18 @@ function dialog(opts){
     const first = box.querySelector('input,textarea,select') || wrap.querySelector(`[data-a="${actions.length-1}"]`);
     if(first){ first.focus(); if(first.select && first.type!=='date') try{ first.select(); }catch{} }
   });
+}
+// Copia un texto al portapapeles. true si se pudo (el navegador puede negarlo fuera de https).
+async function copiarTexto(t){
+  try{ await navigator.clipboard.writeText(String(t == null ? '' : t)); return true; }
+  catch{
+    try{
+      const ta = document.createElement('textarea'); ta.value = String(t == null ? '' : t);
+      ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy'); ta.remove(); return ok;
+    }catch{ return false; }
+  }
 }
 // Pide un texto (reemplaza prompt). Devuelve el texto o null si se cancela.
 async function askModal(title, text, o){
@@ -1237,60 +1388,176 @@ async function infoModal(title, text, o){
   await dialog({ title, text, code:o.code, icon:o.icon, tone:o.tone||'', okText:o.okText || 'Entendido', noCancel:true });
 }
 
+// ===== Acceso: API, alcance del token, Turnstile y pantallas de entrada =====
+// api() lanza un Error con el mensaje del servidor (data.error, data.title o el texto) y
+// deja en e.status y e.data la respuesta, para los formularios que miran algo más
+// (requires2fa, requiresTotp, requiresEmailCode, turnstileFailed...).
+//  - 401 fuera de /auth/*: la sesión ya no vale (venció, cambió la clave o el rol, le
+//    quitaron la compañía...): se cierra y se vuelve al login con un aviso.
+//  - 403 con un token restringido: falta un paso (cambiar la clave, dar de alta el doble
+//    factor o validar el correo): se vuelve a ese paso.
+//  - 429: el servidor ya manda «Demasiados intentos. Espera N minutos.»; si llega sin
+//    cuerpo, los minutos salen de Retry-After.
+function errorApi(msg, status, data){ const e = new Error(msg); e.status = status; e.data = data; return e; }
 async function api(path, method='GET', body=null){
   const headers = { 'Content-Type':'application/json' };
   if (token) headers['Authorization'] = 'Bearer ' + token;
   const res = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : null });
-  if (res.status === 401){ logout(); throw new Error('No autorizado'); }
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
-  // El servidor responde con un texto o con { title } / { error }; si no, el código.
-  if (!res.ok) throw new Error((data && (data.title || data.error || (typeof data === 'string' ? data : null))) || ('Error ' + res.status));
-  return data;
+  let data = null;
+  try{ data = text ? JSON.parse(text) : null; }catch{ data = text; }
+  if (res.ok) return data;
+  let msg = (data && (data.error || data.title || (typeof data === 'string' ? data : null))) || null;
+  if (res.status === 401 && !path.startsWith('/auth/')){
+    sesionTerminada();
+    throw errorApi('Tu sesión terminó. Vuelve a iniciar sesión.', 401, data);
+  }
+  if (res.status === 403 && token && alcanceToken() !== 'full'){
+    irAlPasoPendiente();
+    throw errorApi('Antes de seguir, completa este paso.', 403, data);
+  }
+  if (res.status === 429 && !msg){
+    const s = Number(res.headers.get('Retry-After')) || 60, n = Math.max(1, Math.ceil(s / 60));
+    msg = `Demasiados intentos. Espera ${n} ${n === 1 ? 'minuto' : 'minutos'}.`;
+  }
+  if (res.status === 403 && !msg) msg = 'No tienes permiso para hacer esto.';
+  throw errorApi(msg || ('Error ' + res.status), res.status, data);
+}
+
+// Datos del token (JWT) sin verificarlo: solo para decidir qué pantalla mostrar. Quien
+// decide de verdad es el servidor.
+function datosToken(t){
+  try{
+    const p = String(t || '').split('.')[1]; if (!p) return null;
+    const b = p.replace(/-/g, '+').replace(/_/g, '/');
+    const bin = atob(b + '==='.slice((b.length + 3) % 4));
+    return JSON.parse(decodeURIComponent(bin.split('').map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')));
+  }catch{ return null; }
+}
+// Alcance de la sesión: full | change-password | enroll-2fa | verify-email.
+function alcanceToken(){ const d = datosToken(token); return (d && d.scope) || (user && user.scope) || 'full'; }
+function tokenVencido(){ const d = datosToken(token); return !!(d && d.exp && d.exp * 1000 <= Date.now()); }
+
+// Lleva a lo que falta según el alcance del token, en el orden del servidor: cambio de
+// clave > alta del doble factor > validar el correo. Con alcance completo, a la app.
+function irAlPasoPendiente(){
+  const s = alcanceToken();
+  el('profileModal')?.classList.add('hidden');   // (los modales van después del script)
+  if (s === 'change-password') showForceChange();
+  else if (s === 'enroll-2fa') mostrarAlta2FA();
+  else if (s === 'verify-email') pedirValidacionCorreo();
+  else showApp();
+}
+
+// Guardar la sesión que devuelve el servidor ({ token, scope, user }).
+function guardarSesion(r){
+  token = r.token;
+  if (r.user) user = r.user;
+  if (user && r.scope) user.scope = r.scope;
+  localStorage.setItem('tp_token', token);
+  localStorage.setItem('tp_user', JSON.stringify(user));
+}
+// Tras cambiar la clave, validar el correo o tocar el 2FA el servidor rota el sello de
+// la sesión y devuelve un token nuevo (con el alcance que corresponda): hay que usarlo.
+function adoptarSesion(r){
+  if (!r || !r.token) return false;
+  guardarSesion(r);
+  return true;
+}
+let claveDelLogin = '';   // para no volver a pedir la temporal en el cambio obligatorio
+function entrarConSesion(r){
+  guardarSesion(r);
+  if (alcanceToken() === 'change-password' && claveDelLogin) el('fcCur').value = claveDelLogin;
+  claveDelLogin = '';
+  el('password').value = '';
+  irAlPasoPendiente();
+}
+
+// ----- Cloudflare Turnstile -----
+// Solo si el servidor lo pide (GET /auth/config trae site key): entonces se carga el script
+// de Cloudflare y se pinta un widget en cada formulario de acceso sin sesión (login,
+// «¿Olvidaste tu contraseña?», clave nueva, «Perdí mi autenticador»). El token viaja en el
+// cuerpo (turnstileToken) y sirve una sola vez: el widget se reinicia tras cada envío.
+const TS = { key:null, ids:{}, fallo:false };
+TS.listo = (async () => {
+  try{
+    const r = await fetch(API + '/auth/config');
+    if (r.ok){ const c = await r.json(); TS.key = (c && c.turnstileSiteKey) || null; }
+  }catch{}
+  if (!TS.key) return false;
+  try{
+    await new Promise((ok, mal) => {
+      window.onTurnstileListo = ok;
+      const s = document.createElement('script');
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileListo';
+      s.async = true; s.defer = true; s.onerror = mal;
+      document.head.appendChild(s);
+    });
+    return true;
+  }catch{ TS.fallo = true; return false; }   // sin script: el servidor dirá si hacía falta
+})();
+async function tsMontar(slot){
+  if (!await TS.listo || !window.turnstile || TS.ids[slot] != null) return;
+  const nodo = el(slot); if (!nodo) return;
+  try{ TS.ids[slot] = turnstile.render(nodo, { sitekey: TS.key, language: 'es', theme: 'light' }); }
+  catch{ TS.ids[slot] = null; }
+}
+// Token del widget: undefined si Turnstile no está en uso (o no cargó); '' si aún no
+// terminó la verificación.
+function tsToken(slot){
+  if (!TS.key || TS.fallo || !window.turnstile || TS.ids[slot] == null) return undefined;
+  return turnstile.getResponse(TS.ids[slot]) || '';
+}
+function tsReset(slot){ if (window.turnstile && TS.ids[slot] != null) try{ turnstile.reset(TS.ids[slot]); }catch{} }
+// Antes de enviar: si el widget todavía no dio su token, se avisa en vez de mandar.
+async function tsFalta(slot, msgEl){
+  await tsMontar(slot);
+  if (tsToken(slot) !== '') return false;
+  msgEl.className = 'msg err';
+  msgEl.textContent = 'Espera a que termine la verificación de seguridad (el recuadro de Cloudflare) y vuelve a intentarlo.';
+  return true;
+}
+
+// Política de contraseñas del servidor (PoliticaClave), para avisar antes de enviar. El
+// servidor tiene la última palabra (también rechaza las contraseñas comunes).
+function politicaClave(clave, correo){
+  const c = String(clave || '');
+  if (c.length < 10) return 'La contraseña debe tener al menos 10 caracteres.';
+  if (c.length > 128) return 'La contraseña no puede pasar de 128 caracteres.';
+  const t = c.trim().toLowerCase(), mail = String(correo || '').trim().toLowerCase();
+  if (mail && (t === mail || t === mail.split('@')[0])) return 'La contraseña no puede ser tu correo.';
+  if (new Set(c.trim()).size <= 2) return 'Esa contraseña es demasiado fácil de adivinar. Escoge otra.';
+  return null;
 }
 
 // ----- Login -----
 el('loginBtn').onclick = doLogin;
 el('password').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
-let retoActual = null;   // { challengeId, mode } mientras se resuelve el segundo factor
+let retoActual = null;   // { challengeId, mode, cambioCompania } mientras se resuelve el segundo factor
 
 async function doLogin(){
   const msg = el('loginMsg'); msg.textContent=''; msg.className='msg err';
+  const email = el('email').value.trim(), password = el('password').value;
+  if (!email || !password){ msg.textContent = 'Escribe tu correo y tu contraseña.'; return; }
+  if (await tsFalta('tsLogin', msg)) return;
+  el('loginBtn').disabled = true;
   try{
-    const r = await api('/auth/login','POST',{ email:el('email').value.trim(), password:el('password').value });
-    if (r.requires2fa){ pedirSegundoFactor(r); return; }
+    const r = await api('/auth/login','POST',{ email, password, turnstileToken: tsToken('tsLogin') });
+    claveDelLogin = password;
+    if (r.requires2fa){ el('password').value = ''; pedirSegundoFactor(r); return; }
     entrarConSesion(r);
-  }catch(e){ msg.textContent = 'Correo o contraseña incorrectos.'; }
+  }catch(e){
+    // 401: correo o clave incorrectos (o la temporal venció, con su mensaje); 429: bloqueo
+    // o límite con los minutos; 400/503: la verificación de seguridad.
+    msg.textContent = e.status === 401 ? ((e.data && e.data.error) || 'Correo o contraseña incorrectos.') : e.message;
+  }finally{ el('loginBtn').disabled = false; tsReset('tsLogin'); }
 }
 
-// Tras cambiar la clave, validar el correo o tocar el 2FA el servidor rota el sello de
-// la sesión y devuelve un token nuevo (con el alcance que corresponda): hay que usarlo.
-function adoptarSesion(r){
-  if (!r || !r.token) return false;
-  token = r.token; if (r.user) user = r.user;
-  localStorage.setItem('tp_token', token);
-  localStorage.setItem('tp_user', JSON.stringify(user));
-  return true;
-}
-
-function entrarConSesion(r){
-  token = r.token; user = r.user;
-  localStorage.setItem('tp_token', token);
-  localStorage.setItem('tp_user', JSON.stringify(user));
-  if (user.mustChangePassword){ el('fcCur').value = el('password').value; showForceChange(); }
-  else if (user.emailVerified === false){ pedirValidacionCorreo(); }
-  else if (user.mustEnroll2fa){ showApp(); forzarAlta2FA(); }
-  else showApp();
-}
-
-// La compañía exige doble factor y el usuario aún no lo tiene: se le lleva al alta.
-function forzarAlta2FA(){
-  openProfile();
-  setTimeout(()=>{
-    const m = el('tfaMsg'); m.className='msg err';
-    m.textContent = 'Tu compañía exige verificación en dos pasos. Actívala con tu app autenticadora para seguir usando la plataforma.';
-    el('tfaSetupBox')?.scrollIntoView({behavior:'smooth'});
-  }, 200);
+// Se llama cuando el servidor ya no acepta la sesión (401): de vuelta al login, con aviso.
+function sesionTerminada(){
+  const habia = !!token;
+  logout();
+  if (habia){ const m = el('loginMsg'); m.className = 'msg err'; m.textContent = 'Tu sesión terminó. Vuelve a iniciar sesión.'; }
 }
 
 // ----- Validación del correo (primera vez que entra) -----
@@ -1303,25 +1570,23 @@ async function pedirValidacionCorreo(){
   const m = el('veMsg'); m.className='msg'; m.textContent = 'Enviando el código…';
   try{
     const r = await api('/me/email/send-code','POST');
-    if(r.verified){ if (adoptarSesion(r)) { entrarConSesion(r); return; } user.emailVerified = true; localStorage.setItem('tp_user', JSON.stringify(user)); showApp(); return; }
+    if (r.verified){ adoptarSesion(r); irAlPasoPendiente(); return; }
     retoCorreo = r.challengeId;
     m.className='msg ok'; m.textContent = 'Te enviamos un código a ' + (r.email || user.email) + '.';
     el('veCode').focus();
-  }catch(e){ m.className='msg err'; m.textContent = e.message; }
+  }catch(e){ if (e.status !== 401){ m.className='msg err'; m.textContent = e.message; } }
 }
 
 async function validarCorreo(){
   const m = el('veMsg'); m.className='msg err'; m.textContent='';
   const code = el('veCode').value.trim();
-  if(code.length !== 6){ m.textContent = 'El código son 6 dígitos.'; return; }
+  if (!/^\d{6}$/.test(code)){ m.textContent = 'El código son 6 dígitos.'; return; }
   el('veBtn').disabled = true;
   try{
     const r = await api('/me/email/verify','POST',{ challengeId: retoCorreo, code });
     retoCorreo = null;
-    if (adoptarSesion(r)) { entrarConSesion(r); return; }
-    user.emailVerified = true;
-    localStorage.setItem('tp_user', JSON.stringify(user));
-    showApp();
+    adoptarSesion(r);
+    irAlPasoPendiente();
   }catch(e){ m.textContent = e.message; }
   finally{ el('veBtn').disabled = false; }
 }
@@ -1330,11 +1595,13 @@ el('veCode').addEventListener('keydown', e => { if(e.key==='Enter') validarCorre
 el('veResend').onclick = e => { e.preventDefault(); pedirValidacionCorreo(); };
 el('veLogout').onclick = e => { e.preventDefault(); logout(); };
 
-// ----- Segundo factor en el login -----
-function pedirSegundoFactor(r){
-  retoActual = { challengeId: r.challengeId, mode: r.mode };
+// ----- Segundo factor en el login (o al cambiar a una compañía que lo exige) -----
+function pedirSegundoFactor(r, cambioCompania){
+  retoActual = { challengeId: r.challengeId, mode: r.mode, cambioCompania: !!cambioCompania };
   el('tfSub').textContent = 'Abre tu app autenticadora y escribe el código que muestra para Aprendor.';
   el('tfResend').style.display = 'none';   // con app autenticadora no hay nada que reenviar
+  // «Perdí mi autenticador» solo desde el login (el reto del cambio de compañía no vale).
+  el('tfLost').classList.toggle('hidden', !!cambioCompania);
   el('tfCode').value = ''; el('tfMsg').textContent = '';
   mostrarSolo('twoFaView');
   el('tfCode').focus();
@@ -1342,7 +1609,8 @@ function pedirSegundoFactor(r){
 async function verificarSegundoFactor(){
   const m = el('tfMsg'); m.className='msg err'; m.textContent='';
   const code = el('tfCode').value.trim();
-  if(code.length !== 6){ m.textContent = 'El código son 6 dígitos.'; return; }
+  if (!/^\d{6}$/.test(code)){ m.textContent = 'El código son 6 dígitos.'; return; }
+  if (!retoActual){ m.textContent = 'Vuelve a iniciar sesión.'; return; }
   el('tfBtn').disabled = true;
   try{
     const r = await api('/auth/2fa/verify','POST',{ challengeId: retoActual.challengeId, code });
@@ -1365,25 +1633,92 @@ el('tfResend').onclick = async e => {
 el('tfCancel').onclick = e => {
   e.preventDefault();
   const eraCambio = retoActual && retoActual.cambioCompania;
-  retoActual = null; el('password').value='';
+  retoActual = null; el('password').value=''; claveDelLogin = '';
   // Si el reto era para cambiar de compañía, la sesión actual sigue: se vuelve a la app.
   if (eraCambio && token && user){ showApp(); return; }
   mostrarSolo('loginView');
 };
-function logout(){ token=null; user=null; retoActual=null;
+el('tfLost').onclick = e => { e.preventDefault(); if (retoActual && !retoActual.cambioCompania) abrirRecuperacion(); };
+
+// ----- «Perdí mi autenticador» -----
+// Desde la pantalla del código: el reto de login demuestra que ya dio la contraseña. El
+// servidor responde siempre igual (con un challengeId, inventado si no mandó nada), así
+// que la pantalla también; si el código no llega, la salida es el Admin de su compañía.
+let retoRecuperar = null;   // reto del código enviado al correo
+function abrirRecuperacion(){
+  retoRecuperar = null;
+  el('rcStep1').classList.remove('hidden'); el('rcStep2').classList.add('hidden');
+  el('rcResend').classList.add('hidden');
+  el('rcCode').value = ''; el('rcMsg').textContent = '';
+  mostrarSolo('recoverView');
+}
+async function recuperarEnviar(){
+  const m = el('rcMsg'); m.className='msg err'; m.textContent='';
+  if (!retoActual){ m.textContent = 'Vuelve a iniciar sesión para empezar.'; return; }
+  if (await tsFalta('tsRecover', m)) return;
+  el('rcStartBtn').disabled = true;
+  try{
+    const r = await api('/auth/2fa/recover/start','POST',{ challengeId: retoActual.challengeId, turnstileToken: tsToken('tsRecover') });
+    retoRecuperar = r.challengeId;
+    el('rcSub').textContent = r.message || 'Si tu cuenta permite recuperar el acceso por correo, te enviamos un código.';
+    el('rcStep1').classList.add('hidden'); el('rcStep2').classList.remove('hidden');
+    el('rcResend').classList.remove('hidden');
+    el('rcCode').focus();
+  }catch(e){ m.textContent = e.message; }
+  finally{ el('rcStartBtn').disabled = false; tsReset('tsRecover'); }
+}
+async function recuperarConfirmar(){
+  const m = el('rcMsg'); m.className='msg err'; m.textContent='';
+  const code = el('rcCode').value.trim();
+  if (!/^\d{6}$/.test(code)){ m.textContent = 'El código son 6 dígitos.'; return; }
+  el('rcBtn').disabled = true;
+  try{
+    const r = await api('/auth/2fa/recover/verify','POST',{ challengeId: retoRecuperar, code });
+    retoActual = null; retoRecuperar = null;
+    entrarConSesion(r);   // enroll-2fa si su compañía exige el doble factor: registra la app nueva
+    toast('Quitamos la app autenticadora de tu cuenta. Te avisamos por correo.', 'info');
+  }catch(e){ m.textContent = e.message; }
+  finally{ el('rcBtn').disabled = false; }
+}
+el('rcStartBtn').onclick = recuperarEnviar;
+el('rcBtn').onclick = recuperarConfirmar;
+el('rcCode').addEventListener('keydown', e => { if(e.key==='Enter') recuperarConfirmar(); });
+el('rcResend').onclick = async e => {
+  e.preventDefault();
+  const m = el('rcMsg'); m.className='msg'; m.textContent='';
+  if (!retoRecuperar) return;
+  try{
+    const r = await api('/auth/2fa/resend','POST',{ challengeId: retoRecuperar });
+    if (r.challengeId) retoRecuperar = r.challengeId;
+    m.className='msg ok'; m.textContent = r.message || 'Te reenviamos el código.';
+  }catch(err){ m.className='msg err'; m.textContent = err.message; }
+};
+el('rcBack').onclick = e => {
+  e.preventDefault();
+  retoActual = null; retoRecuperar = null; el('password').value=''; claveDelLogin = '';
+  mostrarSolo('loginView');
+};
+
+function logout(){
+  token=null; user=null; retoActual=null; retoRecuperar=null; retoCorreo=null; claveDelLogin='';
   localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user');
-  el('profileModal').classList.add('hidden'); el('forceChangeView').classList.add('hidden');
-  el('twoFaView').classList.add('hidden'); el('verifyEmailView').classList.add('hidden');
-  el('appView').classList.add('hidden'); el('loginView').classList.remove('hidden'); }
+  el('profileModal')?.classList.add('hidden'); el('segModal')?.classList.add('hidden');
+  el('loginMsg').textContent = '';
+  mostrarSolo('loginView');
+}
 el('logoutBtn').onclick = logout;
+
+// ----- Pantallas de acceso -----
+// Una sola visible a la vez. Las que llevan Turnstile montan su widget al mostrarse.
+const VISTAS_ACCESO = ['loginView','twoFaView','recoverView','verifyEmailView','enrollView','forgotView','resetView','forceChangeView','appView'];
+const TS_DE_VISTA = { loginView:'tsLogin', forgotView:'tsForgot', resetView:'tsReset', recoverView:'tsRecover' };
+function mostrarSolo(vista){
+  VISTAS_ACCESO.forEach(v => { const n = el(v); if(n) n.classList.toggle('hidden', v !== vista); });
+  if (TS_DE_VISTA[vista]) tsMontar(TS_DE_VISTA[vista]);
+}
 
 // ----- Recuperar contraseña desde el login -----
 // El servidor contesta lo mismo exista o no el correo, así que la pantalla también.
-function mostrarSolo(vista){
-  ['loginView','twoFaView','verifyEmailView','forgotView','resetView','forceChangeView','appView'].forEach(v => {
-    const n = el(v); if(n) n.classList.toggle('hidden', v !== vista);
-  });
-}
 el('forgotLink').onclick = e => {
   e.preventDefault();
   el('fgEmail').value = el('email').value.trim();
@@ -1393,11 +1728,10 @@ el('forgotLink').onclick = e => {
   actualizarBotonCooldown();
 };
 el('fgBackLink').onclick = e => { e.preventDefault(); mostrarSolo('loginView'); };
-el('rsBackLink').onclick = e => { e.preventDefault(); limpiarUrlReset(); mostrarSolo('loginView'); };
+el('rsBackLink').onclick = e => { e.preventDefault(); limpiarUrlReset(); enlaceClave = null; mostrarSolo('loginView'); };
 
-// El servidor también frena reenvíos a menos de dos minutos del anterior, pero
-// aquí lo reflejamos en el botón para que ni se pueda intentar mientras tanto,
-// en vez de que el usuario le dé "Enviar" y no pase nada visible.
+// Además de los topes del servidor (3 por hora y 5 al día por cuenta), el botón espera dos
+// minutos entre envíos para que no se pulse otra vez sin que pase nada visible.
 const RESET_COOLDOWN_MS = 2 * 60 * 1000;
 let cooldownTimer = null;
 function msRestantesCooldown(){
@@ -1422,92 +1756,207 @@ async function pedirEnlace(){
   if(msRestantesCooldown() > 0){ actualizarBotonCooldown(); return; }
   const correo = el('fgEmail').value.trim();
   if(!correo){ m.className = 'msg err'; m.textContent = 'Escribe tu correo.'; return; }
+  if (await tsFalta('tsForgot', m)) return;
   el('fgBtn').disabled = true;
   try{
-    const r = await api('/auth/forgot-password','POST',{ email: correo });
+    const r = await api('/auth/forgot-password','POST',{ email: correo, turnstileToken: tsToken('tsForgot') });
     m.className = 'msg ok';
     m.textContent = r.message || 'Si el correo está registrado, te enviamos un enlace.';
     localStorage.setItem('tp_reset_last', String(Date.now()));
   }catch(e){
-    m.className = 'msg err'; m.textContent = 'No se pudo procesar la solicitud. Intenta de nuevo.';
-  }finally{ actualizarBotonCooldown(); }
+    m.className = 'msg err'; m.textContent = e.message || 'No se pudo procesar la solicitud. Intenta de nuevo.';
+  }finally{ actualizarBotonCooldown(); tsReset('tsForgot'); }
 }
 el('fgBtn').onclick = pedirEnlace;
 el('fgEmail').addEventListener('keydown', e => { if(e.key==='Enter') pedirEnlace(); });
 
-// El enlace del correo trae el token en el fragmento (#reset=TOKEN), que el navegador
-// nunca manda al servidor ni deja en los logs; ?reset=TOKEN se sigue aceptando por los
-// enlaces viejos. Se lee una sola vez al cargar y se quita enseguida de la barra.
-const tokenReset = (() => {
-  // #invite= (invitación del admin) usa la misma pantalla y el mismo endpoint.
+// El enlace del correo trae el token en el fragmento, que el navegador nunca manda al
+// servidor ni deja en los logs: #reset=TOKEN (restablecer) o #invite=TOKEN (invitación:
+// crear la primera contraseña; misma pantalla y mismo endpoint). ?reset=TOKEN se sigue
+// aceptando por los enlaces viejos. Se lee una sola vez al cargar y se quita enseguida
+// de la barra de direcciones (history.replaceState).
+let enlaceClave = (() => {
   const h = new URLSearchParams(location.hash.replace(/^#/, ''));
-  const t = h.get('reset') || h.get('invite')
-         || new URLSearchParams(location.search).get('reset');
-  if (t) history.replaceState(null, '', location.pathname);
-  return t;
+  const q = new URLSearchParams(location.search);
+  const reset = h.get('reset'), invite = h.get('invite');
+  const t = reset || invite || q.get('reset');
+  if (h.has('reset') || h.has('invite') || q.has('reset')) history.replaceState(null, '', location.pathname);
+  return t ? { token: t, invitacion: !reset && !!invite } : null;
 })();
-function tokenDeLaUrl(){ return tokenReset; }
+function tokenDeLaUrl(){ return enlaceClave ? enlaceClave.token : null; }
 function limpiarUrlReset(){ history.replaceState(null, '', location.pathname); }
 // Si el enlace se abre en una pestaña que ya tenía index.html, solo cambia el fragmento
 // y la página no se recarga: se recarga para que lo lea el arranque.
 window.addEventListener('hashchange', () => { if (/(^#|&)(reset|invite)=/.test(location.hash)) location.reload(); });
 
+function mostrarRestablecer(){
+  const inv = !!(enlaceClave && enlaceClave.invitacion);
+  el('rsTitle').textContent = inv ? 'Crea tu contraseña' : 'Crea tu contraseña nueva';
+  el('rsSub').textContent = inv
+    ? 'Te damos la bienvenida a Aprendor. Escoge tu contraseña para entrar: mínimo 10 caracteres, distinta de tu correo y que no sea fácil de adivinar.'
+    : 'Mínimo 10 caracteres, distinta de tu correo y que no sea fácil de adivinar.';
+  el('rsBtn').textContent = inv ? 'Crear contraseña' : 'Guardar contraseña';
+  el('rsTotpRow').classList.add('hidden'); el('rsTotp').value = '';
+  el('rsMsg').textContent = '';
+  mostrarSolo('resetView');
+  el('rsNew').focus();
+}
+
 async function guardarNuevaClave(){
   const m = el('rsMsg'); m.className = 'msg err'; m.textContent = '';
   const n1 = el('rsNew').value, n2 = el('rsNew2').value;
-  if(n1.length < 10){ m.textContent = 'La nueva debe tener al menos 10 caracteres.'; return; }
-  if(n1 !== n2){ m.textContent = 'Las contraseñas no coinciden.'; return; }
+  const err = politicaClave(n1, null);
+  if (err){ m.textContent = err; return; }
+  if (n1 !== n2){ m.textContent = 'Las contraseñas no coinciden.'; return; }
+  // Con app autenticadora (el servidor respondió requiresTotp) va también su código.
+  const conTotp = !el('rsTotpRow').classList.contains('hidden');
+  const totp = el('rsTotp').value.trim();
+  if (conTotp && !/^\d{6}$/.test(totp)){ m.textContent = 'Escribe el código de 6 dígitos de tu app autenticadora.'; el('rsTotp').focus(); return; }
+  if (!tokenDeLaUrl()){ m.textContent = 'El enlace no es válido o ya venció. Pide uno nuevo desde el login.'; return; }
+  if (await tsFalta('tsReset', m)) return;
   el('rsBtn').disabled = true;
   try{
-    await api('/auth/reset-password','POST',{ token: tokenDeLaUrl(), newPassword: n1 });
-    el('rsNew').value = el('rsNew2').value = '';
-    limpiarUrlReset();
+    const r = await api('/auth/reset-password','POST',{ token: tokenDeLaUrl(), newPassword: n1,
+      totpCode: conTotp ? totp : undefined, turnstileToken: tsToken('tsReset') });
+    el('rsNew').value = el('rsNew2').value = el('rsTotp').value = '';
+    enlaceClave = null;
     mostrarSolo('loginView');
     const lm = el('loginMsg'); lm.className = 'msg ok';
-    lm.textContent = 'Contraseña actualizada. Ya puedes entrar.';
+    lm.textContent = (r && r.message) || 'Contraseña actualizada. Ya puedes entrar.';
   }catch(e){
+    if (e.data && e.data.requiresTotp){
+      // El enlace no se gastó: se pide el código y se vuelve a enviar.
+      el('rsTotpRow').classList.remove('hidden');
+      if (conTotp) el('rsTotp').select(); else el('rsTotp').focus();
+    }
     m.textContent = e.message;
-  }finally{ el('rsBtn').disabled = false; }
+  }finally{ el('rsBtn').disabled = false; tsReset('tsReset'); }
 }
 el('rsBtn').onclick = guardarNuevaClave;
 el('rsNew2').addEventListener('keydown', e => { if(e.key==='Enter') guardarNuevaClave(); });
+el('rsTotp').addEventListener('keydown', e => { if(e.key==='Enter') guardarNuevaClave(); });
 
-// ----- Cambio obligatorio de contraseña -----
+// ----- Cambio obligatorio de contraseña (token restringido change-password) -----
 function showForceChange(){
-  el('loginView').classList.add('hidden');
-  el('appView').classList.add('hidden');
-  el('forceChangeView').classList.remove('hidden');
+  el('fcMsg').textContent = '';
+  mostrarSolo('forceChangeView');
+  (el('fcCur').value ? el('fcNew') : el('fcCur')).focus();
 }
 el('fcBtn').onclick = async () => {
   const m = el('fcMsg'); m.textContent=''; m.className='msg err';
   const cur=el('fcCur').value, n1=el('fcNew').value, n2=el('fcNew2').value;
-  if(n1.length<10){ m.textContent='La nueva debe tener al menos 10 caracteres.'; return; }
+  if(!cur){ m.textContent='Escribe la contraseña temporal con la que entraste.'; return; }
+  const err = politicaClave(n1, user && user.email);
+  if(err){ m.textContent = err; return; }
   if(n1!==n2){ m.textContent='Las contraseñas no coinciden.'; return; }
+  if(n1===cur){ m.textContent='La nueva tiene que ser distinta de la temporal.'; return; }
+  el('fcBtn').disabled = true;
   try{
     const r = await api('/me/password','POST',{ currentPassword:cur, newPassword:n1 });
-    el('forceChangeView').classList.add('hidden');
     el('fcCur').value=el('fcNew').value=el('fcNew2').value='';
     // Token nuevo: puede quedar pendiente validar el correo o dar de alta el 2FA.
-    if (adoptarSesion(r)) { entrarConSesion(r); return; }
-    user.mustChangePassword = false; localStorage.setItem('tp_user', JSON.stringify(user));
-    showApp();
-  }catch(e){ m.textContent = e.message; }
+    if (!adoptarSesion(r)){ user.mustChangePassword = false; localStorage.setItem('tp_user', JSON.stringify(user)); }
+    irAlPasoPendiente();
+  }catch(e){ if (e.status !== 401) m.textContent = e.message; }
+  finally{ el('fcBtn').disabled = false; }
 };
+el('fcLogout').onclick = e => { e.preventDefault(); logout(); };
+
+// ----- Alta obligatoria del doble factor (token restringido enroll-2fa) -----
+function mostrarAlta2FA(){
+  el('enStart').classList.remove('hidden'); el('enSecretBox').classList.add('hidden');
+  el('enCode').value = ''; el('enMsg').textContent = '';
+  el('enCuenta').textContent = user ? user.email : '';
+  mostrarSolo('enrollView');
+}
+async function altaEmpezar(){
+  const m = el('enMsg'); m.className='msg err'; m.textContent='';
+  el('enStartBtn').disabled = true;
+  try{
+    const r = await prepararAlta2FA();
+    if (!r) return;
+    el('enSecret').textContent = r.secret;
+    el('enUri').href = r.uri || '#';
+    el('enStart').classList.add('hidden'); el('enSecretBox').classList.remove('hidden');
+    el('enCode').focus();
+  }catch(e){ if (e.status !== 401) m.textContent = e.message; }
+  finally{ el('enStartBtn').disabled = false; }
+}
+async function altaConfirmar(){
+  const m = el('enMsg'); m.className='msg err'; m.textContent='';
+  const code = el('enCode').value.trim();
+  if (!/^\d{6}$/.test(code)){ m.textContent = 'El código son 6 dígitos.'; return; }
+  el('enBtn').disabled = true;
+  try{
+    const r = await api('/me/2fa/confirm','POST',{ mode:'totp', code });
+    adoptarSesion(r);
+    irAlPasoPendiente();
+    toast('Verificación en dos pasos activada.');
+  }catch(e){ if (e.status !== 401) m.textContent = e.message; }
+  finally{ el('enBtn').disabled = false; }
+}
+el('enStartBtn').onclick = altaEmpezar;
+el('enBtn').onclick = altaConfirmar;
+el('enCode').addEventListener('keydown', e => { if(e.key==='Enter') altaConfirmar(); });
+el('enLogout').onclick = e => { e.preventDefault(); logout(); };
+
+// Pide al servidor el secreto nuevo de la app autenticadora (queda pendiente hasta
+// confirmarlo). La primera alta desde fuera de las redes de confianza exige antes el
+// código que se manda al correo: se pide en un diálogo, con «Reenviar código», y se
+// reintenta. extra: { currentPassword, code } para cambiar una app ya confirmada.
+// Devuelve { secret, uri, replacing } o null si la persona cancela.
+async function prepararAlta2FA(extra){
+  const base = Object.assign({ mode:'totp' }, extra || {});
+  let cuerpo = base, reto = null, correo = user ? user.email : '', aviso = '', vueltas = 0;
+  for (;;){
+    if (++vueltas > 8) throw new Error('No se pudo preparar el alta. Intenta de nuevo en unos minutos.');
+    try{ return await api('/me/2fa/setup','POST', cuerpo); }
+    catch(e){
+      if (!(e.data && e.data.requiresEmailCode)) throw e;
+      if (reto) aviso = e.message;   // el código que escribió no sirvió
+      else {
+        const s = await api('/me/2fa/setup/send-code','POST');
+        if (!s.required){ cuerpo = base; continue; }
+        reto = s.challengeId; correo = s.email || correo;
+      }
+    }
+    for (;;){
+      const d = await dialog({
+        title: 'Confirma que eres tú', icon: 'mail',
+        text: `Antes de registrar la app autenticadora, escribe el código de 6 dígitos que te enviamos a ${correo}.` + (aviso ? '\n\n' + aviso : ''),
+        fields: [{ name:'code', label:'Código del correo', placeholder:'000000', width:'180px' }],
+        actions: [{ label:'Cancelar', value:null, kind:'ghost' }, { label:'Reenviar código', value:'resend', kind:'ghost' }, { label:'Continuar', value:'ok' }],
+        validate: (v, a) => a === 'ok' && !/^\d{6}$/.test(String(v.code || '').trim()) ? 'El código son 6 dígitos.' : null
+      });
+      if (!d) return null;
+      if (d.action === 'resend'){
+        try{ const s = await api('/me/2fa/setup/send-code','POST'); if (s.challengeId) reto = s.challengeId; aviso = 'Te reenviamos el código.'; }
+        catch(err){ aviso = err.message; }
+        continue;
+      }
+      cuerpo = Object.assign({}, base, { emailChallengeId: reto, emailCode: String(d.values.code).trim() });
+      aviso = '';
+      break;
+    }
+  }
+}
 
 // ----- Cambio de contraseña desde el perfil -----
 function togglePwd(){ el('pwdForm').classList.toggle('hidden'); el('pwdMsg').textContent=''; }
 async function submitPwd(){
   const m=el('pwdMsg'); m.className='msg'; m.textContent='';
   const cur=el('pwdCur').value, n1=el('pwdNew').value, n2=el('pwdNew2').value;
-  if(n1.length<10){ m.textContent='La nueva debe tener al menos 10 caracteres.'; m.className='msg err'; return; }
+  if(!cur){ m.textContent='Escribe tu contraseña actual.'; m.className='msg err'; return; }
+  const err = politicaClave(n1, user && user.email);
+  if(err){ m.textContent=err; m.className='msg err'; return; }
   if(n1!==n2){ m.textContent='Las contraseñas no coinciden.'; m.className='msg err'; return; }
   try{
     // El cambio cierra las demás sesiones; esta sigue con el token nuevo que devuelve.
     adoptarSesion(await api('/me/password','POST',{ currentPassword:cur, newPassword:n1 }));
-    m.textContent='Contraseña actualizada.'; m.className='msg ok';
+    m.textContent='Contraseña actualizada. Cerramos tus otras sesiones.'; m.className='msg ok';
     el('pwdCur').value=el('pwdNew').value=el('pwdNew2').value='';
-    setTimeout(()=>{ el('pwdForm').classList.add('hidden'); m.textContent=''; }, 1300);
-  }catch(e){ m.textContent=e.message; m.className='msg err'; }
+    setTimeout(()=>{ el('pwdForm').classList.add('hidden'); m.textContent=''; }, 1600);
+  }catch(e){ if (e.status !== 401){ m.textContent=e.message; m.className='msg err'; } }
 }
 
 function roleLabel(r){ return ({Admin:'Administrador',Author:'Autor',Moderator:'Moderador',Learner:'Aprendiz'})[r] || r; }
@@ -1516,7 +1965,7 @@ function initials(s){ s=(s||'').trim(); if(!s) return '··'; const p=s.split(/\
 function showApp(){
   el('loginView').classList.add('hidden');
   // Las pantallas de acceso (código, validar correo, clave nueva...) no quedan encima de la app.
-  ['twoFaView','verifyEmailView','forgotView','resetView','forceChangeView'].forEach(v => el(v)?.classList.add('hidden'));
+  VISTAS_ACCESO.forEach(v => { if (v !== 'appView') el(v)?.classList.add('hidden'); });
   el('appView').classList.remove('hidden');
   const dispName = user.name || user.email;
   el('whoName').textContent = dispName;
@@ -1562,7 +2011,8 @@ function openProfile(){
   el('profRoleTop').textContent = roleLabel(user.role);
   el('profEmail').textContent = user.email;
   el('profRole').textContent = roleLabel(user.role) + (user.tenantId ? '' : ' (plataforma)');
-  el('profTenant').textContent = user.tenantId ? (tenantName || '—') : 'Plataforma';
+  const suya = (user.companies || []).find(c => c.tenantId === user.tenantId);
+  el('profTenant').textContent = user.tenantId ? (tenantName || (suya && suya.nombre) || '—') : 'Plataforma';
   el('profileModal').classList.remove('hidden');
   cargarEstado2FA();
   cargarCompanias();
@@ -1575,7 +2025,7 @@ async function cargarCompanias(){
     const fila = el('profCompaniesRow');
     if(!cs || cs.length < 2){ fila.classList.add('hidden'); return; }
     el('profCompanies').innerHTML = cs.map(c=>
-      `<option value="${c.tenantId}" ${c.tenantId===user.tenantId?'selected':''}>${c.nombre} · ${roleLabel(c.rol)}</option>`).join('');
+      `<option value="${esc(c.tenantId)}" ${c.tenantId===user.tenantId?'selected':''}>${esc(c.nombre)} · ${esc(roleLabel(c.rol))}</option>`).join('');
     fila.classList.remove('hidden');
   }catch(e){ el('profCompaniesRow').classList.add('hidden'); }
 }
@@ -1585,18 +2035,16 @@ async function cambiarCompania(tenantId){
   try{
     const r = await api('/me/switch-company','POST',{ tenantId });
     // La compañía destino exige doble factor y esta sesión no lo pasó: pedir el código.
-    if (r.requires2fa){ closeProfile(); pedirSegundoFactor(r); retoActual.cambioCompania = true; return; }
-    token = r.token; user = r.user;
-    localStorage.setItem('tp_token', token);
-    localStorage.setItem('tp_user', JSON.stringify(user));
+    if (r.requires2fa){ closeProfile(); pedirSegundoFactor(r, true); return; }
+    guardarSesion(r);
     closeProfile();
-    showApp();
+    irAlPasoPendiente();
   }catch(e){ toast(e.message,'err'); cargarCompanias(); }
 }
 function closeProfile(){ el('profileModal').classList.add('hidden'); }
 
-// ===== Verificación en dos pasos (alta desde el perfil) =====
-let tfaPendiente = null;   // { mode, challengeId? } mientras se confirma
+// ===== Verificación en dos pasos (alta y cambio desde el perfil) =====
+let tfaPendiente = null;   // { mode, replacing } mientras se confirma el secreto nuevo
 
 async function cargarEstado2FA(){
   tfaCancelar();
@@ -1608,7 +2056,6 @@ async function cargarEstado2FA(){
     et.style.background = activo ? '#dcfce7' : '#f1f5f9';
     et.style.color = activo ? '#166534' : '#475569';
     el('tfaOn').classList.toggle('hidden', !activo);
-    el('tfaOff').classList.toggle('hidden', activo);
 
     // Lo que decidió la compañía manda sobre lo que quiera el usuario.
     const pol = user.twoFactorPolicy || 'optional';
@@ -1617,41 +2064,63 @@ async function cargarEstado2FA(){
       : pol === 'off'    ? 'Tu compañía la tiene apagada: no se pedirá al entrar.'
                          : 'Tu compañía la deja opcional: actívala si quieres.';
     el('tfaOff').classList.toggle('hidden', activo || pol === 'off');
+    el('tfaDisableBtn').classList.toggle('hidden', pol === 'required');
   }catch(e){ et.textContent = '—'; }
 }
 function tfaCancelar(){
   tfaPendiente = null;
   el('tfaTotpBox').classList.add('hidden');
   el('tfaConfirmBox').classList.add('hidden');
+  el('tfaReemplazo').classList.add('hidden');
   el('tfaCode').value = '';
+}
+function mostrarSecreto2FA(r){
+  tfaPendiente = { mode:'totp', replacing: !!r.replacing };
+  el('tfaSecret').textContent = r.secret;
+  el('tfaUri').href = r.uri || '#';
+  el('tfaCuenta').textContent = user.email;
+  el('tfaReemplazo').classList.toggle('hidden', !r.replacing);
+  el('tfaTotpBox').classList.remove('hidden');
+  el('tfaConfirmBox').classList.remove('hidden');
+  el('tfaCode').focus();
 }
 async function tfaSetup(){
   const m = el('tfaMsg'); m.className='msg'; m.textContent='';
   try{
-    const r = await api('/me/2fa/setup','POST',{ mode:'totp' });
-    tfaPendiente = { mode:'totp' };
-    el('tfaSecret').textContent = r.secret;
-    el('tfaCuenta').textContent = user.email;
-    el('tfaTotpBox').classList.remove('hidden');
-    el('tfaConfirmBox').classList.remove('hidden');
-    el('tfaCode').focus();
-  }catch(e){ m.className='msg err'; m.textContent = e.message; }
+    const r = await prepararAlta2FA();
+    if (r) mostrarSecreto2FA(r);
+  }catch(e){ if (e.status !== 401){ m.className='msg err'; m.textContent = e.message; } }
+}
+// Cambiar de app (teléfono nuevo): el servidor pide la contraseña actual y un código de la
+// app de ahora; la actual sigue valiendo hasta confirmar la nueva.
+async function tfaCambiar(){
+  const m = el('tfaMsg'); m.className='msg'; m.textContent='';
+  const d = await dialog({ title:'Cambiar de app autenticadora', icon:'lock', okText:'Continuar',
+    text:'Para confirmar que eres tú, escribe tu contraseña actual y el código que muestra ahora tu app autenticadora. Si ya no la tienes, cierra sesión y usa «Perdí mi autenticador» en la pantalla del código.',
+    fields:[{ name:'pwd', label:'Contraseña actual', type:'password' },
+            { name:'code', label:'Código de la app actual', placeholder:'000000', width:'180px' }],
+    validate: v => !v.pwd ? 'Escribe tu contraseña.' : !/^\d{6}$/.test(String(v.code || '').trim()) ? 'El código son 6 dígitos.' : null });
+  if (!d) return;
+  try{
+    const r = await prepararAlta2FA({ currentPassword: d.values.pwd, code: String(d.values.code).trim() });
+    if (r) mostrarSecreto2FA(r);
+  }catch(e){ if (e.status !== 401){ m.className='msg err'; m.textContent = e.message; } }
 }
 async function tfaConfirm(){
   const m = el('tfaMsg'); m.className='msg err'; m.textContent='';
-  if(!tfaPendiente){ m.textContent = 'Empieza escogiendo un método.'; return; }
+  if(!tfaPendiente){ m.textContent = 'Primero genera la clave de configuración.'; return; }
   const code = el('tfaCode').value.trim();
-  if(code.length !== 6){ m.textContent = 'El código son 6 dígitos.'; return; }
+  if(!/^\d{6}$/.test(code)){ m.textContent = 'El código son 6 dígitos.'; return; }
+  const cambio = tfaPendiente.replacing;
   try{
     const r = await api('/me/2fa/confirm','POST',{ mode:'totp', code });
-    const estabaObligado = !!user.mustEnroll2fa;
     adoptarSesion(r);
-    // Si el alta era obligatoria, el token nuevo ya es completo: se recarga la app.
-    if (estabaObligado){ closeProfile(); entrarConSesion(r); toast('Verificación en dos pasos activada.'); return; }
-    m.className='msg ok'; m.textContent = 'Verificación en dos pasos activada.';
+    // Si quedaba algo pendiente (alcance restringido), se sigue por ahí.
+    if (alcanceToken() !== 'full'){ closeProfile(); irAlPasoPendiente(); return; }
     await cargarEstado2FA();
-    el('tfaMsg').className='msg ok'; el('tfaMsg').textContent = 'Verificación en dos pasos activada.';
-  }catch(e){ m.textContent = e.message; }
+    el('tfaMsg').className='msg ok';
+    el('tfaMsg').textContent = cambio ? 'Cambiaste tu app autenticadora. Cerramos tus otras sesiones.' : 'Verificación en dos pasos activada.';
+  }catch(e){ if (e.status !== 401) m.textContent = e.message; }
 }
 async function tfaDisable(){
   const m = el('tfaMsg'); m.className='msg err'; m.textContent='';
@@ -1664,12 +2133,12 @@ async function tfaDisable(){
     adoptarSesion(await api('/me/2fa/disable','POST',{ currentPassword: clave }));
     await cargarEstado2FA();
     el('tfaMsg').className='msg'; el('tfaMsg').textContent = 'Verificación en dos pasos desactivada.';
-  }catch(e){ m.textContent = e.message; }
+  }catch(e){ if (e.status !== 401) m.textContent = e.message; }
 }
 let tenantName = '';
 
 // ===== Dashboard y navegación por secciones =====
-const SECTIONS = ['sec-manage','sec-take','sec-history','sec-review','sec-record','sec-compliance','sec-groups'];
+const SECTIONS = ['sec-manage','sec-take','sec-history','sec-review','sec-record','sec-compliance','sec-groups','sec-admin'];
 function isCreator(){ return !!user && ['Admin','Author'].includes(user.role); }
 function isReviewer(){ return !!user && ['Admin','Author','Moderator'].includes(user.role); }
 // Cumplimiento: el Admin de la compañía o quien tenga la marca de oficial (no es un rol).
@@ -1689,6 +2158,9 @@ function buildDashTiles(){
   }
   if (isReviewer()){
     tiles.push({key:'review', icon:'checkCircle', title:'Revisar', desc:'Calificar y aprobar cancelaciones', badge:'badge-review'});
+  }
+  if (isCompanyAdmin()){
+    tiles.push({key:'admin', icon:'lock', title:'Usuarios y seguridad', desc:'Altas, contraseñas, doble factor y redes de confianza'});
   }
   tiles.push({key:'history', icon:'clock', title:'Mi historial', desc:'Tus intentos y resultados'});
   tiles.push({key:'profile', icon:'user', title:'Mi perfil', desc:'Correo, contraseña y verificación'});
@@ -1958,6 +2430,8 @@ function showSection(id){
   // Cumplimiento solo existe para el Admin de la compañía y los oficiales; si alguien
   // llega aquí sin permiso (p. ej. tras cambiar de compañía), vuelve al inicio.
   if (id==='sec-compliance' && !canCompliance()){ showDash(); return; }
+  // Usuarios y seguridad: solo el Admin de la compañía activa.
+  if (id==='sec-admin' && !isCompanyAdmin()){ showDash(); return; }
   el('dashGrid').classList.add('hidden');
   SECTIONS.forEach(s=>el(s).classList.toggle('hidden', s!==id));
   window.scrollTo({ top:0 });
@@ -1968,6 +2442,7 @@ function showSection(id){
   else if (id==='sec-record'){ initRecord(); }
   else if (id==='sec-compliance'){ loadCompliance(); }
   else if (id==='sec-groups'){ showGroupList(); loadGroups(); }
+  else if (id==='sec-admin'){ loadCompanyAdmin(); }
 }
 
 // ===== Expediente de certificaciones =====
@@ -2556,137 +3031,369 @@ async function setOfficerHere(uid){
   const b = document.querySelector(`#compOfficers [data-k="off_${uid}"]`); if (b) b.focus();
 }
 
-// ===== Admin =====
-el('createTenantBtn').onclick = async () => {
-  const msg = el('tenantMsg'); msg.textContent=''; msg.className='msg';
-  try{
-    await api('/admin/tenants','POST',{ name:el('tName').value.trim(), connectionString:el('tConn').value.trim() });
-    msg.textContent='Compañía creada y su base de datos migrada.'; msg.className='msg ok';
-    el('tName').value=''; el('tConn').value=''; loadTenants();
-  }catch(e){ msg.textContent=e.message; msg.className='msg err'; }
-};
+// ===== Admin de plataforma: compañías =====
+// Compañías, su seguridad y sus usuarios. El Admin de una compañía no ve esta vista: lo
+// suyo está en la sección «Usuarios y seguridad» del inicio (sec-admin), acotado a ella.
 let adminTenants = [];
-async function loadTenants(){
+let tenantOpts = null;   // /admin/tenants/options: ¿el servidor arma la cadena con su plantilla?
+async function cargarOpcionesTenant(){
+  if (tenantOpts) return;
+  try{ tenantOpts = await api('/admin/tenants/options'); }catch(e){ tenantOpts = null; return; }
+  const plantilla = !!tenantOpts.usesTemplate;
+  el('tDbWrap').classList.toggle('hidden', !plantilla);
+  el('tConnWrap').classList.toggle('hidden', plantilla);
+  el('tenantHint').textContent = plantilla
+    ? 'Cada compañía vive en su propia base de datos, en el servidor de siempre: escoge solo el nombre de la base (o déjalo vacío y se usa TP_ más el nombre de la compañía).'
+    : 'Cada compañía vive en su propia base de datos. Este servidor no tiene plantilla de conexión (Tenants:ConnectionTemplate): escribe la cadena completa, con un Database= único.';
+  el('tDb').placeholder = nombreBaseSugerido(el('tName').value.trim());
+}
+// El mismo nombre de base que arma el servidor si se deja vacío (TP_ + nombre sin acentos).
+function nombreBaseSugerido(n){
+  const slug = String(n || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  const s = ((tenantOpts && tenantOpts.databasePrefix) || 'TP_') + (slug || 'Compania');
+  return s.length > 50 ? s.slice(0, 50).replace(/_+$/, '') : s;
+}
+el('tName').addEventListener('input', () => { el('tDb').placeholder = nombreBaseSugerido(el('tName').value.trim()); });
+el('createTenantBtn').onclick = async () => {
+  const msg = el('tenantMsg'); msg.textContent=''; msg.className='msg err';
+  const name = el('tName').value.trim();
+  if (name.length < 2){ msg.textContent = 'Escribe el nombre de la compañía (2 caracteres o más).'; return; }
+  const cuerpo = { name };
+  if (tenantOpts && tenantOpts.usesTemplate){
+    const db = el('tDb').value.trim();
+    if (db && !new RegExp(tenantOpts.databasePattern || '^[A-Za-z0-9_]{3,50}$').test(db)){
+      msg.textContent = 'Nombre de base inválido: de 3 a 50 letras, números o guion bajo.'; return; }
+    if (db) cuerpo.databaseName = db;
+  } else {
+    const cs = el('tConn').value.trim();
+    if (!cs){ msg.textContent = 'Escribe la cadena de conexión de su base.'; return; }
+    cuerpo.connectionString = cs;
+  }
+  el('createTenantBtn').disabled = true;
   try{
-    const ts = await api('/admin/tenants');
-    adminTenants = ts;
-    el('tenantList').innerHTML = ts.length ? ts.map(t=>{
-      const pol = t.twoFactorPolicy || 'optional';
-      const etq = pol==='required' ? {t:'2FA obligatorio', s:'background:#dcfce7;color:#166534'}
-                : pol==='off'      ? {t:'2FA apagado',    s:'background:#f1f5f9;color:#475569'}
-                                   : {t:'2FA opcional',   s:'background:#e0e7ff;color:#3730a3'};
-      return `<div class="item">${t.name} <span class="tag" style="${t.status==='active'?'background:#dcfce7;color:#166534':''}">${t.status}</span>
-      <span class="tag" style="${etq.s}">🔐 ${etq.t}</span>
-      <span class="sp">
-        <button class="btn sm ghost" onclick="setPolitica2FA('${t.id}','${t.name.replace(/'/g,"")}','${pol}')">Doble factor</button>
-        <button class="btn sm ghost" onclick="toggleTenant('${t.id}','${t.status}')">${t.status==='active'?'Desactivar':'Activar'}</button>
-      </span></div>`;
+    const r = await api('/admin/tenants','POST', cuerpo);
+    msg.className='msg ok';
+    msg.textContent = r && r.databaseName ? `Compañía creada con su base ${r.databaseName}, ya migrada.` : 'Compañía creada y su base de datos migrada.';
+    el('tName').value=''; el('tConn').value=''; el('tDb').value=''; el('tDb').placeholder = nombreBaseSugerido('');
+    loadTenants();
+  }catch(e){ msg.textContent = e.message; }
+  finally{ el('createTenantBtn').disabled = false; }
+};
+const POL2FA = { required:['2FA obligatorio','ok'], optional:['2FA opcional','info'], off:['2FA apagado','gray'] };
+async function loadTenants(){
+  cargarOpcionesTenant();
+  try{
+    adminTenants = (await api('/admin/tenants')) || [];
+    el('tenantList').innerHTML = adminTenants.length ? adminTenants.map(t => {
+      const pol = POL2FA[t.twoFactorPolicy] || POL2FA.optional;
+      const activa = t.status === 'active';
+      return `<div class="item" style="flex-wrap:wrap"><b>${esc(t.name)}</b>
+        <span class="tag ${activa ? 'ok' : 'gray'}">${activa ? 'activa' : 'inactiva'}</span>
+        <span class="tag ${pol[1]}">${pol[0]}</span>
+        <span class="sp">
+          <button class="btn sm ghost" onclick="abrirSeguridadTenant('${esc(t.id)}')">${ic('lock',14)} Seguridad</button>
+          <button class="btn sm ghost" onclick="toggleTenant('${esc(t.id)}')">${activa ? 'Desactivar' : 'Activar'}</button>
+        </span></div>`;
     }).join('') : `<div class="empty">Aún no hay compañías.</div>`;
-    el('uTenant').innerHTML = ts.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
-    el('userFilter').innerHTML = `<option value="">Todas las compañías</option>` + ts.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+    el('uTenant').innerHTML = adminTenants.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+    const f = el('userFilter').value;
+    el('userFilter').innerHTML = `<option value="">Todas las compañías</option>` + adminTenants.map(t=>`<option value="${esc(t.id)}" ${t.id===f?'selected':''}>${esc(t.name)}</option>`).join('');
     loadUsers();
-  }catch(e){}
+  }catch(e){ if (e.status !== 401) el('tenantList').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
 }
-// La política de doble factor la fija la compañía, no cada usuario.
-async function setPolitica2FA(id, nombre, actual){
-  const r = await dialog({
-    title: 'Verificación en dos pasos · ' + nombre, icon:'lock', okText:'Guardar',
-    text: 'Se hace siempre con app autenticadora (Google Authenticator, Authy, Microsoft Authenticator).',
-    fields: [{ name:'policy', type:'radio', value: actual, options: [
-      { value:'off',      label:'Apagada',     hint:'No se pide al entrar.' },
-      { value:'optional', label:'Opcional',    hint:'Quien quiera la activa en su perfil.' },
-      { value:'required', label:'Obligatoria', hint:'Todos deben activarla para seguir usando la plataforma.' }
-    ]}]
-  });
-  if(!r) return;
-  try{ await api('/admin/tenants/'+id+'/two-factor','POST',{ policy:r.values.policy }); toast('Política guardada.'); loadTenants(); }
-  catch(e){ toast(e.message,'err'); }
-}
-
-async function toggleTenant(id, status){
-  const next = status==='active' ? 'inactive' : 'active';
-  try{ await api('/admin/tenants/'+id+'/status','POST',{status:next}); loadTenants(); }catch(e){ toast(e.message,'err'); }
+async function toggleTenant(id){
+  const t = adminTenants.find(x => x.id === id); if (!t) return;
+  const next = t.status === 'active' ? 'inactive' : 'active';
+  if (next === 'inactive' && !await confirmModal('¿Desactivar ' + t.name + '?',
+      'Su gente deja de poder entrar hasta que la vuelvas a activar. No se borra nada.', { danger:true, okText:'Desactivar' })) return;
+  try{ await api('/admin/tenants/'+encodeURIComponent(id)+'/status','POST',{ status:next }); loadTenants(); }catch(e){ toast(e.message,'err'); }
 }
 function tenantNameById(id){ const t=adminTenants.find(x=>x.id===id); return t?t.name:'—'; }
 
+// ===== Seguridad de acceso de una compañía =====
+// La misma ficha para el Admin de la compañía (sección «Usuarios y seguridad»,
+// GET/PUT /company/security) y para el admin de plataforma (botón «Seguridad» de cada
+// compañía: /admin/tenants/{id}/security, y la política de doble factor en
+// /admin/tenants/{id}/two-factor, que solo él puede cambiar).
+let SEG = null;   // { v: vista del servidor, box, plataforma, pol, redes, rec, avisos, dirty, err }
+const POL_TXT = {
+  off:      ['Apagada', 'No se pide al entrar.'],
+  optional: ['Opcional', 'Quien quiera la activa en su perfil.'],
+  required: ['Obligatoria', 'Todos deben activarla para seguir usando la plataforma (salvo desde las redes de confianza).']
+};
+function segIniciar(v, box, plataforma){
+  SEG = { v, box, plataforma, pol: v.twoFactorPolicy || 'optional', redes: (v.trustedNetworks || []).join('\n'),
+          rec: v.emailRecoveryEnabled !== false, avisos: v.notifyAdmins !== false, dirty: false, err: '' };
+  segPintar();
+}
+function segPintar(){
+  if (!SEG) return;
+  const v = SEG.v, p = SEG.plataforma;
+  const pol = p
+    ? Object.keys(POL_TXT).map(k => `<button type="button" class="radio ${SEG.pol===k?'on':''}" aria-pressed="${SEG.pol===k}" onclick="segSet('pol','${k}',true)">
+        <i></i><div><b>${POL_TXT[k][0]}</b><span>${esc(POL_TXT[k][1])}</span></div></button>`).join('')
+    : `<div class="kv"><span>Política de la compañía</span><b>${esc((POL_TXT[SEG.pol] || [SEG.pol])[0])}</b></div>
+       <p class="hint" style="margin:6px 0 0">Siempre con app autenticadora. La política la cambia el administrador de la plataforma.</p>`;
+  const inst = p && (v.instanceTrustedNetworks || []).length
+    ? `<p class="hint" style="margin:6px 0 0">Además, las redes de confianza de toda la instancia: <span class="netbox">${esc(v.instanceTrustedNetworks.join(', '))}</span></p>` : '';
+  const miIp = v.yourIp
+    ? `<p class="hint" style="margin:6px 0 0">Tu IP, como la ve el servidor: <b class="netbox">${esc(v.yourIp)}</b>
+        <span class="st xs ${v.yourIpTrusted ? 'ok' : 'gray'}">${v.yourIpTrusted ? 'de confianza' : 'fuera de las redes de confianza'}</span>
+        <button type="button" class="linkbtn" onclick="segAgregarMiIp()">Añadir mi IP</button></p>` : '';
+  SEG.box.innerHTML = `
+    ${p ? `<h3>Seguridad de acceso · ${esc(v.name)}</h3>` : `<h2>Seguridad de acceso</h2><p class="hint">Cómo entra la gente de ${esc(v.name)} a la plataforma.</p>`}
+    <div class="sectionhead"><h4>Verificación en dos pasos</h4></div>
+    ${pol}
+    <div class="sectionhead"><h4>Redes de confianza</h4></div>
+    <p class="hint" style="margin:0 0 8px">Desde estas redes (la oficina, por ejemplo) no se pide el código del autenticador ni su alta, aunque la verificación sea obligatoria. Una IP (203.0.113.7) o una red en formato CIDR (203.0.113.0/24) por línea. Vacío: ninguna.</p>
+    <label for="segRedes" style="margin-top:0">Redes (una por línea)</label>
+    <textarea id="segRedes" class="field netbox" rows="4" placeholder="203.0.113.0/24" oninput="segSet('redes',this.value)">${esc(SEG.redes)}</textarea>
+    ${miIp}${inst}
+    <div class="sectionhead"><h4>Recuperación y avisos</h4></div>
+    ${swRow('segRec', SEG.rec, 'Recuperar el acceso por correo', 'Quien pierda su app autenticadora puede quitarla con un código enviado a su correo validado. Si lo apagas, tendrá que pedir a un Admin que reinicie su verificación en dos pasos.', "segSet('rec',!SEG.rec,true)")}
+    ${swRow('segAvisos', SEG.avisos, 'Avisar a los administradores', 'Correo a los Admin de la compañía cuando alguien restablece su contraseña desde fuera de las redes de confianza o recupera el acceso con su correo.', "segSet('avisos',!SEG.avisos,true)")}
+    <p class="msg err" id="segErr" role="alert">${esc(SEG.err)}</p>
+    <div class="${p ? 'modal-actions' : 'panefoot'}">
+      ${p ? `<button type="button" class="btn sm ghost" onclick="cerrarSeguridadTenant()">Cerrar</button>` : ''}
+      <button type="button" class="btn sm" id="segSave" onclick="segGuardar()" ${SEG.dirty ? '' : 'disabled'}>Guardar</button>
+      ${p ? '' : `<span class="hint dirty" id="segDirty">${SEG.dirty ? 'Cambios sin guardar' : ''}</span>`}
+    </div>`;
+}
+function segSet(k, v, pintar){
+  if (!SEG) return;
+  SEG[k] = v; SEG.dirty = true; SEG.err = '';
+  if (pintar){ segPintar(); const b = SEG.box.querySelector(`[data-k="${k === 'rec' ? 'segRec' : k === 'avisos' ? 'segAvisos' : ''}"]`); if (b) b.focus(); return; }
+  const b = el('segSave'); if (b) b.disabled = false;
+  const n = el('segDirty'); if (n) n.textContent = 'Cambios sin guardar';
+}
+function segAgregarMiIp(){
+  if (!SEG || !SEG.v.yourIp) return;
+  const lista = SEG.redes.split(/[\n,;]+/).map(x => x.trim()).filter(Boolean);
+  if (!lista.includes(SEG.v.yourIp)) lista.push(SEG.v.yourIp);
+  segSet('redes', lista.join('\n'), true);
+}
+// Una IP o una red CIDR, con los límites del servidor (no más amplia que /8 en IPv4 ni
+// que /32 en IPv6). El servidor vuelve a validar y deja cada red en su forma canónica.
+function redValida(s){
+  const m = /^([^/\s]+)(?:\/(\d{1,3}))?$/.exec(s); if (!m) return false;
+  const ip = m[1], pre = m[2] == null ? null : Number(m[2]);
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(ip))
+    return !ip.split('.').some(o => Number(o) > 255) && (pre == null || (pre >= 8 && pre <= 32));
+  if (ip.includes(':')){
+    try{ new URL('http://[' + ip + ']/'); }catch{ return false; }
+    return pre == null || (pre >= 32 && pre <= 128);
+  }
+  return false;
+}
+async function segGuardar(){
+  if (!SEG) return;
+  const redes = SEG.redes.split(/[\n,;]+/).map(x => x.trim()).filter(Boolean);
+  const malas = redes.filter(r => !redValida(r));
+  if (malas.length){
+    SEG.err = `Estas redes no son válidas: ${malas.slice(0, 5).join(', ')}. Escribe una IP (203.0.113.7) o una red CIDR (203.0.113.0/24), no más amplia que /8 en IPv4 ni que /32 en IPv6.`;
+    segPintar(); return;
+  }
+  if (redes.length > 50){ SEG.err = 'Como máximo 50 redes de confianza.'; segPintar(); return; }
+  const b = el('segSave'); if (b) b.disabled = true;
+  const s = SEG, v = s.v, cuerpo = { trustedNetworks: redes, emailRecoveryEnabled: s.rec, notifyAdmins: s.avisos };
+  try{
+    let nueva;
+    if (s.plataforma){
+      if (s.pol !== v.twoFactorPolicy){
+        await api('/admin/tenants/' + encodeURIComponent(v.tenantId) + '/two-factor', 'POST', { policy: s.pol });
+        v.twoFactorPolicy = s.pol;
+      }
+      nueva = await api('/admin/tenants/' + encodeURIComponent(v.tenantId) + '/security', 'PUT', cuerpo);
+    } else nueva = await api('/company/security', 'PUT', cuerpo);
+    toast('Seguridad de acceso guardada.');
+    if (SEG === s) segIniciar(nueva, s.box, s.plataforma);
+    if (s.plataforma) loadTenants();
+  }catch(e){
+    if (e.status === 401 || SEG !== s) return;
+    s.err = e.message; segPintar();
+  }
+}
+async function abrirSeguridadTenant(id){
+  try{
+    const v = await api('/admin/tenants/' + encodeURIComponent(id) + '/security');
+    el('segModal').classList.remove('hidden');
+    segIniciar(v, el('segModalBox'), true);
+  }catch(e){ if (e.status !== 401) toast(e.message, 'err'); }
+}
+function cerrarSeguridadTenant(){ el('segModal').classList.add('hidden'); SEG = null; }
+// (el modal está después del script: se escucha en el documento)
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !document.querySelector('.modal.dlg') && !el('segModal').classList.contains('hidden')) cerrarSeguridadTenant();
+});
+
+// ===== Usuarios (admin de plataforma y Admin de compañía) =====
+// Los onclick pasan solo el id; el nombre y lo demás se buscan en la última lista.
+let usuariosVistos = {};
+function nombreUsuario(id){ const u = usuariosVistos[id]; return u ? (u.name || u.email) : 'esta persona'; }
+function esAdminPlataforma(u){ return !!u && !u.tenantId && u.role === 'Admin'; }
+function recargarUsuarios(){ return isCompanyAdmin() ? loadCompanyUsers() : loadUsers(); }
+function fmtVence(d){
+  return d ? 'el ' + new Date(d).toLocaleString('es-PR', { day:'numeric', month:'long', hour:'numeric', minute:'2-digit' }) : 'en 72 horas';
+}
+const ROLES = [['Admin','Administrador'],['Author','Autor'],['Moderator','Moderador'],['Learner','Aprendiz']];
+
+// o.plataforma: lista del admin de plataforma (con compañía y marca de oficial);
+// si no, la del Admin de la compañía activa.
+function filaUsuario(u, o){
+  const id = esc(u.id), me = !!user && u.id === user.id;
+  const sel = `<select class="field" style="max-width:150px;padding:6px 8px" aria-label="Rol de ${esc(u.name || u.email)}"
+      onchange="changeRole('${id}',this.value)" ${me ? 'disabled title="Tu propio rol lo cambia otro administrador"' : ''}>
+      ${ROLES.map(([v, l]) => `<option value="${v}" ${v === u.role ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+  const tags = [
+    u.mustChangePassword ? '<span class="st xs warn">cambio de clave pendiente</span>' : '',
+    u.twoFactorEnabled ? '<span class="st xs ok">2FA</span>' : '',
+    u.isComplianceOfficer ? '<span class="st xs info">Oficial</span>' : ''
+  ].filter(Boolean).join(' ');
+  const donde = o.plataforma ? ' · ' + esc(u.tenantId ? tenantNameById(u.tenantId) : 'Plataforma') : '';
+  const comp = o.plataforma ? (o.filtro || u.tenantId) : null;
+  const oficial = comp
+    ? `<label class="opt" style="margin:0;font-weight:600;white-space:nowrap" title="Recibe copia de los certificados y el resumen de cumplimiento de ${esc(tenantNameById(comp))}">
+         <input type="checkbox" ${u.isComplianceOfficer ? 'checked' : ''} onchange="setOfficer('${id}','${esc(comp)}',this)" /> Oficial de cumplimiento</label>` : '';
+  // En la lista de una compañía, quien llega por membresía (su principal es otra) solo se
+  // quita de ella; su cuenta sigue.
+  const soloMembresia = !o.plataforma && (u.memberships || []).some(m => m.principal === false);
+  const acciones = me ? '' : `
+      <button class="btn sm ghost" onclick="resetUserPwd('${id}')">${ic('key',14)} Contraseña</button>
+      ${u.twoFactorEnabled && !esAdminPlataforma(u) ? `<button class="btn sm ghost" onclick="reset2FA('${id}')">${ic('refresh',14)} Reiniciar doble factor</button>` : ''}
+      <button class="btn sm danger" onclick="deleteUser('${id}')">${soloMembresia ? 'Quitar de la compañía' : 'Eliminar'}</button>`;
+  return `<div class="item" style="flex-wrap:wrap">
+    <div style="flex:1;min-width:200px"><b>${esc(u.name || '(sin nombre)')}</b> ${tags}<br><span class="hint">${esc(u.email)}${donde}${me ? ' · tú' : ''}</span></div>
+    <span class="sp" style="flex-wrap:wrap;align-items:center">${oficial}${sel}${acciones}</span></div>`;
+}
 async function loadUsers(){
   const f = el('userFilter').value;
   try{
-    const us = await api('/admin/users' + (f?('?tenantId='+f):''));
-    el('usersList').innerHTML = us.length ? us.map(u=>{
-      const tn = u.tenantId ? tenantNameById(u.tenantId) : 'Plataforma';
-      const roles = ['Admin','Author','Moderator','Learner'];
-      const sel = `<select class="field" style="max-width:140px;padding:6px 8px" onchange="changeRole('${u.id}',this.value)">${roles.map(r=>`<option ${r===u.role?'selected':''}>${r}</option>`).join('')}</select>`;
-      const flag = u.mustChangePassword ? ' <span class="tag" style="background:#fef3c7;color:#92400e">cambio pendiente</span>' : '';
-      const me = (user && u.id===user.id);
-      // Oficial de cumplimiento: marca en la compañía filtrada o, sin filtro, en su principal.
-      const comp = f || u.tenantId;
-      const oficial = comp
-        ? `<label class="opt" style="margin:0;font-weight:600;white-space:nowrap" title="Recibe copia de los certificados y el resumen de cumplimiento de ${esc(tenantNameById(comp))}">
-             <input type="checkbox" ${u.isComplianceOfficer?'checked':''} onchange="setOfficer('${u.id}','${comp}',this)" /> Oficial de cumplimiento</label>` : '';
-      return `<div class="item" style="flex-wrap:wrap">
-        <div><b>${esc(u.name||'(sin nombre)')}</b>${flag}${u.isComplianceOfficer ? ' <span class="st xs info">Oficial</span>' : ''}<br><span class="hint">${esc(u.email)} · ${esc(tn)}</span></div>
-        <span class="sp" style="flex-wrap:wrap;align-items:center">${oficial}${sel}
-          <button class="btn sm ghost" onclick="resetUserPwd('${u.id}','${(u.name||u.email).replace(/'/g,"")}')">Resetear contraseña</button>
-          ${me?'':`<button class="btn sm danger" onclick="deleteUser('${u.id}','${(u.name||u.email).replace(/'/g,"")}')">Eliminar</button>`}
-        </span>
-      </div>`;
-    }).join('') : `<div class="empty">No hay usuarios.</div>`;
-  }catch(e){}
+    const us = (await api('/admin/users' + (f ? ('?tenantId=' + encodeURIComponent(f)) : ''))) || [];
+    us.forEach(u => usuariosVistos[u.id] = u);
+    el('usersList').innerHTML = us.length ? us.map(u => filaUsuario(u, { plataforma:true, filtro:f })).join('') : `<div class="empty">No hay usuarios.</div>`;
+  }catch(e){ if (e.status !== 401) el('usersList').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
 }
-async function changeRole(id, role){ try{ await api('/admin/users/'+id+'/role','POST',{role}); }catch(e){ toast(e.message,'err'); loadUsers(); } }
+async function changeRole(id, role){
+  try{ await api('/admin/users/'+encodeURIComponent(id)+'/role','POST',{ role }); toast('Rol actualizado. Sus sesiones abiertas se cierran.'); }
+  catch(e){ toast(e.message,'err'); }
+  recargarUsuarios();
+}
 // Marca de oficial de cumplimiento en una compañía (no es un rol: se suma al que tenga).
 async function setOfficer(userId, tenantId, cb){
   const quiere = cb.checked;
   cb.disabled = true;
   try{
-    const r = await api('/admin/user-companies/'+userId+'/compliance-officer','POST',{ isOfficer:quiere, tenantId });
+    const r = await api('/admin/user-companies/'+encodeURIComponent(userId)+'/compliance-officer','POST',{ isOfficer:quiere, tenantId });
     toast(r.isComplianceOfficer ? 'Marcado como oficial de cumplimiento de ' + tenantNameById(tenantId) + '.'
                                 : 'Ya no es oficial de cumplimiento de ' + tenantNameById(tenantId) + '.');
     loadUsers();
   }catch(e){ cb.checked = !quiere; toast(e.message,'err'); }
   finally{ cb.disabled = false; }
 }
-async function resetUserPwd(id, name){
-  const temp = await askModal('Resetear contraseña de '+name, 'El usuario deberá cambiarla al entrar. Vence en 72 horas.',
-    { label:'Contraseña temporal', placeholder:'Mínimo 10 caracteres', icon:'key', okText:'Resetear',
-      validate: v => v.length<10 ? 'Mínimo 10 caracteres.' : null });
-  if(temp===null) return;
+// Restablecer la contraseña: por defecto el servidor genera una temporal de 16 caracteres;
+// se muestra una sola vez, con botón para copiarla.
+async function resetUserPwd(id){
+  const name = nombreUsuario(id), correo = (usuariosVistos[id] || {}).email;
+  const d = await dialog({ title:'Restablecer la contraseña de ' + name, icon:'key', okText:'Restablecer',
+    text:'Se cierran sus sesiones y al entrar tendrá que cambiarla. La temporal vence en 72 horas.',
+    fields:[{ name:'modo', type:'radio', value:'auto', options:[
+              { value:'auto',   label:'Generar una segura', hint:'16 caracteres al azar. La verás una sola vez.' },
+              { value:'manual', label:'Escribirla yo',      hint:'Mínimo 10 caracteres y distinta de su correo.' } ]},
+            { name:'clave', label:'Contraseña temporal', type:'text', showIf: v => v.modo === 'manual' }],
+    validate: v => v.modo === 'manual' ? politicaClave(v.clave, correo) : null });
+  if (!d) return;
+  const manual = d.values.modo === 'manual';
   try{
-    const r = await api('/admin/users/'+id+'/reset-password','POST',{tempPassword:temp});
-    await infoModal('Contraseña reseteada', 'Comunícale a '+name+' la contraseña temporal:', { code:(r && r.temporaryPassword) || temp, tone:'ok' });
-    loadUsers();
+    const r = await api('/admin/users/'+encodeURIComponent(id)+'/reset-password','POST', manual ? { tempPassword: d.values.clave } : {});
+    await infoModal('Contraseña restablecida',
+      `Comunícale a ${name} su contraseña temporal por un medio seguro (no por correo). Vence ${fmtVence(r && r.expiresAt)} y al entrar se le pedirá cambiarla.`,
+      { code: (r && r.temporaryPassword) || d.values.clave, tone:'ok', icon:'key' });
+    recargarUsuarios();
   }catch(e){ toast(e.message,'err'); }
 }
-async function deleteUser(id, name){
-  if(!await confirmModal('¿Eliminar a '+name+'?', 'Esta acción no se puede deshacer.', { danger:true, icon:'trash', okText:'Eliminar' })) return;
-  try{ await api('/admin/users/'+id,'DELETE'); toast('Usuario eliminado.'); loadUsers(); }catch(e){ toast(e.message,'err'); }
-}
-el('createUserBtn').onclick = async () => {
-  const msg = el('userMsg'); msg.textContent=''; msg.className='msg';
-  const email = el('uEmail').value.trim(), name = el('uName').value.trim();
-  if(!email){ msg.textContent='El correo es requerido.'; msg.className='msg err'; return; }
-  const inv = await dialog({ title:'¿Enviar una invitación por correo a '+(name||email)+'?', icon:'mail',
-    text:'La invitación trae un enlace (72 horas) para que cree su contraseña. Sin invitación se genera una contraseña temporal que verás una sola vez.',
-    actions:[ { label:'Cancelar', value:null, kind:'ghost' },
-              { label:'Crear con clave temporal', value:'no', kind:'ghost' },
-              { label:'Crear y enviar', value:'yes' } ] });
-  if(!inv) return;
-  const sendInvite = inv.action === 'yes';
+// Reiniciar el doble factor de quien perdió su app (y no puede recuperarlo por correo).
+async function reset2FA(id){
+  const name = nombreUsuario(id);
+  if (!await confirmModal('¿Reiniciar la verificación en dos pasos de ' + name + '?',
+      'Quitamos su app autenticadora, cerramos sus sesiones y le avisamos por correo. Al entrar, si la compañía la exige, tendrá que registrar una nueva. Hazlo solo si confirmaste que es esa persona quien lo pide.',
+      { danger:true, icon:'lock', okText:'Reiniciar' })) return;
   try{
-    const r = await api('/admin/users','POST',{ email, name,
-      password:el('uPass').value, role:el('uRole').value, tenantId:el('uTenant').value || null, sendInvite });
-    msg.textContent = sendInvite
-      ? (r.invited ? 'Usuario creado e invitación enviada.' : 'Usuario creado. La invitación no se pudo enviar, así que se generó una contraseña temporal.')
-      : 'Usuario creado.';
-    msg.className='msg ok';
-    // Sin invitación, el servidor genera la clave temporal y la devuelve una sola vez.
+    const r = await api('/company/users/'+encodeURIComponent(id)+'/reset-2fa','POST');
+    toast(r && r.hadTwoFactor === false ? name + ' no tenía verificación en dos pasos.' : 'Verificación en dos pasos reiniciada. Le avisamos por correo.');
+    recargarUsuarios();
+  }catch(e){ toast(e.message,'err'); }
+}
+async function deleteUser(id){
+  const u = usuariosVistos[id] || {}, name = nombreUsuario(id);
+  const soloMembresia = isCompanyAdmin() && (u.memberships || []).some(m => m.principal === false);
+  const ok = soloMembresia
+    ? await confirmModal('¿Quitar a ' + name + ' de la compañía?', 'Deja de entrar a esta compañía; su cuenta sigue en las otras.', { danger:true, icon:'trash', okText:'Quitar' })
+    : await confirmModal('¿Eliminar a ' + name + '?', 'Esta acción no se puede deshacer.', { danger:true, icon:'trash', okText:'Eliminar' });
+  if (!ok) return;
+  try{
+    const r = await api('/admin/users/'+encodeURIComponent(id),'DELETE');
+    toast(r && r.removedMembership ? name + ' ya no pertenece a la compañía.' : 'Usuario eliminado.');
+    recargarUsuarios();
+  }catch(e){ toast(e.message,'err'); }
+}
+// Alta: con invitación (enlace de 72 h para que cree su contraseña) o con clave temporal
+// (la genera el servidor y la devuelve UNA vez). Si la invitación no sale, el servidor
+// genera la temporal igual y se muestra aquí.
+let creandoUsuario = false;
+async function crearUsuario(invitar, d, msg){
+  msg.className='msg err'; msg.textContent='';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)){ msg.textContent = 'Escribe un correo válido.'; return false; }
+  if (creandoUsuario) return false;
+  creandoUsuario = true;
+  try{
+    const r = await api('/admin/users','POST',{ email:d.email, name:d.name, role:d.role, tenantId:d.tenantId || null, sendInvite:invitar });
+    const quien = d.name || d.email;
+    msg.className = 'msg ok';
+    msg.textContent = invitar && r.invited ? `Invitación enviada a ${d.email}. El enlace vale 72 horas.`
+      : invitar ? 'Usuario creado, pero la invitación no salió: usa la contraseña temporal.' : 'Usuario creado.';
     if (r && r.temporaryPassword)
-      await infoModal('Usuario creado', 'Comunícale a '+(name||email)+' su contraseña temporal (vence en 72 horas; se le pedirá cambiarla al entrar):', { code:r.temporaryPassword, tone:'ok' });
-    el('uEmail').value=''; el('uName').value=''; el('uPass').value='';
-    loadUsers();
-  }catch(e){ msg.textContent=e.message; msg.className='msg err'; }
-};
+      await infoModal(invitar ? 'La invitación no se pudo enviar' : 'Usuario creado',
+        (invitar ? `No pudimos mandar la invitación a ${d.email}, así que generamos una contraseña temporal. ` : '')
+        + `Comunícale a ${quien} su contraseña temporal por un medio seguro. Se muestra una sola vez: vence ${fmtVence(r.temporaryPasswordExpiresAt)} y al entrar se le pedirá cambiarla.`,
+        { code: r.temporaryPassword, tone: invitar ? '' : 'ok', icon:'key' });
+    return true;
+  }catch(e){ msg.className='msg err'; msg.textContent = e.message; return false; }
+  finally{ creandoUsuario = false; }
+}
+async function crearUsuarioPlataforma(invitar){
+  const ok = await crearUsuario(invitar, { email:el('uEmail').value.trim(), name:el('uName').value.trim(),
+    role:el('uRole').value, tenantId:el('uTenant').value }, el('userMsg'));
+  if (ok){ el('uEmail').value=''; el('uName').value=''; loadUsers(); }
+}
+el('createUserBtn').onclick = () => crearUsuarioPlataforma(true);
+el('createUserTempBtn').onclick = () => crearUsuarioPlataforma(false);
+
+// ----- «Usuarios y seguridad» del Admin de la compañía (sec-admin) -----
+// Todo acotado a su compañía activa: el servidor no le deja ver ni tocar otras compañías
+// ni al admin de plataforma, y no crea usuarios fuera de la suya.
+function loadCompanyAdmin(){ loadCompanySecurity(); loadCompanyUsers(); }
+async function loadCompanySecurity(){
+  const box = el('caSecurity');
+  try{ segIniciar(await api('/company/security'), box, false); }
+  catch(e){ if (e.status !== 401) box.innerHTML = `<h2>Seguridad de acceso</h2><p class="hint">${esc(e.message)}</p>`; }
+}
+async function loadCompanyUsers(){
+  const box = el('caUsers');
+  if (!box.children.length) box.innerHTML = loadingHtml();
+  try{
+    const us = (await api('/admin/users?tenantId=' + encodeURIComponent(user.tenantId))) || [];
+    us.forEach(u => usuariosVistos[u.id] = u);
+    box.innerHTML = us.length ? us.map(u => filaUsuario(u, { plataforma:false })).join('') : `<div class="empty">Aún no hay usuarios.</div>`;
+  }catch(e){ if (e.status !== 401) box.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+async function crearUsuarioCompania(invitar){
+  const ok = await crearUsuario(invitar, { email:el('caEmail').value.trim(), name:el('caName').value.trim(),
+    role:el('caRole').value, tenantId:user.tenantId }, el('caMsg'));
+  if (ok){ el('caEmail').value=''; el('caName').value=''; loadCompanyUsers(); }
+}
+el('caInviteBtn').onclick = () => crearUsuarioCompania(true);
+el('caTempBtn').onclick = () => crearUsuarioCompania(false);
 
 // ===== Adiestramientos del autor: tarjetas y ficha del curso =====
 // La lista muestra cada curso como tarjeta (portada, estado, vigencia y cuántas personas
@@ -4989,14 +5696,12 @@ el('blocks').addEventListener('click', e => {
 
 showItemForm();
 // Si se llega con el enlace del correo (#reset=TOKEN o ?reset=TOKEN), lo primero es fijar la contraseña.
-if (tokenDeLaUrl()){
-  mostrarSolo('resetView');
-  el('rsNew').focus();
-} else if (token && user){
-  if (user.mustChangePassword) showForceChange();
-  else if (user.emailVerified === false) pedirValidacionCorreo();
-  else showApp();
-}
+// Arranque: con el enlace del correo (#reset=, #invite= o ?reset=), lo primero es fijar la
+// contraseña. Con una sesión guardada, a lo que le falte según su alcance (o a la app); si
+// el token ya venció, al login.
+if (tokenDeLaUrl()) mostrarRestablecer();
+else if (token && user && !tokenVencido()) irAlPasoPendiente();
+else { if (token) logout(); else mostrarSolo('loginView'); }
 </script>
 
 <!-- MODAL DE PERFIL -->
@@ -5045,7 +5750,8 @@ if (tokenDeLaUrl()){
           <p class="sub" style="margin:0 0 6px">Agrega esta clave en Google Authenticator, Authy, 1Password o Microsoft Authenticator (opción "introducir clave de configuración"):</p>
           <div id="tfaSecret" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;
                font-family:ui-monospace,Consolas,monospace;font-size:15px;letter-spacing:2px;word-break:break-all"></div>
-          <p class="sub" style="margin:8px 0 4px">Cuenta: <b id="tfaCuenta"></b> · Emisor: <b>Aprendor</b></p>
+          <p class="sub" style="margin:8px 0 4px">Cuenta: <b id="tfaCuenta"></b> · Emisor: <b>Aprendor</b> · <a href="#" id="tfaUri" style="color:#4f46e5">abrir en la app (en el teléfono)</a></p>
+          <p class="sub hidden" id="tfaReemplazo" style="margin:4px 0 0">La app actual sigue valiendo hasta que confirmes la nueva.</p>
         </div>
 
         <div id="tfaConfirmBox" class="hidden" style="margin-top:12px">
@@ -5057,7 +5763,8 @@ if (tokenDeLaUrl()){
         </div>
 
         <div id="tfaOn" class="hidden">
-          <button class="btn sm ghost danger" onclick="tfaDisable()">Desactivar</button>
+          <button class="btn sm ghost" onclick="tfaCambiar()">Cambiar de app</button>
+          <button class="btn sm ghost danger" id="tfaDisableBtn" onclick="tfaDisable()">Desactivar</button>
         </div>
         <p class="msg" id="tfaMsg"></p>
       </div>
@@ -5067,6 +5774,11 @@ if (tokenDeLaUrl()){
       <button class="btn sm" onclick="closeProfile()">Listo</button>
     </div>
   </div>
+</div>
+
+<!-- Seguridad de una compañía (admin de plataforma): política 2FA, redes de confianza y avisos -->
+<div id="segModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Seguridad de la compañía">
+  <div class="modal-box" style="max-width:560px" id="segModalBox"></div>
 </div>
 </body>
 </html>

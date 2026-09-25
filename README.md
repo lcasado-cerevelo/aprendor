@@ -331,3 +331,40 @@ loopback, pero siempre con `CF-Ray` y `CF-Connecting-IP`, así que se le sigue e
   `GET /admin/users` trae `twoFactorEnabled`.
 - Correos nuevos (`/admin/email-preview?kind=`): `recover`, `enroll-code`, `2fa-reset`, `2fa-recovered`,
   `admin-reset-notice`, `admin-2fa-notice`.
+
+## Pantallas de acceso y administración (septiembre 2026, bloque F1)
+
+Solo cambia `wwwroot/index.html`; usa los endpoints de S1–S3 tal cual.
+
+- **Turnstile**: al cargar, el front pide `GET /auth/config`; si trae site key carga
+  `https://challenges.cloudflare.com/turnstile/v0/api.js` (modo explícito) y pinta el widget en el
+  login, «¿Olvidaste tu contraseña?», la clave nueva (restablecer o invitación) y el inicio de «Perdí
+  mi autenticador». El token va en el cuerpo (`turnstileToken`) y el widget se reinicia tras cada
+  envío. Si el widget aún no terminó, avisa en vez de enviar. En Development se ven las claves de
+  prueba de Cloudflare (el widget dice «Solo para pruebas»).
+- **Mensajes**: `api()` sigue mostrando `data.error`; los 429 muestran los minutos que manda el
+  servidor (o los de `Retry-After`). Un 401 fuera de `/auth/*` cierra la sesión y vuelve al login con
+  «Tu sesión terminó»; un 403 con un token restringido vuelve al paso pendiente.
+- **Alcance del token** (`scope`): `change-password` lleva al cambio de clave, `enroll-2fa` a una
+  pantalla propia de alta del autenticador (con el código por correo si el servidor lo pide) y
+  `verify-email` a validar el correo; solo `full` entra a la app. Al recargar la página se respeta
+  igual (y un token vencido lleva al login).
+- **«Perdí mi autenticador»**: enlace en la pantalla del código del login (no en la del cambio de
+  compañía). Pide el código al correo, lo canjea y, si la compañía exige el doble factor, lleva a
+  registrar la app nueva.
+- **Enlaces del correo**: `#reset=`, `#invite=` (título «Crea tu contraseña») y `?reset=`; se leen al
+  cargar y se quitan de la barra con `history.replaceState`. Si el servidor responde `requiresTotp`,
+  aparece el campo del código de la app. La política de claves (10 caracteres, distinta del correo) se
+  comprueba también en el cliente.
+- **Perfil**: alta del autenticador con el código por correo cuando hace falta y «Cambiar de app»
+  (contraseña actual + código de la app de ahora).
+- **Admin de plataforma**: botón «Seguridad» por compañía (política de doble factor, redes de
+  confianza validadas como CIDR, recuperación por correo y avisos a los Admin; muestra la IP con la
+  que te ve el servidor y las redes de la instancia); alta de compañía con solo el nombre de la base
+  si el servidor tiene `Tenants:ConnectionTemplate` (si no, la cadena completa); alta de usuarios con
+  «Enviar invitación» o «Crear con clave temporal» (la temporal se ve una vez, con botón Copiar);
+  «Contraseña» (genera una segura o la escribes tú) y «Reiniciar doble factor» en cada usuario.
+- **Admin de compañía**: mosaico «Usuarios y seguridad» en el inicio, solo sobre su compañía: la misma
+  ficha de seguridad (la política de doble factor se ve pero la cambia el admin de plataforma), altas
+  por invitación o clave temporal, rol, contraseña, reiniciar doble factor y quitar de la compañía. No
+  ve compañías, otras compañías ni admins de plataforma.
