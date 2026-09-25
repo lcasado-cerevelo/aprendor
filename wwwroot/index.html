@@ -31,6 +31,12 @@
   .brand{display:flex;align-items:center;gap:11px;font:800 21px var(--display);margin-bottom:4px;letter-spacing:.2px;}
   .brand .dot{width:26px;height:26px;border-radius:7px;background:var(--brand);display:inline-block;}
   .sub{color:var(--muted);font-size:14px;margin:0 0 22px;}
+  /* Lema de la marca bajo el nombre: se destaca por color (el mismo degradado del logo) y
+     peso, no por tamaño, para que «Aprendor» siga siendo el título. Va alineado con el
+     texto del nombre, no con el logo. La invitación a entrar queda aparte, más abajo. */
+  .tagline{margin:4px 0 0 45px;font:700 15px/1.3 var(--display);letter-spacing:.01em;color:var(--brand);
+    background:linear-gradient(90deg,#4f46e5,#0ea5e9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .login-lead{margin:24px 0 0;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:14px;}
   label{display:block;font-size:13px;font-weight:600;color:#334155;margin:14px 0 6px;}
   .field{width:100%;padding:10px 13px;border:1px solid var(--line);border-radius:var(--r);background:#fff;color:var(--ink);}
   .field:focus{outline:2px solid var(--brand);border-color:transparent;}
@@ -417,9 +423,10 @@
       </svg>
       Aprendor
     </div>
-    <p class="sub">Aprende. Cumple. Avanza. Inicia sesión para continuar.</p>
+    <p class="tagline">Aprende. Cumple. Avanza.</p>
+    <p class="login-lead">Inicia sesión para continuar.</p>
     <label>Correo</label>
-    <input id="email" class="field" type="email" placeholder="admin@local" autocomplete="username" />
+    <input id="email" class="field" type="email" placeholder="tu@empresa.com" autocomplete="username" />
     <label>Contraseña</label>
     <input id="password" class="field" type="password" placeholder="••••••••" autocomplete="current-password" />
     <button class="btn full" id="loginBtn">Entrar</button>
