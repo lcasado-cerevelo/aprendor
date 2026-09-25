@@ -503,7 +503,7 @@
   </div>
 </div>
 
-<!-- Crear la contraseña nueva (se llega con el enlace del correo: ?reset=TOKEN) -->
+<!-- Crear la contraseña nueva (se llega con el enlace del correo: #reset=TOKEN; también ?reset=TOKEN) -->
 <div id="resetView" class="login-wrap hidden">
   <div class="login-card">
     <div class="brand">
@@ -1409,8 +1409,20 @@ async function pedirEnlace(){
 el('fgBtn').onclick = pedirEnlace;
 el('fgEmail').addEventListener('keydown', e => { if(e.key==='Enter') pedirEnlace(); });
 
-function tokenDeLaUrl(){ return new URLSearchParams(location.search).get('reset'); }
+// El enlace del correo trae el token en el fragmento (#reset=TOKEN), que el navegador
+// nunca manda al servidor ni deja en los logs; ?reset=TOKEN se sigue aceptando por los
+// enlaces viejos. Se lee una sola vez al cargar y se quita enseguida de la barra.
+const tokenReset = (() => {
+  const t = new URLSearchParams(location.hash.replace(/^#/, '')).get('reset')
+         || new URLSearchParams(location.search).get('reset');
+  if (t) history.replaceState(null, '', location.pathname);
+  return t;
+})();
+function tokenDeLaUrl(){ return tokenReset; }
 function limpiarUrlReset(){ history.replaceState(null, '', location.pathname); }
+// Si el enlace se abre en una pestaña que ya tenía index.html, solo cambia el fragmento
+// y la página no se recarga: se recarga para que lo lea el arranque.
+window.addEventListener('hashchange', () => { if (/(^#|&)reset=/.test(location.hash)) location.reload(); });
 
 async function guardarNuevaClave(){
   const m = el('rsMsg'); m.className = 'msg err'; m.textContent = '';
@@ -4103,7 +4115,14 @@ function insertCallout(kind){
 async function uploadFile(f){
   const fd = new FormData(); fd.append('file', f);
   const res = await fetch('/media',{ method:'POST', headers:{'Authorization':'Bearer '+token}, body:fd });
-  if(!res.ok) throw new Error('No se pudo subir el archivo.');
+  if(!res.ok){
+    // El servidor explica el motivo ({ error } o un texto); si el límite lo aplicó el
+    // servidor web antes de la app (413 sin cuerpo JSON), se dice igual que es muy grande.
+    let motivo = null;
+    try{ const d = await res.json(); motivo = d && (d.error || d.title || (typeof d === 'string' ? d : null)); }catch(_){}
+    if(!motivo && res.status === 413) motivo = 'El archivo es demasiado grande.';
+    throw new Error(motivo || 'No se pudo subir el archivo.');
+  }
   return await res.json();
 }
 async function maybeUpload(inputId){
@@ -4927,7 +4946,7 @@ el('blocks').addEventListener('click', e => {
 });
 
 showItemForm();
-// Si se llega con el enlace del correo (?reset=TOKEN), lo primero es fijar la contraseña.
+// Si se llega con el enlace del correo (#reset=TOKEN o ?reset=TOKEN), lo primero es fijar la contraseña.
 if (tokenDeLaUrl()){
   mostrarSolo('resetView');
   el('rsNew').focus();

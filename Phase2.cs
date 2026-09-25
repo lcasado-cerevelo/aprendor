@@ -489,15 +489,35 @@ public static class Phase2Endpoints
         // SVG, XML ni JS. ?purpose=record&ownerUserId=... marca un documento del expediente
         // (también lo marca POST /certifications al enlazarlo).
         var mediaMax = Limites.MediaMaxBytes(app.Configuration);
-        app.MapPost("/media", async (IFormFile file, string? purpose, Guid? ownerUserId, ITenantContext tc,
+        // El formulario se lee a mano (no con un parámetro IFormFile) para que CUALQUIER
+        // exceso de tamaño responda 413 { error }: si el enlace lo hiciera el framework, al
+        // pasar de RequestSizeLimit cortaría la lectura con su 413 genérico sin cuerpo.
+        app.MapPost("/media", async (HttpContext http, string? purpose, Guid? ownerUserId, ITenantContext tc,
             IServiceProvider sp, IWebHostEnvironment env, IConfiguration cfg, CatalogDbContext catalog) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             if (!CanAuthor(tc.Role)) return Results.Forbid();
+
+            var demasiado = Results.Json(new { error = $"El archivo pasa del máximo permitido ({MediaTipos.Tamaño(mediaMax)})." },
+                statusCode: StatusCodes.Status413PayloadTooLarge);
+            // Si el navegador declara el tamaño, se rechaza sin leer nada.
+            if (http.Request.ContentLength > mediaMax + MediaTipos.MargenMultipart) return demasiado;
+            if (!http.Request.HasFormContentType) return Results.BadRequest("Se espera un formulario multipart con el archivo.");
+            IFormFile? file;
+            try
+            {
+                var form = await http.Request.ReadFormAsync(http.RequestAborted);
+                file = form.Files.GetFile("file") ?? form.Files.FirstOrDefault();
+            }
+            // Cuerpo por encima de RequestSizeLimit (Kestrel e IIS lanzan esta excepción con 413).
+            catch (BadHttpRequestException ex) when (ex.StatusCode == StatusCodes.Status413PayloadTooLarge) { return demasiado; }
+            // Por encima de FormOptions.MultipartBodyLengthLimit (o de otro límite del formulario).
+            catch (InvalidDataException ex) when (ex.Message.Contains("limit", StringComparison.OrdinalIgnoreCase)) { return demasiado; }
+            catch (InvalidDataException) { return Results.BadRequest("El formulario de subida no es válido."); }
+            // El cuerpo terminó antes de tiempo (subida cortada por el navegador o la red).
+            catch (IOException) { return Results.BadRequest("No se recibió el archivo completo. Intenta de nuevo."); }
             if (file is null || file.Length == 0) return Results.BadRequest("Empty file.");
-            if (file.Length > mediaMax)
-                return Results.Json(new { error = $"El archivo pasa del máximo permitido ({mediaMax / (1024 * 1024)} MB)." },
-                    statusCode: StatusCodes.Status413PayloadTooLarge);
+            if (file.Length > mediaMax) return demasiado;
 
             var proposito = (purpose ?? "course").Trim().ToLowerInvariant();
             if (proposito is not ("course" or "record")) return Results.BadRequest("purpose debe ser course o record.");
@@ -532,7 +552,7 @@ public static class Phase2Endpoints
             db.MediaAssets.Add(asset);
             await db.SaveChangesAsync();
             return Results.Ok(new { id, url = $"/media/{id}", asset.ContentType });
-        }).RequireAuthorization().DisableAntiforgery().WithMetadata(new RequestSizeLimitAttribute(mediaMax + 1_000_000));
+        }).RequireAuthorization().DisableAntiforgery().WithMetadata(new RequestSizeLimitAttribute(mediaMax + MediaTipos.MargenMultipart));
 
         // Servir: el tipo sale de la extensión guardada (los archivos subidos antes de la
         // lista blanca con un tipo peligroso salen como descarga), con nosniff y una CSP
@@ -554,9 +574,7 @@ public static class Phase2Endpoints
             var tipo = MediaTipos.PorExtension(Path.GetExtension(asset.RelativePath).ToLowerInvariant()) ?? "application/octet-stream";
             var h = http.Response.Headers;
             h["X-Content-Type-Options"] = "nosniff";
-            h["Content-Security-Policy"] = MediaTipos.EnLinea(tipo)
-                ? MediaTipos.CspEnLinea(tipo)
-                : "sandbox; default-src 'none'; img-src 'self'; media-src 'self'";
+            h["Content-Security-Policy"] = MediaTipos.Csp;
             h["Referrer-Policy"] = "no-referrer";
             h.CacheControl = "private, no-store";
             if (MediaTipos.EnLinea(tipo))
@@ -1484,20 +1502,24 @@ public static class MediaTipos
 
     public const string ListaLegible = "png, jpg, gif, webp, mp3, mp4, webm, pdf, docx, pptx y xlsx";
 
+    // Lo que ocupa el sobre multipart (límites, cabeceras de la parte) además del archivo.
+    public const long MargenMultipart = 1_000_000;
+
+    // Tamaño legible para los mensajes: «50 MB», «1.5 MB», «98 KB».
+    public static string Tamaño(long bytes) => bytes >= 1024 * 1024
+        ? (bytes / (1024.0 * 1024)).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " MB"
+        : Math.Max(1, bytes / 1024) + " KB";
+
     public static string? PorExtension(string ext) => Tipos.TryGetValue(ext, out var t) ? t : null;
 
     // Se ven en la pestaña: imagen, audio, video y PDF. Lo demás se descarga.
     public static bool EnLinea(string tipo)
         => tipo.StartsWith("image/") || tipo.StartsWith("audio/") || tipo.StartsWith("video/") || tipo == "application/pdf";
 
-    // CSP de lo que se sirve en línea. Chrome y Edge no abren un PDF dentro de un
-    // documento con sandbox (muestran la página bloqueada), así que el PDF va sin
-    // sandbox pero sin poder cargar nada (default-src 'none'); con nosniff y la firma
-    // %PDF- comprobada al subir, no puede interpretarse como HTML.
-    public static string CspEnLinea(string tipo)
-        => tipo == "application/pdf"
-            ? "default-src 'none'; img-src 'self'; media-src 'self'; object-src 'self'"
-            : "sandbox; default-src 'none'; img-src 'self'; media-src 'self'";
+    // CSP de todo lo que sirve /media, PDF incluido: sandbox y nada que cargar. Probado
+    // (25 sep 2026, Chrome 153, Edge 153 y Firefox, abriendo el PDF en la pestaña): el
+    // visor de PDF lo muestra igual con sandbox y con object-src 'none'.
+    public const string Csp = "sandbox; default-src 'none'; img-src 'self'; media-src 'self'";
 
     public static bool FirmaValida(string ext, Stream s)
     {

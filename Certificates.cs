@@ -506,6 +506,8 @@ public static class CertificateEndpoints
                 var disposicion = new Microsoft.Net.Http.Headers.ContentDispositionHeaderValue("inline");
                 disposicion.SetHttpFileName(NombreArchivo(cert));
                 http.Response.Headers.ContentDisposition = disposicion.ToString();
+                // El PDF lleva la misma CSP con sandbox que /media (el visor lo muestra igual).
+                http.Response.Headers.ContentSecurityPolicy = MediaTipos.Csp;
                 return Results.File(pdf, "application/pdf");
             }
             catch (Exception ex)

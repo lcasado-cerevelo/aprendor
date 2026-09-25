@@ -64,7 +64,7 @@ builder.WebHost.ConfigureKestrel(o =>
     o.Limits.MaxRequestBodySize = maxPeticion;
     o.AddServerHeader = false;
 });
-builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = Limites.MediaMaxBytes(cfg) + 1_000_000);
+builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = Limites.MediaMaxBytes(cfg) + MediaTipos.MargenMultipart);
 
 // HSTS (solo fuera de Development). Sin UseHttpsRedirection: detrás del túnel la app
 // recibe http y el HTTPS lo fuerza el borde (Cloudflare).
@@ -846,6 +846,11 @@ app.MapPost("/admin/users/{id:guid}/reset-password", async (Guid id, ResetPasswo
     var user = await catalog.Users.FindAsync(id);
     if (user is null) return Results.NotFound();
     if (!await AdminUsuarios.PuedeGestionarAsync(alcance, user, catalog)) return Results.Forbid();
+    // La clave es de la cuenta, no de la membresía: con ella se entra a TODAS las
+    // compañías de la persona. El Admin de una compañía solo la fija si la persona no
+    // pertenece a ninguna otra (igual que DELETE); si no, lo hace el admin de plataforma.
+    if (alcance.Compañia is Guid suya && await AdminUsuarios.TieneOtraCompañiaAsync(user, suya, catalog))
+        return Results.Conflict("Esta persona también pertenece a otra compañía; pide al administrador de la plataforma que restablezca su contraseña.");
     user.PasswordHash = PasswordHasher.Hash(req.TempPassword);
     user.MustChangePassword = true;
     catalog.AuditLogs.Add(new CatalogAuditLog { Action = "admin-password-reset", Detail = user.Email, UserId = tc.UserId });
@@ -1014,8 +1019,11 @@ app.MapPost("/categories", async (CreateCategoryRequest req, ITenantContext tc, 
     return Results.Ok(cat);
 }).RequireAuthorization();
 
-// Autores: todos los cursos con todos sus campos. Resto: solo los publicados, con lo
-// que las tarjetas del catálogo necesitan (título, descripción, categoría y portada).
+// Autores: todos los cursos con todos sus campos. Resto: con lo que las tarjetas del
+// catálogo necesitan (título, descripción, categoría y portada), y exactamente de los
+// mismos cursos que puede traer /catalog (CatalogLogic.ResolveAsync): no archivados y
+// con alguna versión publicada. Así ninguna tarjeta del catálogo se queda sin su
+// categoría ni su portada, y no se ve nada que el catálogo no ofrezca.
 app.MapGet("/trainings", async (ITenantContext tc, IServiceProvider sp) =>
 {
     if (tc.TenantId is null) return Results.BadRequest("No tenant context for this user.");
@@ -1023,7 +1031,9 @@ app.MapGet("/trainings", async (ITenantContext tc, IServiceProvider sp) =>
     if (ContenidoAcceso.PuedeCrear(tc.Role))
         return Results.Ok(await db.Trainings.OrderByDescending(t => t.CreatedAt).ToListAsync());
 
-    var publicados = await db.Trainings.Where(t => t.Status == "published")
+    var publicados = await db.Trainings
+        .Where(t => t.Status != "archived"
+            && db.TrainingVersions.Any(v => v.TrainingId == t.Id && v.Status == "published"))
         .OrderByDescending(t => t.CreatedAt)
         .Select(t => new { t.Id, t.Title, t.Description, t.CategoryId, t.Status, t.PlayerConfigJson })
         .ToListAsync();
@@ -1327,10 +1337,10 @@ static class PoliticasAcceso
 // Cabeceras de seguridad de toda respuesta. La CSP no es estricta ('unsafe-inline'):
 // el front usa un script en línea y manejadores onclick; permite Google Fonts,
 // Turnstile de Cloudflare y los videos de YouTube que los cursos pueden incrustar.
-// /media pone además la suya, más estricta. object-src admite 'self' y blob: (no
-// 'none'): Chrome muestra los PDF con un visor embebido que obedece object-src, y los
-// PDF de /c/{token} y los que el front abre como blob (heredan la CSP de la página)
-// quedarían en blanco.
+// /media y el PDF de /c/{token} ponen además la suya, más estricta (sandbox).
+// object-src 'none': probado el 25 sep 2026 en Chrome 153, Edge 153 y Firefox, los PDF
+// se siguen viendo, tanto los servidos con esta CSP como los que el front abre como
+// blob (que heredan la CSP de la página).
 static class CabecerasSeguridad
 {
     public const string Csp =
@@ -1342,7 +1352,7 @@ static class CabecerasSeguridad
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
         "font-src 'self' data: https://fonts.gstatic.com; " +
         "connect-src 'self'; " +
-        "object-src 'self' blob:; " +
+        "object-src 'none'; " +
         "base-uri 'self'; " +
         "form-action 'self'; " +
         "frame-ancestors 'self'";
@@ -1426,6 +1436,14 @@ static class AdminUsuarios
         if (alcance.Compañia is not Guid tid) return true;
         if (u.TenantId is null && u.Role == "Admin") return false;   // admin de plataforma
         return await Membresias.EsMiembroAsync(catalog, tid, u.Id);
+    }
+
+    // ¿La persona pertenece a alguna compañía distinta de "suya" (principal o UserCompany)?
+    // Lo que afecta a la cuenta entera (clave, baja) no lo decide el Admin de una sola.
+    public static async Task<bool> TieneOtraCompañiaAsync(AppUser u, Guid suya, CatalogDbContext catalog)
+    {
+        if (u.TenantId is Guid principal && principal != suya) return true;
+        return await catalog.UserCompanies.AnyAsync(m => m.UserId == u.Id && m.TenantId != suya);
     }
 }
 

@@ -18,8 +18,11 @@ Edita `appsettings.json`:
 - `ConnectionStrings:Catalog` — base de datos del **catálogo** (tenants + usuarios).
 - `ConnectionStrings:DesignTenant` — base "plantilla" que EF usa solo para **generar**
   migraciones del esquema de cliente (no guarda datos reales).
-- `Jwt:Key` — secreto largo y aleatorio (mínimo 32 bytes).
-- `Bootstrap:AdminEmail` / `AdminPassword` — admin de plataforma que se siembra al primer arranque.
+- `Jwt:Key` — secreto largo y aleatorio (mínimo 32 bytes). Vacío en `appsettings.json`; el de
+  desarrollo está en `appsettings.Development.json`. Fuera de Development va por variable de
+  entorno (ver **Seguridad para publicar en internet**).
+- `Bootstrap:AdminEmail` / `AdminPassword` — admin de plataforma que se siembra al primer arranque
+  (solo si el catálogo está vacío). En desarrollo, `admin@local` / `ChangeMe123!`.
 
 ## 2. Generar las migraciones iniciales (una sola vez)
 Hay dos `DbContext`, así que cada uno lleva su set de migraciones:
@@ -70,9 +73,13 @@ así que el mismo build corre en cualquier lado. Con Docker:
 docker build -t trainingplatform .
 docker run -p 8080:8080 \
   -e ConnectionStrings__Catalog="Server=...;Database=...;" \
-  -e Jwt__Key="..." \
+  -e APRENDOR_Jwt__Key="..." \
+  -e APRENDOR_App__BaseUrl="https://aprendor.midominio.com" \
   trainingplatform
 ```
+La imagen corre sin root (`USER $APP_UID`) y solo escribe en `/app/App_Data` (logs y archivos
+subidos); `.dockerignore` deja fuera `bin`, `obj`, `App_Data`, `.claude`, `*.local.json` y
+`appsettings.Development.json`.
 
 ## Notas
 - Las cadenas de conexión de tenant se guardan en el catálogo; en producción conviene cifrarlas.
@@ -144,7 +151,7 @@ JSON tolerante (`ComplianceConfig` en `Catalog.cs`), editable con `GET/PUT /comp
 SHA-256 (`CertificateLink`). Sirve el PDF inline mientras el enlace esté vigente y no revocado, con
 `Cache-Control: no-store`, `Referrer-Policy: no-referrer` y límite de 60 peticiones por IP cada 10 min.
 Si venció o no existe responde 410 con una página sin datos personales y un botón «Entrar a Aprendor»
-(`App:BaseUrl` o el origen de la petición). Gestión autenticada por folio:
+(`App:BaseUrl`; el origen de la petición solo en Development). Gestión autenticada por folio:
 `POST /certificates/{serial}/resend` (enlace nuevo), `POST /certificates/{serial}/revoke` y
 `GET /certificates/{serial}/links` (accesos). Cada envío, reenvío y revocación queda en `AuditLogs` del cliente.
 
@@ -159,3 +166,57 @@ Es una marca en la membresía (`UserCompany.IsComplianceOfficer`), no un rol: se
 - El oficial recibe copia de los certificados y el resumen, ve **Cumplimiento** (`/compliance/summary`,
   `/compliance/alerts`, «Recordar ahora») y puede leer el expediente de cualquier empleado. No obtiene
   permisos de edición.
+
+## Seguridad para publicar en internet (septiembre 2026, bloque S1)
+
+### Variables obligatorias fuera de Development
+Con `ASPNETCORE_ENVIRONMENT` distinto de `Development` la app **no arranca** (lanza
+`InvalidOperationException` con el motivo) si falta alguna de estas. Van como variables de entorno,
+con el prefijo `APRENDOR_` o sin él (`Jwt__Key`):
+
+| Variable | Qué exige |
+| --- | --- |
+| `APRENDOR_Jwt__Key` | 32 bytes UTF-8 o más, sin `CHANGE-ME` (la de ejemplo se rechaza). |
+| `APRENDOR_App__BaseUrl` | URL pública `https://...`. Los enlaces de los correos (restablecer contraseña, certificados, recordatorios) se arman solo con ella. |
+
+Para el primer arranque con el catálogo vacío hacen falta además `APRENDOR_Bootstrap__AdminEmail` y
+`APRENDOR_Bootstrap__AdminPassword`: sin ellas (o con `ChangeMe123!`) no se siembra el admin y queda un
+error en la bitácora. El admin sembrado nace con cambio de contraseña obligatorio. El modo
+`migrate` (`dotnet TrainingPlatform.dll migrate`) no exige nada de lo anterior.
+
+### Configuración opcional
+- `APRENDOR_AllowedHosts`: en el archivo queda `*`; en el servidor conviene fijarlo al dominio
+  público más localhost (`aprendor.midominio.com;localhost`) para que otra cabecera Host reciba 400.
+- `APRENDOR_Email__ApiKey`: clave de Brevo (sin ella no salen correos).
+- `Security:TrustedProxies`: IPs de proxies, además de loopback, cuyo `X-Forwarded-For` se cree.
+  Solo hace falta si el proxy o `cloudflared` corre en otra máquina.
+- `Security:ForwardedForHeader`: `CF-Connecting-IP` detrás de Cloudflare; vacío usa `X-Forwarded-For`.
+- `Security:MaxRequestBytes` (1 MB) y `Security:AuthoringMaxRequestBytes` (8 MB, contenido del autor
+  con imágenes embebidas). `Media:MaxBytes` (50 MB) es el máximo de `POST /media`, que al pasarse
+  responde `413 { error }`. En IIS, `web.config` corta antes cualquier cuerpo de más de 60 MB.
+- `Tenants:ConnectionTemplate`: cadena con `{db}`. Si está, `POST /admin/tenants` arma la conexión en
+  el servidor con `databaseName` (`^[A-Za-z0-9_]{3,50}$`, por defecto `TP_<nombre>`) e ignora la que
+  mande el cliente.
+
+### Qué cambia
+- Cabeceras de seguridad y CSP en todas las respuestas, HSTS fuera de Development,
+  `Cache-Control: no-store` en la API y sin cabecera `Server` (`web.config`).
+- Todo endpoint exige sesión salvo los de acceso (`/auth/*`) y `GET /c/{token}`.
+- Admin de plataforma (rol Admin sin compañía, comprobado en el catálogo) frente a Admin de compañía:
+  el segundo solo ve y gestiona a la gente de su compañía y nunca a un admin de plataforma. Lo que
+  afecta a la cuenta entera (restablecer la contraseña, borrar la cuenta) solo lo hace si la persona
+  no pertenece a otra compañía; si pertenece, responde 409 y lo hace el admin de plataforma.
+  Compañías, políticas de doble factor, envíos manuales y membresías entre compañías son solo del
+  admin de plataforma.
+- El enlace de restablecimiento es `BaseUrl/index.html#reset=TOKEN` (en el fragmento no llega a los
+  logs del servidor ni del proxy); `index.html` sigue aceptando `?reset=`.
+- `POST /media`: lista blanca por extensión y firma de bytes (png, jpg, gif, webp, mp3, mp4, webm,
+  pdf, docx, pptx, xlsx), sin HTML, SVG, XML ni JS. `GET /media/{id}` sirve con `nosniff`, CSP propia
+  y descarga para lo que no sea imagen, audio, video o PDF. Los documentos del expediente solo los ven
+  su dueño, los autores y el oficial de cumplimiento.
+- Migración de cliente `SecureMedia` (`MediaAsset.Purpose` y `OwnerUserId`): aplicarla con
+  `dotnet TrainingPlatform.dll migrate` en cada despliegue.
+
+### Bitácora
+`App_Data/logs/app-log-AAAAMMDD.txt`, un archivo por día; se conservan los últimos 14. Los enlaces de
+restablecimiento y los códigos de doble factor solo se escriben en la bitácora en Development.
