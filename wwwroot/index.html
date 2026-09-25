@@ -2677,7 +2677,7 @@ el('createUserBtn').onclick = async () => {
     const r = await api('/admin/users','POST',{ email, name,
       password:el('uPass').value, role:el('uRole').value, tenantId:el('uTenant').value || null, sendInvite });
     msg.textContent = sendInvite
-      ? (r.invited ? 'Usuario creado e invitación enviada.' : 'Usuario creado. Nota: el correo no está configurado, así que la invitación no se envió.')
+      ? (r.invited ? 'Usuario creado e invitación enviada.' : 'Usuario creado. La invitación no se pudo enviar, así que se generó una contraseña temporal.')
       : 'Usuario creado.';
     msg.className='msg ok';
     // Sin invitación, el servidor genera la clave temporal y la devuelve una sola vez.

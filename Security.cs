@@ -1,8 +1,12 @@
+using System.Data;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Threading.Channels;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Caching.Memory;
 using TrainingPlatform.Auth;
 using TrainingPlatform.Catalog;
@@ -146,7 +150,10 @@ public static class LimitesPorIp
 }
 
 // Bloqueos por cuenta. Los contadores de AppUser se tocan con ExecuteUpdateAsync (un
-// UPDATE atómico): dos peticiones en paralelo no pueden saltarse el tope.
+// UPDATE atómico) y el intento se RESERVA antes de comprobar la clave o el código: un
+// UPDATE condicionado suma 1 solo si la cuenta no está bloqueada y no hay ya 5 intentos
+// sin resolver. Así las peticiones en paralelo no comprueban más de 5 claves (o códigos)
+// entre bloqueo y bloqueo: la sexta no llega a comprobarse. Acertar deja el contador en 0.
 public static class Bloqueos
 {
     public const int MaxFallos = 5;
@@ -154,15 +161,39 @@ public static class Bloqueos
 
     // ---- Contraseña en /auth/login: 5 fallos seguidos → 15 minutos ----
 
-    // Devuelve el fin del bloqueo si ESTE fallo lo activó (null si no).
+    // true = intento reservado (se puede comprobar la clave). false = bloqueada o con 5
+    // intentos en curso: no se comprueba nada (ver EsperaLoginAsync).
+    public static async Task<bool> ReservarLoginAsync(CatalogDbContext c, Guid userId)
+    {
+        var ahora = DateTime.UtcNow;
+        return await c.Users
+            .Where(x => x.Id == userId && (x.LockoutEnd == null || x.LockoutEnd <= ahora) && x.AccessFailedCount < MaxFallos)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.AccessFailedCount, x => x.AccessFailedCount + 1)) > 0;
+    }
+
+    // Clave mala (el intento ya se contó al reservarlo). Devuelve el fin del bloqueo si la
+    // cuenta quedó bloqueada (por este fallo o por otra petición a la vez): el quinto
+    // fallo responde ya 429.
     public static async Task<DateTime?> FalloLoginAsync(CatalogDbContext c, AppUser u, IEmailSender email, ILogger log)
     {
-        var hasta = DateTime.UtcNow.Add(Duracion);
-        await SumarFalloLoginAsync(c, u.Id, hasta);
         EventosSeguridad.Anotar(c, EventosSeguridad.LoginFallido, u.Id);
-        // Según el contador leído al entrar: si otra petición en paralelo sumó a la vez, el
-        // bloqueo se aplica igual (el UPDATE es atómico) y el 429 llega en el siguiente intento.
-        if (u.AccessFailedCount + 1 < MaxFallos) { await c.SaveChangesAsync(); return null; }
+        return await BloquearLoginSiTocaAsync(c, u, email, log);
+    }
+
+    // Si el contador llegó al tope, bloquea y lo deja en 0 (un solo UPDATE condicionado:
+    // de varias peticiones a la vez, solo una aplica el bloqueo, audita y avisa).
+    private static async Task<DateTime?> BloquearLoginSiTocaAsync(CatalogDbContext c, AppUser u, IEmailSender email, ILogger log)
+    {
+        var hasta = DateTime.UtcNow.Add(Duracion);
+        var n = await c.Users.Where(x => x.Id == u.Id && x.AccessFailedCount >= MaxFallos)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.LockoutEnd, (DateTime?)hasta).SetProperty(x => x.AccessFailedCount, 0));
+        if (n == 0)
+        {
+            await c.SaveChangesAsync();
+            // Otra petición en paralelo pudo bloquear ya la cuenta: se responde igual (429).
+            var fin = await c.Users.Where(x => x.Id == u.Id).Select(x => x.LockoutEnd).FirstOrDefaultAsync();
+            return Espera(fin) is null ? null : fin;
+        }
 
         EventosSeguridad.Anotar(c, EventosSeguridad.LoginBloqueado, u.Id);
         c.AuditLogs.Add(new CatalogAuditLog { Action = "account-locked", Detail = u.Email, UserId = u.Id });
@@ -171,47 +202,80 @@ public static class Bloqueos
         return hasta;
     }
 
-    // Un solo UPDATE: suma el fallo y, si llega al tope, bloquea y deja el contador en 0
-    // (en SQL las dos expresiones ven el valor ANTERIOR de AccessFailedCount).
-    private static Task<int> SumarFalloLoginAsync(CatalogDbContext c, Guid userId, DateTime hasta)
-        => c.Users.Where(x => x.Id == userId).ExecuteUpdateAsync(s => s
-            .SetProperty(x => x.LockoutEnd, x => x.AccessFailedCount + 1 >= MaxFallos ? (DateTime?)hasta : x.LockoutEnd)
-            .SetProperty(x => x.AccessFailedCount, x => x.AccessFailedCount + 1 >= MaxFallos ? 0 : x.AccessFailedCount + 1));
+    // La reserva falló: cuánto esperar. Si el contador quedó en el tope sin bloqueo (5
+    // intentos en curso, o uno que se cortó a medias), el bloqueo se aplica aquí; si la
+    // clave buena llega entre esos intentos, al entrar lo levanta.
+    public static async Task<TimeSpan> EsperaLoginAsync(CatalogDbContext c, AppUser u, IEmailSender email, ILogger log)
+    {
+        if (await BloquearLoginSiTocaAsync(c, u, email, log) is DateTime h) return h - DateTime.UtcNow;
+        var fin = await c.Users.Where(x => x.Id == u.Id).Select(x => x.LockoutEnd).FirstOrDefaultAsync();
+        return Espera(fin) ?? TimeSpan.FromMinutes(1);
+    }
 
-    // Correo que no existe: el mismo trabajo de BD que un fallo real (un UPDATE que no toca
-    // ninguna fila y el SecurityEvent), para que el tiempo de respuesta no lo delate.
+    // Correo que no existe: el mismo trabajo de BD que un fallo real (la reserva y el
+    // UPDATE del bloqueo, que no tocan ninguna fila, el SecurityEvent y la lectura del
+    // bloqueo), para que el tiempo de respuesta no lo delate.
     public static async Task FalloLoginDesconocidoAsync(CatalogDbContext c)
     {
-        await SumarFalloLoginAsync(c, Guid.Empty, DateTime.UtcNow.Add(Duracion));
+        await ReservarLoginAsync(c, Guid.Empty);
+        var hasta = DateTime.UtcNow.Add(Duracion);
+        await c.Users.Where(x => x.Id == Guid.Empty && x.AccessFailedCount >= MaxFallos)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.LockoutEnd, (DateTime?)hasta).SetProperty(x => x.AccessFailedCount, 0));
         await EventosSeguridad.RegistrarAsync(c, EventosSeguridad.LoginFallido, null);
+        await c.Users.Where(x => x.Id == Guid.Empty).Select(x => x.LockoutEnd).FirstOrDefaultAsync();
     }
 
-    // Al entrar bien, el contador vuelve a 0.
-    public static async Task LimpiarLoginAsync(CatalogDbContext c, AppUser u)
-    {
-        if (u.AccessFailedCount == 0 && u.LockoutEnd is null) return;
-        await c.Users.Where(x => x.Id == u.Id)
+    // Al entrar bien, el contador vuelve a 0 (incluido el intento reservado).
+    public static Task<int> LimpiarLoginAsync(CatalogDbContext c, Guid userId)
+        => c.Users.Where(x => x.Id == userId && (x.AccessFailedCount != 0 || x.LockoutEnd != null))
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.AccessFailedCount, 0).SetProperty(x => x.LockoutEnd, (DateTime?)null));
-    }
 
     // ---- Segundo factor: 5 códigos fallidos sumando todos los retos → 15 minutos ----
+    // Igual que el login: el intento se reserva en el usuario antes de verificar el
+    // código, así que las ráfagas en paralelo de varios retos no pasan de 5 entre todas.
 
+    public static async Task<bool> Reservar2faAsync(CatalogDbContext c, Guid userId)
+    {
+        var ahora = DateTime.UtcNow;
+        return await c.Users
+            .Where(x => x.Id == userId && (x.TwoFactorLockedUntil == null || x.TwoFactorLockedUntil <= ahora) && x.TwoFactorFailedCount < MaxFallos)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.TwoFactorFailedCount, x => x.TwoFactorFailedCount + 1)) > 0;
+    }
+
+    // Código malo (ya contado al reservarlo). Devuelve el fin del bloqueo si el 2FA quedó
+    // bloqueado (por este fallo o por otra petición a la vez).
     public static async Task<DateTime?> Fallo2faAsync(CatalogDbContext c, AppUser u, IEmailSender email, ILogger log)
     {
-        await c.Users.Where(x => x.Id == u.Id)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.TwoFactorFailedCount, x => x.TwoFactorFailedCount + 1));
+        EventosSeguridad.Anotar(c, EventosSeguridad.SegundoFactorFallido, u.Id);
+        return await Bloquear2faSiTocaAsync(c, u, email, log);
+    }
+
+    private static async Task<DateTime?> Bloquear2faSiTocaAsync(CatalogDbContext c, AppUser u, IEmailSender email, ILogger log)
+    {
         var hasta = DateTime.UtcNow.Add(Duracion);
         var n = await c.Users.Where(x => x.Id == u.Id && x.TwoFactorFailedCount >= MaxFallos)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.TwoFactorLockedUntil, (DateTime?)hasta).SetProperty(x => x.TwoFactorFailedCount, 0));
-
-        EventosSeguridad.Anotar(c, EventosSeguridad.SegundoFactorFallido, u.Id);
-        if (n == 0) { await c.SaveChangesAsync(); return null; }
+        if (n == 0)
+        {
+            await c.SaveChangesAsync();
+            // Otra petición en paralelo pudo bloquear ya el 2FA: se responde igual (429).
+            var fin = await c.Users.Where(x => x.Id == u.Id).Select(x => x.TwoFactorLockedUntil).FirstOrDefaultAsync();
+            return Espera(fin) is null ? null : fin;
+        }
 
         EventosSeguridad.Anotar(c, EventosSeguridad.SegundoFactorBloqueado, u.Id);
         c.AuditLogs.Add(new CatalogAuditLog { Action = "2fa-locked", Detail = u.Email, UserId = u.Id });
         await c.SaveChangesAsync();
         await AvisarAsync(c, u, "2fa", email, log);
         return hasta;
+    }
+
+    // La reserva del 2FA falló: cuánto esperar (y bloqueo si el contador quedó en el tope).
+    public static async Task<TimeSpan> Espera2faAsync(CatalogDbContext c, AppUser u, IEmailSender email, ILogger log)
+    {
+        if (await Bloquear2faSiTocaAsync(c, u, email, log) is DateTime h) return h - DateTime.UtcNow;
+        var fin = await c.Users.Where(x => x.Id == u.Id).Select(x => x.TwoFactorLockedUntil).FirstOrDefaultAsync();
+        return Espera(fin) ?? TimeSpan.FromMinutes(1);
     }
 
     public static async Task<int> Restantes2faAsync(CatalogDbContext c, Guid userId)
@@ -241,9 +305,42 @@ public static class Bloqueos
 
     // ---- Comprobaciones de la contraseña actual con sesión abierta ----
     // /me/password, /me/2fa/disable, /me/2fa/setup (con clave) y /me/2fa/confirm:
-    // 5 fallos (desde el último acierto) en 15 minutos → 15 minutos de espera.
+    // 5 fallos (desde el último acierto) en 15 minutos → 15 minutos de espera. Se cuentan
+    // filas de SecurityEvent, así que contar y anotar van juntos bajo un cerrojo de la
+    // cuenta (CerrojoCuenta): el intento se anota como fallido ANTES de comprobar la clave
+    // y, si resulta buena, OkSensible lo convierte en acierto. Con peticiones en paralelo,
+    // la sexta ya ve los cinco intentos anotados y no llega a comprobarse.
 
-    public static async Task<TimeSpan?> EsperaSensibleAsync(CatalogDbContext c, Guid userId)
+    public sealed record ReservaSensible(TimeSpan? Espera, SecurityEvent? Evento);
+
+    public static async Task<ReservaSensible> ReservarSensibleAsync(CatalogDbContext c, Guid userId)
+    {
+        await using var tx = await CerrojoCuenta.TomarAsync(c, $"sensible:{userId}");
+        if (await EsperaSensibleAsync(c, userId) is TimeSpan espera) return new(espera, null);
+        var ev = new SecurityEvent
+        {
+            Kind = EventosSeguridad.ClaveSensibleFallida, UserId = userId,
+            Ip = AuditoriaIp.Actual, At = DateTime.UtcNow
+        };
+        c.SecurityEvents.Add(ev);
+        await c.SaveChangesAsync();
+        await tx.CommitAsync();
+        return new(null, ev);
+    }
+
+    // No era buena: el fallo ya quedó anotado al reservar. Devuelve la espera si con este
+    // fallo se llegó al tope (el quinto fallo responde ya 429).
+    public static Task<TimeSpan?> FalloSensibleAsync(CatalogDbContext c, Guid userId) => EsperaSensibleAsync(c, userId);
+
+    // Era buena: el intento reservado pasa a acierto (se guarda con el próximo SaveChanges).
+    public static void OkSensible(ReservaSensible r)
+    {
+        if (r.Evento is null) return;
+        r.Evento.Kind = EventosSeguridad.ClaveSensibleOk;
+        r.Evento.At = DateTime.UtcNow;
+    }
+
+    private static async Task<TimeSpan?> EsperaSensibleAsync(CatalogDbContext c, Guid userId)
     {
         var ahora = DateTime.UtcNow;
         var desde = ahora.AddMinutes(-2 * Duracion.TotalMinutes);
@@ -260,17 +357,14 @@ public static class Bloqueos
         return libre > ahora ? libre - ahora : null;
     }
 
-    public static Task FalloSensibleAsync(CatalogDbContext c, Guid userId)
-        => EventosSeguridad.RegistrarAsync(c, EventosSeguridad.ClaveSensibleFallida, userId);
-
-    public static void OkSensible(CatalogDbContext c, Guid userId)
-        => EventosSeguridad.Anotar(c, EventosSeguridad.ClaveSensibleOk, userId);
-
     // ---- Envío de códigos por correo (/auth/2fa/resend, /me/email/send-code) ----
-    // 60 segundos entre envíos y 10 al día por cuenta.
+    // 60 segundos entre envíos y 10 al día por cuenta. Contar y anotar el envío van juntos
+    // bajo el cerrojo de la cuenta: dos peticiones a la vez no mandan dos correos.
+    // null = envío reservado y ya anotado (AbrirRetoAsync con envioContado: true).
 
-    public static async Task<TimeSpan?> EsperaEnvioCodigoAsync(CatalogDbContext c, Guid userId)
+    public static async Task<TimeSpan?> ReservarEnvioCodigoAsync(CatalogDbContext c, Guid userId)
     {
+        await using var tx = await CerrojoCuenta.TomarAsync(c, $"codigos:{userId}");
         var ahora = DateTime.UtcNow;
         var dia = ahora.AddDays(-1);
         var envios = await c.SecurityEvents
@@ -279,7 +373,38 @@ public static class Bloqueos
         if (envios.Count >= 10) return envios.Min().AddDays(1) - ahora;
         if (envios.Count > 0 && ahora - envios.Max() < TimeSpan.FromSeconds(60))
             return envios.Max().AddSeconds(60) - ahora;
+
+        EventosSeguridad.Anotar(c, EventosSeguridad.CodigoEnviado, userId);
+        await c.SaveChangesAsync();
+        await tx.CommitAsync();
         return null;
+    }
+}
+
+// Cerrojo por cuenta en SQL Server (sp_getapplock, con la transacción como dueña) para los
+// topes que cuentan filas de SecurityEvent: contar y anotar pasa dentro del cerrojo, así
+// que las peticiones en paralelo (también desde varias instancias de la app) van de una
+// en una. Se suelta al confirmar o deshacer la transacción que devuelve.
+public static class CerrojoCuenta
+{
+    public static async Task<IDbContextTransaction> TomarAsync(CatalogDbContext c, string recurso)
+    {
+        var tx = await c.Database.BeginTransactionAsync();
+        try
+        {
+            var resultado = new SqlParameter("@r", SqlDbType.Int) { Direction = ParameterDirection.Output };
+            await c.Database.ExecuteSqlRawAsync(
+                "EXEC @r = sp_getapplock @Resource = @recurso, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 10000",
+                new SqlParameter("@recurso", SqlDbType.NVarChar, 255) { Value = recurso }, resultado);
+            if (resultado.Value is not int r || r < 0)
+                throw new TimeoutException($"No se pudo tomar el cerrojo {recurso} (sp_getapplock devolvió {resultado.Value}).");
+            return tx;
+        }
+        catch
+        {
+            await tx.DisposeAsync();
+            throw;
+        }
     }
 }
 
@@ -349,27 +474,65 @@ public static class PoliticaClave
 // (JwtBearerEvents.OnTokenValidated) se comprueba contra el catálogo, con caché de 60 s,
 // que el usuario existe, que el sello coincide, que sigue perteneciendo a la compañía del
 // token y que su rol ahí es el del token. Si no, la petición no se autentica (401).
+//
+// Invalidar la caché: además de borrar la entrada, se deja una marca de tiempo por usuario
+// (Olvidar). Una lectura del catálogo que empezó ANTES de la marca no vale aunque se haya
+// guardado en la caché después (una petición con el token viejo que leyó el sello antiguo
+// justo antes del SaveChanges): la siguiente validación la descarta y vuelve a leer.
 public static class Sesiones
 {
     private static readonly TimeSpan Cache = TimeSpan.FromSeconds(60);
+    // Más que la vida de una entrada de caché: toda entrada leída antes de la marca caduca
+    // antes de que la marca desaparezca.
+    private static readonly TimeSpan VidaMarca = TimeSpan.FromMinutes(3);
 
-    private sealed record Instantanea(Guid Sello, string Rol, Guid? Principal, Dictionary<Guid, string> Membresias);
+    private sealed record Instantanea(Guid Sello, string Rol, Guid? Principal, Dictionary<Guid, string> Membresias, long LeidaEn);
 
     private static string Clave(Guid userId) => $"sesion:{userId}";
+    private static string Marca(Guid userId) => $"sesion-cambio:{userId}";
 
-    // Cierra todas las sesiones del usuario: sello nuevo (se guarda con el SaveChanges de
-    // quien llama) y se olvida la caché para que surta efecto en la próxima petición.
-    public static void Rotar(AppUser u, IMemoryCache cache)
+    // Cierra todas las sesiones del usuario: sello nuevo, que se guarda con el próximo
+    // SaveChanges de quien llama. La caché se olvida ahora y otra vez cuando ese
+    // SaveChanges termina (ya con el sello nuevo en la BD).
+    public static void Rotar(CatalogDbContext c, AppUser u, IMemoryCache cache)
     {
         u.SecurityStamp = Guid.NewGuid();
-        Olvidar(cache, u.Id);
+        OlvidarAlGuardar(c, cache, u.Id);
     }
 
-    // Tras cambiar membresías o roles sin rotar el sello, o al borrar la cuenta.
+    // Para cambios de membresía o rol que se guardan después: olvida ahora y tras el
+    // próximo SaveChanges del contexto.
+    public static void OlvidarAlGuardar(CatalogDbContext c, IMemoryCache cache, Guid userId)
+    {
+        Olvidar(cache, userId);
+        EventHandler<SavedChangesEventArgs>? alGuardar = null;
+        alGuardar = (_, _) =>
+        {
+            c.SavedChanges -= alGuardar;
+            Olvidar(cache, userId);
+        };
+        c.SavedChanges += alGuardar;
+    }
+
+    // Tras cambios ya guardados (membresías, roles) o al borrar la cuenta.
     public static void Olvidar(IMemoryCache cache, Guid userId)
     {
+        cache.Set(Marca(userId), Stopwatch.GetTimestamp(), VidaMarca);
         cache.Remove(Clave(userId));
         AdminPlataforma.Olvidar(cache, userId);
+    }
+
+    private static async Task<Instantanea?> LeerAsync(IServiceProvider sp, Guid uid)
+    {
+        var leidaEn = Stopwatch.GetTimestamp();   // antes de consultar: cuenta el inicio de la lectura
+        var catalog = sp.GetRequiredService<CatalogDbContext>();
+        var u = await catalog.Users.AsNoTracking().Where(x => x.Id == uid)
+            .Select(x => new { x.SecurityStamp, x.Role, x.TenantId }).FirstOrDefaultAsync();
+        if (u is null) return null;
+        var ms = await catalog.UserCompanies.AsNoTracking().Where(m => m.UserId == uid)
+            .Select(m => new { m.TenantId, m.Role }).ToListAsync();
+        return new Instantanea(u.SecurityStamp, u.Role, u.TenantId,
+            ms.GroupBy(m => m.TenantId).ToDictionary(g => g.Key, g => g.First().Role), leidaEn);
     }
 
     public static async Task ValidarAsync(TokenValidatedContext ctx)
@@ -386,18 +549,19 @@ public static class Sesiones
 
         var sp = ctx.HttpContext.RequestServices;
         var cache = sp.GetRequiredService<IMemoryCache>();
-        var inst = await cache.GetOrCreateAsync(Clave(uid), async e =>
+        var inst = await cache.GetOrCreateAsync(Clave(uid), e =>
         {
             e.AbsoluteExpirationRelativeToNow = Cache;
-            var catalog = sp.GetRequiredService<CatalogDbContext>();
-            var u = await catalog.Users.AsNoTracking().Where(x => x.Id == uid)
-                .Select(x => new { x.SecurityStamp, x.Role, x.TenantId }).FirstOrDefaultAsync();
-            if (u is null) return null;
-            var ms = await catalog.UserCompanies.AsNoTracking().Where(m => m.UserId == uid)
-                .Select(m => new { m.TenantId, m.Role }).ToListAsync();
-            return new Instantanea(u.SecurityStamp, u.Role, u.TenantId,
-                ms.GroupBy(m => m.TenantId).ToDictionary(g => g.Key, g => g.First().Role));
+            return LeerAsync(sp, uid);
         });
+
+        // Leída antes del último cambio de la cuenta: no sirve, se vuelve a leer.
+        if (inst is not null && cache.TryGetValue(Marca(uid), out long marca) && inst.LeidaEn <= marca)
+        {
+            inst = await LeerAsync(sp, uid);
+            if (inst is null) cache.Remove(Clave(uid));
+            else cache.Set(Clave(uid), inst, Cache);
+        }
 
         if (inst is null || inst.Sello != sello)
         {
@@ -431,8 +595,13 @@ public static class RespuestaSesion
             ? DateTimeOffset.FromUnixTimeSeconds(s).UtcDateTime
             : DateTime.UtcNow;
 
-    public static async Task<SesionEmitida> CrearAsync(CatalogDbContext catalog, JwtTokenService jwt, AppUser user,
+    public static Task<SesionEmitida> CrearAsync(CatalogDbContext catalog, JwtTokenService jwt, AppUser user,
         string amr, Guid? tenantId = null, DateTime? expiraAntesDe = null)
+        => EmitirAsync(catalog, jwt, user, amr, tenantId, _ => expiraAntesDe);
+
+    // tope: dado el alcance nuevo, hasta cuándo puede valer como mucho el token (null = su vida normal).
+    private static async Task<SesionEmitida> EmitirAsync(CatalogDbContext catalog, JwtTokenService jwt, AppUser user,
+        string amr, Guid? tenantId, Func<string, DateTime?> tope)
     {
         var compañias = await Compañias.DeUsuarioAsync(catalog, user);
         var politica = Compañias.PoliticaEfectiva(compañias);
@@ -444,7 +613,7 @@ public static class RespuestaSesion
         var tiene2fa = user.TwoFactorMode == "totp" && user.TwoFactorConfirmedAt is not null;
 
         return new SesionEmitida(
-            jwt.Create(user, compañia, rol, scope, amr, expiraAntesDe),
+            jwt.Create(user, compañia, rol, scope, amr, tope(scope)),
             scope,
             new
             {
@@ -461,12 +630,22 @@ public static class RespuestaSesion
 
     // La misma sesión (compañía y amr) con un token nuevo: tras rotar el sello o completar
     // un paso pendiente (cambio de clave, correo, 2FA). El alcance se vuelve a calcular.
+    // Por defecto NO alarga la sesión: el token nuevo vence cuando vencía el actual. Solo
+    // estrena su vida normal:
+    //  - conClave: la petición acaba de comprobar la contraseña actual (lo mismo que entrar);
+    //  - si el token actual es restringido y el alcance cambia: se completó el paso pendiente
+    //    (un token restringido sale de un login de hace menos de 15 minutos y el paso no se
+    //    puede repetir sin otra prueba).
+    // Así, con un token robado no se puede encadenar renovaciones para no dejarlo vencer.
     public static Task<SesionEmitida> RenovarAsync(CatalogDbContext catalog, JwtTokenService jwt, AppUser user,
-        System.Security.Claims.ClaimsPrincipal actual, string? amr = null)
+        System.Security.Claims.ClaimsPrincipal actual, string? amr = null, bool conClave = false)
     {
         Guid? tid = Guid.TryParse(actual.FindFirst("tenant_id")?.Value, out var t) ? t : null;
         var amrActual = amr ?? actual.FindFirst("amr")?.Value ?? Amr.Pwd;
-        return CrearAsync(catalog, jwt, user, amrActual, tid ?? user.TenantId);
+        var alcanceActual = actual.FindFirst("scope")?.Value ?? Alcances.Full;
+        var expira = ExpiracionDe(actual);
+        return EmitirAsync(catalog, jwt, user, amrActual, tid ?? user.TenantId, nuevo =>
+            conClave || (alcanceActual != Alcances.Full && nuevo != alcanceActual) ? null : expira);
     }
 }
 

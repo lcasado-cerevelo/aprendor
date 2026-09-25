@@ -239,10 +239,16 @@ restablecimiento y los códigos de doble factor solo se escriben en la bitácora
   mucho uno por hora); 5 códigos de verificación malos, sumando todos los retos, bloquean el doble
   factor 15 minutos; «¿Olvidaste tu contraseña?» 3 por hora y 5 al día; códigos por correo con 60 s
   entre envíos y 10 al día; comprobar la clave actual con la sesión abierta (cambiar clave, quitar o
-  cambiar el 2FA), 5 fallos → 15 minutos.
+  cambiar el 2FA), 5 fallos → 15 minutos. El quinto fallo ya responde 429. Los topes aguantan
+  peticiones en paralelo: el intento se reserva antes de comprobar la clave o el código (UPDATE
+  condicionado en los contadores de `User`; los que cuentan filas de `SecurityEvent` van bajo un
+  cerrojo por cuenta con `sp_getapplock`), así que nunca se comprueban más de 5 entre bloqueo y bloqueo.
 - El token lleva `sst` (sello), `scope` y `amr`. Cambiar o restablecer la clave, tocar el 2FA, cambiar
   el rol o quitar una membresía rota el sello y cierra las sesiones de esa persona (la propia recibe
-  un token nuevo en la respuesta). Cada petición comprueba sello, membresía y rol (caché de 60 s).
+  un token nuevo en la respuesta). Cada petición comprueba sello, membresía y rol (caché de 60 s,
+  que se invalida también después de guardar el cambio). Un token nuevo solo estrena vida si la
+  petición comprobó la contraseña actual o completó el paso pendiente de un token restringido; si
+  no (por ejemplo `/me/email/send-code` con el correo ya validado), vence cuando vencía el actual.
 - Tokens restringidos de 15 minutos (`scope` = `change-password`, `enroll-2fa` o `verify-email`) que
   solo abren `/me`, `/me/password`, `/me/2fa/*` y `/me/email/*`. La política de doble factor del login
   es la más estricta entre las compañías de la persona; `/me/switch-company` no alarga la sesión y, si
@@ -253,4 +259,5 @@ restablecimiento y los códigos de doble factor solo se escriben en la bitácora
   puntos que fijan una clave.
 - Alta de usuarios sin contraseñas por correo: con invitación, enlace `#invite=TOKEN` de 72 h para que
   la persona cree la suya; sin invitación, el servidor genera una temporal de 16 caracteres que se
-  muestra una sola vez al admin y vence a las 72 h. El reset del admin también puede generarla.
+  muestra una sola vez al admin y vence a las 72 h. Si la invitación no sale (sin `App:BaseUrl`,
+  sin `Email:ApiKey` o falla el envío), también se genera la temporal y se muestra al admin. El reset del admin también puede generarla.
