@@ -940,7 +940,7 @@ function presPageHtml(page){
   const qs = items.filter(isQuestion);
   const kicker = qs.length ? 'Pregunta '+qNumber(qs[0])+(qs.length>1?` – ${qNumber(qs[qs.length-1])}`:'') : panelTitle();
   const body = items.map(it=>`<div class="qwrap">${itemHtml(it)}</div>`).join('');
-  return slideWrap('sl-dark sl-q', `<div class="sl-frame"></div><h1 class="sl-kicker">${kicker}</h1><div class="sl-rule"></div>`, body);
+  return slideWrap('sl-dark sl-q', `<div class="sl-frame"></div><h1 class="sl-kicker">${esc(kicker)}</h1><div class="sl-rule"></div>`, body);
 }
 function presSummaryHtml(){
   const rows = T.items.filter(isQuestion).map(it=>{

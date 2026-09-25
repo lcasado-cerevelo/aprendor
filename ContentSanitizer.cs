@@ -77,8 +77,9 @@ public static class ContentSanitizer
         "align-items", "align-self", "align-content", "justify-content", "justify-items", "justify-self",
         "place-items", "place-content", "order", "grid-template-columns", "grid-template-rows", "grid-column",
         "grid-row", "grid-gap", "grid-auto-flow", "object-fit", "object-position", "aspect-ratio", "position",
-        "top", "right", "bottom", "left", "inset", "table-layout", "caption-side", "fill", "stroke", "stroke-width"
+        "table-layout", "caption-side", "fill", "stroke", "stroke-width"
     };
+    private static readonly Regex MargenNegativo = new(@"(^|[\s(,])-\s*[\d.]", RegexOptions.Compiled);
     private static readonly Regex CssValorProhibido = new(
         @"url\s*\(|image(-set)?\s*\(|element\s*\(|expression|javascript:|vbscript:|behavior|binding|[\\<>{}@]|/\*|\*/",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -193,7 +194,9 @@ public static class ContentSanitizer
     }
 
     // Deja solo las declaraciones "propiedad: valor" permitidas, con el valor tal cual
-    // (espacios y saltos de línea colapsados). position: fixed/sticky no se permite.
+    // (espacios y saltos de línea colapsados). Para que un bloque no pueda salirse de su
+    // caja y tapar la lámina o el reproductor: position solo static o relative, sin
+    // top/right/bottom/left/inset (no están en la lista) ni márgenes negativos.
     public static string SanitizeStyle(string? style)
     {
         if (string.IsNullOrWhiteSpace(style)) return "";
@@ -205,7 +208,8 @@ public static class ContentSanitizer
             var prop = decl[..i].Trim().ToLowerInvariant();
             var valor = Regex.Replace(decl[(i + 1)..], @"\s+", " ").Trim();
             if (!Css.Contains(prop) || valor.Length == 0 || valor.Length > 500 || CssValorProhibido.IsMatch(valor)) continue;
-            if (prop == "position" && Regex.IsMatch(valor, "fixed|sticky", RegexOptions.IgnoreCase)) continue;
+            if (prop == "position" && !Regex.IsMatch(valor, @"^(static|relative)$", RegexOptions.IgnoreCase)) continue;
+            if (prop.StartsWith("margin", StringComparison.Ordinal) && MargenNegativo.IsMatch(valor)) continue;
             fuera.Add(prop + ":" + valor);
         }
         return string.Join(";", fuera);

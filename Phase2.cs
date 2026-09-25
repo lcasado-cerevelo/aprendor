@@ -833,11 +833,10 @@ public static class Phase2Endpoints
             }));
         }).RequireAuthorization();
 
-        app.MapGet("/me/record", async (ITenantContext tc, IServiceProvider sp, HttpContext http) =>
+        app.MapGet("/me/record", (ITenantContext tc) =>
         {
             if (tc.UserId is null) return Results.BadRequest("Sin usuario.");
-            http.Response.Redirect($"/record/{tc.UserId}", permanent: false);
-            return Results.Empty;
+            return Results.Redirect($"/record/{tc.UserId}", permanent: false);
         }).RequireAuthorization();
 
         // ---------------- Grading (open/explanation questions) ----------------
@@ -1139,12 +1138,17 @@ public static class Phase2Endpoints
                           ?? await db.TrainingVersions.Where(v => v.TrainingId == id)
                                  .OrderByDescending(v => v.VersionNumber).FirstOrDefaultAsync();
 
+            // El payload se sanea igual que en /draft: el front compara ambos como texto para contar
+            // los cambios sin publicar, y sin sanear aquí el contenido guardado antes de F2 daría
+            // siempre cambios fantasma (el borrador se copia en crudo del publicado).
             object items = Array.Empty<object>();
             if (srcVersion is not null)
-                items = await db.TrainingItems.Where(i => i.TrainingVersionId == srcVersion.Id)
+                items = (await db.TrainingItems.Where(i => i.TrainingVersionId == srcVersion.Id)
                     .OrderBy(i => i.Order)
                     .Select(i => new { i.StableKey, i.Type, i.PayloadJson, i.Points, i.Active })
-                    .ToListAsync();
+                    .ToListAsync())
+                    .Select(i => i with { PayloadJson = ContentSanitizer.SanitizePayload(i.PayloadJson) ?? i.PayloadJson })
+                    .ToList();
 
             var sets = await db.TrainingSets.Where(s => s.TrainingId == id).OrderBy(s => s.CreatedAt).ToListAsync();
             var setIds = sets.Select(s => s.Id).ToList();
