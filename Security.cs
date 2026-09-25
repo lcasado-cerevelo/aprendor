@@ -35,6 +35,10 @@ public static class EventosSeguridad
     public const string CodigoEnviado = "code-sent";
     public const string ClaveSensibleFallida = "password-check-failed";
     public const string ClaveSensibleOk = "password-check-ok";
+    // Bloque S3
+    public const string RestablecerDenegado = "forgot-password-denied";  // admin de plataforma: no se envía enlace
+    public const string RecuperacionEnviada = "2fa-recover-sent";        // código de «Perdí mi autenticador»
+    public const string PruebaCorreo = "email-proof";                    // demostró tener el correo (código de alta o de recuperación)
 
     // Añade el evento al contexto (se guarda con el próximo SaveChanges). La IP, si no se
     // da, es la de la petición en curso (AuditoriaIp).
@@ -101,6 +105,7 @@ public static class LimitesPorIp
         new("/auth/reset-password",      "reset",   10, TimeSpan.FromHours(1)),
         new("/auth/2fa/resend",          "codes",   10, TimeSpan.FromHours(1)),
         new("/me/email/send-code",       "codes",   10, TimeSpan.FromHours(1)),
+        new("/me/2fa/setup/send-code",   "codes",   10, TimeSpan.FromHours(1)),     // bloque S3
     };
 
     // Segundo nivel, encadenado: además de 10/min, el login no pasa de 50 cada 15 min.
@@ -362,11 +367,21 @@ public static class Bloqueos
     // bajo el cerrojo de la cuenta: dos peticiones a la vez no mandan dos correos.
     // null = envío reservado y ya anotado (AbrirRetoAsync con envioContado: true).
 
-    public static async Task<TimeSpan?> ReservarEnvioCodigoAsync(CatalogDbContext c, Guid userId)
+    // tipoExtra/maxExtraDia: un tope diario propio además del general, contado y anotado
+    // bajo el mismo cerrojo (el código de «Perdí mi autenticador»: 3 al día).
+    public static async Task<TimeSpan?> ReservarEnvioCodigoAsync(CatalogDbContext c, Guid userId,
+        string? tipoExtra = null, int maxExtraDia = 0)
     {
         await using var tx = await CerrojoCuenta.TomarAsync(c, $"codigos:{userId}");
         var ahora = DateTime.UtcNow;
         var dia = ahora.AddDays(-1);
+        if (tipoExtra is not null)
+        {
+            var extra = await c.SecurityEvents
+                .Where(e => e.Kind == tipoExtra && e.UserId == userId && e.At > dia)
+                .Select(e => e.At).ToListAsync();
+            if (extra.Count >= maxExtraDia) return extra.Count == 0 ? TimeSpan.FromDays(1) : extra.Min().AddDays(1) - ahora;
+        }
         var envios = await c.SecurityEvents
             .Where(e => e.Kind == EventosSeguridad.CodigoEnviado && e.UserId == userId && e.At > dia)
             .Select(e => e.At).ToListAsync();
@@ -375,6 +390,7 @@ public static class Bloqueos
             return envios.Max().AddSeconds(60) - ahora;
 
         EventosSeguridad.Anotar(c, EventosSeguridad.CodigoEnviado, userId);
+        if (tipoExtra is not null) EventosSeguridad.Anotar(c, tipoExtra, userId);
         await c.SaveChangesAsync();
         await tx.CommitAsync();
         return null;
@@ -609,7 +625,10 @@ public static class RespuestaSesion
         var rol = compañia is Guid t && t != user.TenantId
             ? compañias.FirstOrDefault(c => c.TenantId == t)?.Rol ?? user.Role
             : user.Role;
-        var scope = Alcances.Calcular(user, politica);
+        // Sesión abierta desde una red de confianza (amr=mfa-trusted): no se exige el alta
+        // del doble factor aunque alguna compañía lo pida (bloque S3).
+        var exigeAlta = politica == "required" && amr != Amr.MfaTrusted;
+        var scope = Alcances.Calcular(user, politica == "required" && !exigeAlta ? "optional" : politica);
         var tiene2fa = user.TwoFactorMode == "totp" && user.TwoFactorConfirmedAt is not null;
 
         return new SesionEmitida(
@@ -621,7 +640,7 @@ public static class RespuestaSesion
                 mustChangePassword = user.MustChangePassword, twoFactorMode = user.TwoFactorMode,
                 emailVerified = user.EmailVerifiedAt is not null,
                 twoFactorPolicy = politica,
-                mustEnroll2fa = politica == "required" && !tiene2fa,
+                mustEnroll2fa = exigeAlta && !tiene2fa,
                 isComplianceOfficer = await ComplianceOfficers.EsOficialAsync(catalog, user.Id, compañia),
                 companies = compañias,
                 scope, amr
@@ -804,5 +823,350 @@ public static class Invitaciones
             return false;
         }
         return true;
+    }
+}
+
+// ============================================================================
+// Bloque S3: redes de confianza, Turnstile, «Perdí mi autenticador», reinicio del
+// doble factor y avisos a los Admin de la compañía.
+// ============================================================================
+
+// Redes de confianza: desde ellas no se pide el doble factor ni su alta (el token lleva
+// amr=mfa-trusted) y, si son de la instancia, tampoco Turnstile. Son las de la instancia
+// (Security:TrustedNetworks) más las de cada compañía (Tenant.SecurityConfigJson,
+// trustedNetworks). Loopback NO es de confianza salvo que se liste: detrás del túnel todo
+// llega desde loopback y la IP que cuenta es la real (ClientIp.Of).
+public static class RedesConfianza
+{
+    private static IReadOnlyList<Cidr> _instancia = Array.Empty<Cidr>();
+    public static IReadOnlyList<Cidr> Instancia => _instancia;
+
+    // Al arrancar: lee Security:TrustedNetworks (arreglo o lista separada por comas); las
+    // que no se entienden se ignoran con una advertencia en la bitácora.
+    public static void Configurar(IConfiguration cfg, ILogger log)
+    {
+        var lista = new List<Cidr>();
+        foreach (var s in ArranqueSeguro.Lista(cfg, "Security:TrustedNetworks"))
+        {
+            if (Cidr.TryParse(s, out var c, out var error)) lista.Add(c);
+            else log.LogWarning("Security:TrustedNetworks: se ignora «{Red}» ({Motivo}).", s, error);
+        }
+        _instancia = lista;
+        if (lista.Count > 0)
+            log.LogInformation("Redes de confianza de la instancia: {Redes}", string.Join(", ", lista));
+    }
+
+    public static bool En(IEnumerable<Cidr> redes, string? ip)
+        => System.Net.IPAddress.TryParse(ip ?? "", out var dir) && redes.Any(r => r.Contiene(dir));
+
+    public static bool EnInstancia(string? ip) => En(_instancia, ip);
+
+    // Para una compañía: la instancia más las redes de esa compañía.
+    public static async Task<bool> ParaCompañiaAsync(CatalogDbContext c, Guid tenantId, string? ip)
+    {
+        if (EnInstancia(ip)) return true;
+        var json = await c.Tenants.AsNoTracking().Where(t => t.Id == tenantId)
+            .Select(t => t.SecurityConfigJson).FirstOrDefaultAsync();
+        return json is not null && En(SecurityConfig.Parse(json).Redes(), ip);
+    }
+
+    // Para una persona: la IP es de confianza si está en las redes de la instancia o en las
+    // de TODAS sus compañías que usan el doble factor (política distinta de off; si ninguna
+    // lo usa, todas sus compañías). Así una compañía no puede quitarle el doble factor que
+    // le exige otra. Sin compañías (admin de plataforma): solo las de la instancia.
+    public static async Task<bool> ParaUsuarioAsync(CatalogDbContext c, AppUser u, string? ip)
+    {
+        if (EnInstancia(ip)) return true;
+        if (!System.Net.IPAddress.TryParse(ip ?? "", out _)) return false;
+        var compañias = await Compañias.DeUsuarioAsync(c, u);
+        var relevantes = compañias.Where(x => x.Politica2FA != "off").Select(x => x.TenantId).ToList();
+        if (relevantes.Count == 0) relevantes = compañias.Select(x => x.TenantId).ToList();
+        if (relevantes.Count == 0) return false;
+        var jsons = await c.Tenants.AsNoTracking().Where(t => relevantes.Contains(t.Id))
+            .Select(t => t.SecurityConfigJson).ToListAsync();
+        return jsons.Count == relevantes.Count && jsons.All(j => En(SecurityConfig.Parse(j).Redes(), ip));
+    }
+}
+
+// Cloudflare Turnstile: se valida en el servidor ANTES de buscar el usuario en
+// /auth/login, /auth/forgot-password, /auth/reset-password y /auth/2fa/recover/start.
+// Encendido solo con Turnstile:Enabled = true y las dos claves: si falta la secreta
+// (APRENDOR_Turnstile__SecretKey) queda APAGADO (no se valida y /auth/config no da la
+// site key), para que un despliegue sin la variable no bloquee la entrada; al arrancar
+// se deja una advertencia. Desde las redes de confianza de la instancia no se pide.
+public sealed class Turnstile
+{
+    public enum Resultado { Ok, Invalido, NoDisponible }
+
+    public const string ClienteHttp = "turnstile";
+    private const string UrlVerificar = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+
+    private readonly IHttpClientFactory _http;
+    private readonly IConfiguration _cfg;
+    private readonly ILogger<Turnstile> _log;
+
+    public Turnstile(IHttpClientFactory http, IConfiguration cfg, ILogger<Turnstile> log)
+    {
+        _http = http; _cfg = cfg; _log = log;
+    }
+
+    private static string? Limpio(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+    private bool Encendido => bool.TryParse(_cfg["Turnstile:Enabled"], out var b) && b;
+    private string? SiteKey => Limpio(_cfg["Turnstile:SiteKey"]);
+    private string? SecretKey => Limpio(_cfg["Turnstile:SecretKey"]);
+
+    public bool Activo => Encendido && SiteKey is not null && SecretKey is not null;
+
+    public void AdvertirAlArrancar()
+    {
+        if (!Encendido) { _log.LogInformation("Turnstile apagado (Turnstile:Enabled = false)."); return; }
+        if (SecretKey is null)
+            _log.LogWarning("Turnstile:Enabled está en true pero falta Turnstile:SecretKey (variable APRENDOR_Turnstile__SecretKey): " +
+                            "Turnstile queda APAGADO y el acceso no pide la verificación. Define la variable y reinicia.");
+        else if (SiteKey is null)
+            _log.LogWarning("Turnstile:Enabled está en true pero falta Turnstile:SiteKey: Turnstile queda APAGADO.");
+        else
+            _log.LogInformation("Turnstile activo en el acceso (site key {SiteKey}).", SiteKey);
+    }
+
+    // La site key para el front: null si está apagado o si la petición viene de una red de
+    // confianza de la instancia (ahí no se pide).
+    public string? SiteKeyPara(HttpContext ctx)
+        => Activo && !RedesConfianza.EnInstancia(ClientIp.Of(ctx)) ? SiteKey : null;
+
+    public async Task<Resultado> ValidarAsync(HttpContext ctx, string? token)
+    {
+        if (!Activo) return Resultado.Ok;
+        var ip = ClientIp.Of(ctx);
+        if (RedesConfianza.EnInstancia(ip)) return Resultado.Ok;
+        token = token?.Trim();
+        if (string.IsNullOrEmpty(token) || token.Length > 2048) return Resultado.Invalido;
+
+        var campos = new Dictionary<string, string> { ["secret"] = SecretKey!, ["response"] = token };
+        if (System.Net.IPAddress.TryParse(ip, out _)) campos["remoteip"] = ip;
+        try
+        {
+            using var contenido = new FormUrlEncodedContent(campos);
+            using var resp = await _http.CreateClient(ClienteHttp).PostAsync(UrlVerificar, contenido);
+            // Cloudflare responde con JSON también en los 4xx (p. ej. 400 con la clave secreta
+            // mala): se leen los códigos de error en todos los casos.
+            var cuerpo = await resp.Content.ReadAsStringAsync();
+            System.Text.Json.JsonDocument doc;
+            try { doc = System.Text.Json.JsonDocument.Parse(cuerpo); }
+            catch (System.Text.Json.JsonException)
+            {
+                _log.LogError("Turnstile: Cloudflare respondió {Status} sin JSON al validar el token.", (int)resp.StatusCode);
+                return Resultado.NoDisponible;
+            }
+            using var _ = doc;
+            var raiz = doc.RootElement;
+            if (resp.IsSuccessStatusCode && raiz.ValueKind == System.Text.Json.JsonValueKind.Object
+                && raiz.TryGetProperty("success", out var ok) && ok.ValueKind == System.Text.Json.JsonValueKind.True)
+                return Resultado.Ok;
+
+            var codigos = raiz.ValueKind == System.Text.Json.JsonValueKind.Object
+                && raiz.TryGetProperty("error-codes", out var e) && e.ValueKind == System.Text.Json.JsonValueKind.Array
+                ? e.EnumerateArray().Select(x => x.ValueKind == System.Text.Json.JsonValueKind.String ? x.GetString() ?? "" : "").ToList()
+                : new List<string>();
+            // Solo es culpa de quien entra si Cloudflare rechazó el token; lo demás (clave
+            // secreta mala, error interno, respuesta rara) es nuestro o de Cloudflare.
+            var tokenMalo = codigos.Count > 0 && codigos.All(c => c is "missing-input-response" or "invalid-input-response"
+                or "timeout-or-duplicate" or "bad-request");
+            if (!tokenMalo)
+            {
+                _log.LogError("Turnstile: Cloudflare no pudo validar ({Status}: {Codigos}). Revisa Turnstile:SecretKey.",
+                    (int)resp.StatusCode, string.Join(", ", codigos));
+                return Resultado.NoDisponible;
+            }
+            _log.LogInformation("Turnstile: token rechazado ({Codigos}) desde {Ip}.", string.Join(", ", codigos), ip);
+            return Resultado.Invalido;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            _log.LogError(ex, "Turnstile: no se pudo validar con Cloudflare (sin respuesta en 5 s o error de red).");
+            return Resultado.NoDisponible;
+        }
+    }
+
+    // Token ausente o inválido: 400 genérico (no dice nada de la cuenta). Cloudflare no
+    // responde: 503 claro.
+    public static IResult Respuesta(Resultado r) => r == Resultado.Invalido
+        ? Results.BadRequest(new { error = "No pudimos confirmar la verificación de seguridad. Vuelve a intentarlo.", turnstileFailed = true })
+        : Results.Json(new { error = "No pudimos comprobar la verificación de seguridad en este momento. Intenta de nuevo en unos minutos.", turnstileFailed = true },
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+}
+
+// «Perdí mi autenticador»: recuperar el acceso con un código al correo validado.
+public static class Recuperacion
+{
+    public const string Proposito = "recover-2fa";
+    public const int MaxDia = 3;
+
+    // null = la persona puede recuperar por correo; si no, el motivo (solo para la auditoría:
+    // la respuesta al cliente es genérica).
+    public static async Task<string?> MotivoRechazoAsync(CatalogDbContext c, AppUser u)
+    {
+        if (u.TenantId is null && u.Role == "Admin") return "admin de plataforma";
+        if (u.EmailVerifiedAt is null) return "correo sin validar";
+        var ids = (await Compañias.DeUsuarioAsync(c, u)).Select(x => x.TenantId).ToList();
+        if (ids.Count > 0)
+        {
+            var jsons = await c.Tenants.AsNoTracking().Where(t => ids.Contains(t.Id)).Select(t => t.SecurityConfigJson).ToListAsync();
+            if (jsons.Any(j => !SecurityConfig.Parse(j).EmailRecoveryEnabled)) return "la compañía desactivó la recuperación por correo";
+        }
+        return null;
+    }
+
+    // 3 códigos de recuperación al día por cuenta, además de los topes generales de los
+    // códigos por correo (60 s entre envíos, 10 al día).
+    public static Task<TimeSpan?> ReservarEnvioAsync(CatalogDbContext c, Guid userId)
+        => Bloqueos.ReservarEnvioCodigoAsync(c, userId, EventosSeguridad.RecuperacionEnviada, MaxDia);
+}
+
+// Prueba de que quien tiene la sesión también tiene el correo (un código de alta del
+// autenticador o de recuperación canjeado). La primera alta del autenticador desde fuera
+// de las redes de confianza la exige: vale 15 minutos y solo desde la misma IP.
+public static class PruebaCorreo
+{
+    public static readonly TimeSpan Vigencia = TimeSpan.FromMinutes(15);
+    public const string Proposito = "enroll-2fa";
+
+    public static void Anotar(CatalogDbContext c, Guid userId, string? ip)
+        => EventosSeguridad.Anotar(c, EventosSeguridad.PruebaCorreo, userId, ip: ip);
+
+    public static Task<bool> VigenteAsync(CatalogDbContext c, Guid userId, string? ip)
+    {
+        var desde = DateTime.UtcNow - Vigencia;
+        return c.SecurityEvents.AnyAsync(e => e.Kind == EventosSeguridad.PruebaCorreo && e.UserId == userId
+                                              && e.At > desde && e.Ip == ip);
+    }
+
+    // ¿La primera alta del autenticador necesita antes un código por correo?
+    public static async Task<bool> HaceFaltaAsync(CatalogDbContext c, AppUser u, string? ip)
+    {
+        if (u.TwoFactorMode == "totp" && u.TwoFactorConfirmedAt is not null) return false;   // es un cambio: pide clave y código actual
+        if (await RedesConfianza.ParaUsuarioAsync(c, u, ip)) return false;
+        return !await VigenteAsync(c, u.Id, ip);
+    }
+}
+
+// Quitar el autenticador de una cuenta (recuperación por correo o reinicio del admin):
+// sin secreto, sin pendiente, contadores a 0 y sello nuevo (cierra todas sus sesiones).
+// Se guarda con el próximo SaveChanges de quien llama.
+public static class DobleFactor
+{
+    public static bool Tiene(AppUser u) => u.TwoFactorMode != "none" || u.TotpSecret is not null || u.PendingTotpSecret is not null;
+
+    public static void Quitar(CatalogDbContext c, AppUser u, IMemoryCache cache)
+    {
+        u.TwoFactorMode = "none";
+        u.TotpSecret = null;
+        u.PendingTotpSecret = null;
+        u.TwoFactorConfirmedAt = null;
+        u.LastTotpStep = null;
+        u.TwoFactorFailedCount = 0;
+        u.TwoFactorLockedUntil = null;
+        Sesiones.Rotar(c, u, cache);
+    }
+}
+
+// Avisos por correo a los Admin de las compañías de una persona (las que tienen
+// notifyAdmins), sin incluirla a ella. soloFueraDeConfianza: se salta la compañía si la IP
+// está en sus redes de confianza o en las de la instancia.
+public static class AvisosSeguridad
+{
+    public static async Task AdminsAsync(CatalogDbContext c, IEmailSender email, ILogger log, AppUser u,
+        string evento, string? ip, bool soloFueraDeConfianza = false)
+    {
+        var ids = (await Compañias.DeUsuarioAsync(c, u)).Select(x => x.TenantId).ToList();
+        if (ids.Count == 0) return;
+        var compañias = await c.Tenants.AsNoTracking().Where(t => ids.Contains(t.Id))
+            .Select(t => new { t.Id, t.Name, t.SecurityConfigJson }).ToListAsync();
+        var asunto = evento == "2fa-recovered"
+            ? "Aviso de seguridad: un usuario recuperó su acceso sin su app autenticadora"
+            : "Aviso de seguridad: un usuario restableció su contraseña";
+        var avisados = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var t in compañias)
+        {
+            var sc = SecurityConfig.Parse(t.SecurityConfigJson);
+            if (!sc.NotifyAdmins) continue;
+            if (soloFueraDeConfianza && (RedesConfianza.EnInstancia(ip) || RedesConfianza.En(sc.Redes(), ip))) continue;
+            foreach (var a in (await CompanyUsers.OfAsync(c, t.Id)).Where(m => m.Role == "Admin" && m.Id != u.Id))
+            {
+                if (!avisados.Add(a.Email)) continue;
+                try
+                {
+                    await email.SendAsync(a.Email, a.Name, asunto,
+                        EmailTemplates.AdminSecurityNotice(a.Name, u.Name, u.Email, t.Name, evento, DateTime.UtcNow, ip));
+                }
+                catch (Exception ex) { log.LogWarning(ex, "No se pudo avisar a {Admin} de {Evento} de {Email}", a.Email, evento, u.Email); }
+            }
+        }
+    }
+}
+
+// Configuración de seguridad de una compañía: GET/PUT /company/security (su Admin) y
+// /admin/tenants/{id}/security (admin de plataforma).
+public sealed record SecurityConfigRequest(List<string?>? TrustedNetworks, bool? EmailRecoveryEnabled, bool? NotifyAdmins);
+
+public static class SeguridadCompañia
+{
+    // conInstancia: el admin de plataforma ve también las redes de la instancia.
+    public static object Vista(Tenant t, string ip, bool conInstancia)
+    {
+        var sc = SecurityConfig.Parse(t.SecurityConfigJson);
+        return new
+        {
+            tenantId = t.Id,
+            name = t.Name,
+            twoFactorPolicy = t.TwoFactorPolicy,          // se edita en /admin/tenants/{id}/two-factor
+            trustedNetworks = sc.TrustedNetworks,
+            emailRecoveryEnabled = sc.EmailRecoveryEnabled,
+            notifyAdmins = sc.NotifyAdmins,
+            yourIp = ip,
+            yourIpTrusted = RedesConfianza.EnInstancia(ip) || RedesConfianza.En(sc.Redes(), ip),
+            instanceTrustedNetworks = conInstancia ? RedesConfianza.Instancia.Select(r => r.ToString()).ToList() : null
+        };
+    }
+
+    // Cambio parcial: lo que venga en null se queda como está. Cada red se valida; si alguna
+    // no sirve, 400 con la lista y no se guarda nada.
+    public static async Task<IResult> GuardarAsync(CatalogDbContext c, Tenant t, SecurityConfigRequest? req,
+        Guid? quien, string ip, bool conInstancia)
+    {
+        if (req is null) return Results.BadRequest("Faltan los datos.");
+        var sc = SecurityConfig.Parse(t.SecurityConfigJson);
+        if (req.TrustedNetworks is not null)
+        {
+            var escritas = req.TrustedNetworks.Where(r => !string.IsNullOrWhiteSpace(r)).ToList();
+            if (escritas.Count > SecurityConfig.MaxRedes)
+                return Results.BadRequest(new { error = $"Como máximo {SecurityConfig.MaxRedes} redes de confianza." });
+            var redes = SecurityConfig.Normalizar(escritas, out var invalidas);
+            if (invalidas.Count > 0)
+            {
+                var muestra = invalidas.Take(10).Select(s => s.Length > 64 ? s[..64] : s).ToList();
+                return Results.BadRequest(new
+                {
+                    error = $"Estas redes no son válidas: {string.Join(", ", muestra)}. Escribe una IP (203.0.113.7) o una red en " +
+                            $"formato CIDR (203.0.113.0/24). No se admiten redes más amplias que /{Cidr.MinPrefijoV4} en IPv4 " +
+                            $"ni que /{Cidr.MinPrefijoV6} en IPv6.",
+                    invalidNetworks = muestra
+                });
+            }
+            sc.TrustedNetworks = redes;
+        }
+        if (req.EmailRecoveryEnabled is bool rec) sc.EmailRecoveryEnabled = rec;
+        if (req.NotifyAdmins is bool avisos) sc.NotifyAdmins = avisos;
+
+        t.SecurityConfigJson = sc.ToJson();
+        c.AuditLogs.Add(new CatalogAuditLog
+        {
+            Action = "security-config",
+            Detail = $"{t.Name}: redes [{string.Join(", ", sc.TrustedNetworks)}], recuperación por correo " +
+                     $"{(sc.EmailRecoveryEnabled ? "sí" : "no")}, avisos a admins {(sc.NotifyAdmins ? "sí" : "no")}",
+            UserId = quien
+        });
+        await c.SaveChangesAsync();
+        return Results.Ok(Vista(t, ip, conInstancia));
     }
 }

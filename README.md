@@ -261,3 +261,62 @@ restablecimiento y los códigos de doble factor solo se escriben en la bitácora
   la persona cree la suya; sin invitación, el servidor genera una temporal de 16 caracteres que se
   muestra una sola vez al admin y vence a las 72 h. Si la invitación no sale (sin `App:BaseUrl`,
   sin `Email:ApiKey` o falla el envío), también se genera la temporal y se muestra al admin. El reset del admin también puede generarla.
+
+## Doble factor por compañía, redes de confianza, recuperación y Turnstile (septiembre 2026, bloque S3)
+
+### Al desplegar
+- Migración de catálogo `CompanySecurityConfig` (se aplica sola al arrancar o con `migrate`):
+  `Tenant.SecurityConfigJson`, las compañías existentes quedan con `{}` (recuperación por correo y
+  avisos a los Admin encendidos, sin redes de confianza).
+- `APRENDOR_Turnstile__SecretKey`: la clave secreta de Turnstile (widget con hostname
+  `aprendor.advancelogisticspr.com`). La site key pública ya está en `appsettings.json`. **Sin la
+  clave secreta Turnstile queda apagado** (no se pide y al arrancar queda una advertencia en la
+  bitácora), así que desplegar sin ella no bloquea la entrada.
+- Opcional: `APRENDOR_Security__TrustedNetworks` con las redes de confianza de la instancia (CIDR o IP
+  sola, separadas por comas). Las que no se entienden se ignoran con una advertencia.
+
+### Configuración
+| Clave | Qué hace |
+| --- | --- |
+| `Turnstile:Enabled` | `true` en el archivo. Solo se activa con las dos claves. |
+| `Turnstile:SiteKey` | Pública. En Development, la de prueba de Cloudflare (`1x00000000000000000000AA`). |
+| `Turnstile:SecretKey` | Secreta, solo por variable de entorno. En Development, la de prueba (`1x0000000000000000000000000000000AA`). |
+| `Security:TrustedNetworks` | Redes de confianza de la instancia: sin doble factor, sin su alta y sin Turnstile. |
+
+Loopback **no** es de confianza salvo que se liste: detrás del túnel cuenta la IP real (`ClientIp`).
+No se admiten redes más amplias que /8 (IPv4) o /32 (IPv6).
+
+### Qué cambia
+- `GET /auth/config` (anónimo): `{ turnstileSiteKey }`, `null` si Turnstile está apagado o la petición
+  viene de una red de confianza de la instancia. `/auth/login`, `/auth/forgot-password`,
+  `/auth/reset-password` y `/auth/2fa/recover/start` reciben `turnstileToken` y lo validan con
+  Cloudflare antes de buscar el usuario: ausente o rechazado, `400 { error, turnstileFailed: true }`;
+  Cloudflare sin respuesta (5 s) o clave secreta mala, `503` con un mensaje claro y un error en la bitácora.
+- Seguridad de la compañía: `GET/PUT /company/security` (su Admin) y `GET/PUT /admin/tenants/{id}/security`
+  (admin de plataforma) con `{ trustedNetworks, emailRecoveryEnabled, notifyAdmins }`; la respuesta añade
+  `twoFactorPolicy` (se sigue cambiando en `/admin/tenants/{id}/two-factor`), `yourIp` y `yourIpTrusted`.
+- Red de confianza: la de la instancia o la de **todas** las compañías de la persona que usan doble
+  factor. Desde ella el login no pide el código ni el alta aunque la política sea `required`; el token
+  lleva `amr=mfa-trusted` y queda la auditoría `2fa-skipped-trusted`. `/me/switch-company` solo acepta
+  ese `amr` como doble factor si la petición sigue llegando desde una red de confianza del destino.
+- Primera alta del autenticador desde fuera de las redes de confianza: antes hay que canjear un
+  código enviado al correo (`POST /me/2fa/setup/send-code`, luego `/me/2fa/setup` con
+  `emailChallengeId` y `emailCode`; sin él responde `400 { requiresEmailCode: true }`). `GET /me/2fa`
+  dice si hace falta (`emailCodeRequired`). La prueba vale 15 minutos desde la misma IP.
+- «Perdí mi autenticador»: `POST /auth/2fa/recover/start { challengeId, turnstileToken }` desde la
+  pantalla del código y `POST /auth/2fa/recover/verify { challengeId, code }`. Solo con el correo
+  validado, si ninguna de sus compañías apagó la recuperación y nunca para el admin de plataforma;
+  la respuesta del inicio es siempre la misma. 3 códigos al día por cuenta y 5 por hora por IP. Al
+  canjearlo se quita el autenticador, se cierran sus sesiones, se avisa a la persona y a los Admin
+  (`notifyAdmins`), y se devuelve la sesión (con `enroll-2fa` si la política lo exige).
+- `POST /auth/reset-password` acepta `totpCode`: si la cuenta tiene app autenticadora y la petición no
+  llega desde una red de confianza, lo exige (`400 { requiresTotp: true }` sin gastar el enlace; los
+  fallos cuentan para el bloqueo del doble factor). Tras restablecer desde fuera, aviso a los Admin
+  (`notifyAdmins`). El admin de plataforma ya no recibe enlaces de restablecimiento (respuesta genérica
+  y auditoría `password-reset-denied`).
+- `POST /company/users/{id}/reset-2fa`: el Admin de la compañía reinicia el doble factor de su gente
+  (409 si la persona pertenece también a otra compañía; nunca a un admin de plataforma ni a sí mismo);
+  el admin de plataforma, a cualquiera que no lo sea. Cierra sus sesiones, audita y le avisa por correo.
+  `GET /admin/users` trae `twoFactorEnabled`.
+- Correos nuevos (`/admin/email-preview?kind=`): `recover`, `enroll-code`, `2fa-reset`, `2fa-recovered`,
+  `admin-reset-notice`, `admin-2fa-notice`.

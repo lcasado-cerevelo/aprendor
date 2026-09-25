@@ -97,6 +97,9 @@ builder.Services.AddHostedService<RestablecerWorker>();
 // Vía la API HTTP de Brevo (Email:ApiKey) — no SMTP, no hace falta una SMTP key aparte.
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<IEmailSender, BrevoApiEmailSender>();
+// Cloudflare Turnstile en el acceso (bloque S3): validación en el servidor con 5 s de espera máxima.
+builder.Services.AddHttpClient(Turnstile.ClienteHttp, c => c.Timeout = TimeSpan.FromSeconds(5));
+builder.Services.AddSingleton<Turnstile>();
 builder.Services.AddHostedService<WeeklyDigestService>();
 builder.Services.AddHostedService<ReminderService>();
 // Resumen para los oficiales de cumplimiento, con la cadencia de cada compañía.
@@ -165,6 +168,13 @@ var app = builder.Build();
 CertificateLinks.UsarOrigenPeticion = app.Environment.IsDevelopment();
 // Los códigos y enlaces que no se pudieron mandar solo van al log en desarrollo.
 DosFactores.RegistrarCodigosEnLog = app.Environment.IsDevelopment();
+// Redes de confianza de la instancia (Security:TrustedNetworks) y aviso si Turnstile
+// está encendido sin la clave secreta (entonces queda apagado).
+{
+    var logSeguridad = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Seguridad");
+    RedesConfianza.Configurar(cfg, logSeguridad);
+    if (!modoMigracion) app.Services.GetRequiredService<Turnstile>().AdvertirAlArrancar();
+}
 
 // ---- CLI mode: apply migrations to the catalog + every tenant database ----
 if (modoMigracion)
@@ -235,9 +245,15 @@ if (app.Environment.IsDevelopment())
 // clave. La política de doble factor es la más estricta entre las compañías del usuario.
 // Si falta algo (cambio de clave, alta del 2FA exigida, validar el correo) el token es
 // restringido (scope) y solo abre /me, /me/password, /me/2fa/* y /me/email/*.
-app.MapPost("/auth/login", async (LoginRequest? req, CatalogDbContext catalog, JwtTokenService jwt,
-    IEmailSender email, ILoggerFactory logs, IConfiguration cfg) =>
+// Turnstile se valida antes de buscar el usuario. Desde una red de confianza (de la
+// instancia o de las compañías de la persona) no se pide el doble factor ni su alta: el
+// token lleva amr=mfa-trusted y queda auditado (2fa-skipped-trusted).
+app.MapPost("/auth/login", async (LoginRequest? req, HttpContext http, Turnstile turnstile, CatalogDbContext catalog,
+    JwtTokenService jwt, IEmailSender email, ILoggerFactory logs, IConfiguration cfg) =>
 {
+    var verificacion = await turnstile.ValidarAsync(http, req?.TurnstileToken);
+    if (verificacion != Turnstile.Resultado.Ok) return Turnstile.Respuesta(verificacion);
+
     var correo = (req?.Email ?? "").Trim();
     var clave = req?.Password ?? "";
     if (correo.Length == 0 || clave.Length == 0 || correo.Length > 254)
@@ -285,6 +301,21 @@ app.MapPost("/auth/login", async (LoginRequest? req, CatalogDbContext catalog, J
     var politica = Compañias.PoliticaEfectiva(compañias);
     var tiene2fa = user.TwoFactorMode == "totp" && user.TwoFactorConfirmedAt is not null;
 
+    // Red de confianza: ni código ni alta del doble factor, aunque la política lo exija.
+    var ip = ClientIp.Of(http);
+    if (await RedesConfianza.ParaUsuarioAsync(catalog, user, ip))
+    {
+        if ((politica != "off" && tiene2fa) || (politica == "required" && !tiene2fa))
+            catalog.AuditLogs.Add(new CatalogAuditLog
+            {
+                Action = "2fa-skipped-trusted",
+                Detail = $"{user.Email} ({(tiene2fa ? "sin código" : "sin alta obligatoria")}, {ip})",
+                UserId = user.Id
+            });
+        await EventosSeguridad.RegistrarAsync(catalog, EventosSeguridad.LoginOk, user.Id, user.TenantId);
+        return Results.Ok(await RespuestaSesion.CrearAsync(catalog, jwt, user, Amr.MfaTrusted));
+    }
+
     // La compañía decide si se usa doble factor. Si lo exige y el usuario no lo tiene
     // configurado, entra con un token restringido (enroll-2fa) que solo sirve para darlo de alta.
     if (politica != "off" && tiene2fa)
@@ -301,8 +332,10 @@ app.MapPost("/auth/login", async (LoginRequest? req, CatalogDbContext catalog, J
 // Cambiar de compañía sin volver a escribir la contraseña: emite un token nuevo para otra
 // compañía a la que el usuario pertenezca, que vence cuando vencía el actual (no alarga la
 // sesión). Si la compañía destino exige doble factor y la sesión no lo pasó (amr), abre un
-// reto y responde requires2fa: el token llega al verificarlo en /auth/2fa/verify.
-app.MapPost("/me/switch-company", async (SwitchCompanyRequest req, ITenantContext tc, ClaimsPrincipal principal,
+// reto y responde requires2fa: el token llega al verificarlo en /auth/2fa/verify. Una
+// sesión abierta desde una red de confianza (amr=mfa-trusted) solo vale como doble factor
+// si la petición sigue llegando desde una red de confianza de la compañía destino.
+app.MapPost("/me/switch-company", async (SwitchCompanyRequest req, HttpContext http, ITenantContext tc, ClaimsPrincipal principal,
     CatalogDbContext catalog, JwtTokenService jwt, IEmailSender email, ILoggerFactory logs, IConfiguration cfg) =>
 {
     var user = await catalog.Users.FindAsync(tc.UserId);
@@ -314,11 +347,13 @@ app.MapPost("/me/switch-company", async (SwitchCompanyRequest req, ITenantContex
 
     var expira = RespuestaSesion.ExpiracionDe(principal);
     var amr = principal.FindFirst("amr")?.Value ?? Amr.Pwd;
-    if (destino.Politica2FA == "required")
+    var confianzaDestino = amr == Amr.MfaTrusted
+        && await RedesConfianza.ParaCompañiaAsync(catalog, destino.TenantId, ClientIp.Of(http));
+    if (destino.Politica2FA == "required" && !confianzaDestino)
     {
         if (!(user.TwoFactorMode == "totp" && user.TwoFactorConfirmedAt is not null))
             return Results.BadRequest($"{destino.Nombre} exige verificación en dos pasos. Actívala en tu perfil antes de entrar.");
-        if (!Amr.EsMfa(amr))
+        if (amr != Amr.Mfa)
         {
             if (Bloqueos.Espera(user.TwoFactorLockedUntil) is TimeSpan espera) return Demasiados.Resultado(espera);
             var reto = await DosFactores.AbrirRetoAsync(catalog, user, "login", email, logs, cfg,
@@ -374,11 +409,112 @@ app.MapPost("/auth/2fa/resend", async (ResendRequest req, CatalogDbContext catal
         return generico;
     var user = await catalog.Users.FindAsync(viejo.UserId);
     if (user is null) return generico;
-    if (await Bloqueos.ReservarEnvioCodigoAsync(catalog, user.Id) is TimeSpan espera) return Demasiados.Resultado(espera);
+    // El código de «Perdí mi autenticador» tiene además su tope (3 al día) y se vuelve a
+    // comprobar que la cuenta pueda recuperarse (la compañía pudo apagarlo entretanto).
+    var recuperacion = viejo.Purpose == Recuperacion.Proposito;
+    if (recuperacion && await Recuperacion.MotivoRechazoAsync(catalog, user) is not null) return generico;
+    var espera = recuperacion
+        ? await Recuperacion.ReservarEnvioAsync(catalog, user.Id)
+        : await Bloqueos.ReservarEnvioCodigoAsync(catalog, user.Id);
+    if (espera is TimeSpan e) return Demasiados.Resultado(e);
 
     var nuevo = await DosFactores.AbrirRetoAsync(catalog, user, viejo.Purpose, email, logs, cfg, modoForzado: "email",
         destino: viejo.TargetTenantId, sesionHasta: viejo.SessionExpiresAt, envioContado: true);
     return Results.Ok(new { challengeId = nuevo.Id, message = "Te reenviamos el código." });
+}).AllowAnonymous();
+
+// Lo que la pantalla de acceso necesita saber antes de entrar: la site key de Turnstile
+// (null si está apagado, sin claves o si la petición viene de una red de confianza de
+// la instancia; entonces no se carga el widget).
+app.MapGet("/auth/config", (HttpContext http, Turnstile turnstile) =>
+    Results.Ok(new { turnstileSiteKey = turnstile.SiteKeyPara(http) }))
+    .AllowAnonymous();
+
+// ---------- «Perdí mi autenticador» ----------
+// Paso 1, desde la pantalla del código (reto de login vigente, así que ya dio la clave
+// buena): si el correo está validado, sus compañías no apagaron la recuperación y no es
+// admin de plataforma, se envía un código de 6 dígitos (10 min, 5 intentos) al correo.
+// La respuesta es SIEMPRE la misma, con un challengeId (inventado si no se envió nada).
+// Límites: 5/h por IP y 3 al día por cuenta.
+app.MapPost("/auth/2fa/recover/start", async (RecoverStartRequest? req, HttpContext http, Turnstile turnstile,
+    CatalogDbContext catalog, IEmailSender email, ILoggerFactory logs, IConfiguration cfg) =>
+{
+    var verificacion = await turnstile.ValidarAsync(http, req?.TurnstileToken);
+    if (verificacion != Turnstile.Resultado.Ok) return Turnstile.Respuesta(verificacion);
+
+    IResult Generico(Guid id) => Results.Ok(new
+    {
+        challengeId = id,
+        message = "Si tu cuenta permite recuperar el acceso por correo, te enviamos un código. Revisa tu bandeja de entrada."
+    });
+
+    var ahora = DateTime.UtcNow;
+    var reto = req is null ? null
+        : await catalog.TwoFactorChallenges.AsNoTracking().FirstOrDefaultAsync(c => c.Id == req.ChallengeId);
+    if (reto is null || reto.UsedAt is not null || reto.ExpiresAt <= ahora || reto.Purpose != "login"
+        || reto.Mode != "totp" || reto.TargetTenantId is not null)
+        return Generico(Guid.NewGuid());
+    var user = await catalog.Users.FindAsync(reto.UserId);
+    if (user is null) return Generico(Guid.NewGuid());
+
+    if (await Recuperacion.MotivoRechazoAsync(catalog, user) is string motivo)
+    {
+        catalog.AuditLogs.Add(new CatalogAuditLog { Action = "2fa-recover-denied", Detail = $"{user.Email}: {motivo}", UserId = user.Id });
+        await catalog.SaveChangesAsync();
+        return Generico(Guid.NewGuid());
+    }
+    // Con el doble factor bloqueado el código no se podría canjear: no se manda.
+    if (Bloqueos.Espera(user.TwoFactorLockedUntil) is not null) return Generico(Guid.NewGuid());
+    if (await Recuperacion.ReservarEnvioAsync(catalog, user.Id) is not null) return Generico(Guid.NewGuid());
+
+    var nuevo = await DosFactores.AbrirRetoAsync(catalog, user, Recuperacion.Proposito, email, logs, cfg,
+        modoForzado: "email", envioContado: true);
+    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "2fa-recover-code-sent", Detail = user.Email, UserId = user.Id });
+    await catalog.SaveChangesAsync();
+    return Generico(nuevo.Id);
+}).AllowAnonymous();
+
+// Paso 2: canjear el código (cuenta para el bloqueo del doble factor). Quita el
+// autenticador, cierra las demás sesiones (sello nuevo), avisa a la persona y, si la
+// compañía lo pide, a sus Admin. Devuelve la sesión como el login: con alcance enroll-2fa
+// si la política exige el doble factor y no entra desde una red de confianza.
+app.MapPost("/auth/2fa/recover/verify", async (TwoFactorVerifyRequest req, HttpContext http, CatalogDbContext catalog,
+    JwtTokenService jwt, IMemoryCache cache, IEmailSender email, ILoggerFactory logs) =>
+{
+    var log = logs.CreateLogger("DosFactores");
+    var r = await DosFactores.ConsumirAsync(catalog, req.ChallengeId, req.Code, Recuperacion.Proposito, email, log);
+    if (r.Espera is TimeSpan espera) return Demasiados.Resultado(espera, r.Error);
+    if (!r.Ok || r.User is null) return Results.BadRequest(r.Error ?? "El código no es válido.");
+    var user = r.User;
+
+    // Pudo cambiar en los 10 minutos del código (la compañía apagó la recuperación...).
+    if (await Recuperacion.MotivoRechazoAsync(catalog, user) is string motivo)
+    {
+        catalog.AuditLogs.Add(new CatalogAuditLog { Action = "2fa-recover-denied", Detail = $"{user.Email}: {motivo}", UserId = user.Id });
+        await catalog.SaveChangesAsync();
+        return Results.BadRequest("No se puede recuperar el acceso de esta cuenta por correo. Pide ayuda al administrador de tu compañía.");
+    }
+
+    var ip = ClientIp.Of(http);
+    var ahora = DateTime.UtcNow;
+    DobleFactor.Quitar(catalog, user, cache);
+    user.EmailVerifiedAt ??= ahora;          // acaba de demostrar que el correo es suyo
+    PruebaCorreo.Anotar(catalog, user.Id, ip);
+    EventosSeguridad.Anotar(catalog, EventosSeguridad.LoginOk, user.Id, user.TenantId);
+    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "2fa-recovered", Detail = $"{user.Email} ({ip})", UserId = user.Id });
+    await catalog.SaveChangesAsync();
+    await Bloqueos.Limpiar2faAsync(catalog, user.Id);
+
+    try
+    {
+        await email.SendAsync(user.Email, user.Name, "Quitamos la app autenticadora de tu cuenta de Aprendor",
+            EmailTemplates.AuthenticatorReset(user.Name, "recovered", ahora));
+    }
+    catch (Exception ex) { log.LogWarning(ex, "No se pudo avisar de la recuperación del 2FA a {Email}", user.Email); }
+    await AvisosSeguridad.AdminsAsync(catalog, email, log, user, "2fa-recovered", ip);
+
+    var confia = await RedesConfianza.ParaUsuarioAsync(catalog, user, ip);
+    return Results.Ok(await RespuestaSesion.CrearAsync(catalog, jwt, user, confia ? Amr.MfaTrusted : Amr.Pwd));
 }).AllowAnonymous();
 
 // ---------- Validación del correo del usuario ----------
@@ -430,12 +566,32 @@ app.MapPost("/me/email/verify", async (TwoFactorVerifyRequest req, ITenantContex
 }).RequireAuthorization(PoliticasAcceso.Sesion);
 
 // ---------- Alta, cambio y baja del segundo factor (usuario autenticado) ----------
-app.MapGet("/me/2fa", async (ITenantContext tc, CatalogDbContext catalog) =>
+// emailCodeRequired: la primera alta del autenticador desde fuera de las redes de
+// confianza pide antes un código por correo (POST /me/2fa/setup/send-code).
+app.MapGet("/me/2fa", async (ITenantContext tc, HttpContext http, CatalogDbContext catalog) =>
 {
     var user = await catalog.Users.FindAsync(tc.UserId);
     if (user is null) return Results.NotFound();
     return Results.Ok(new { mode = user.TwoFactorMode, confirmed = user.TwoFactorConfirmedAt is not null,
-                            pending = user.PendingTotpSecret is not null });
+                            pending = user.PendingTotpSecret is not null,
+                            emailCodeRequired = await PruebaCorreo.HaceFaltaAsync(catalog, user, ClientIp.Of(http)) });
+}).RequireAuthorization(PoliticasAcceso.Sesion);
+
+// Código por correo para la primera alta del autenticador desde fuera de las redes de
+// confianza: quien solo tiene la contraseña no puede registrar su propia app en la cuenta
+// de otro. { required: false } si no hace falta. Por cuenta: 60 s entre envíos y 10 al día.
+app.MapPost("/me/2fa/setup/send-code", async (ITenantContext tc, HttpContext http, CatalogDbContext catalog,
+    IEmailSender email, ILoggerFactory logs, IConfiguration cfg) =>
+{
+    var user = await catalog.Users.FindAsync(tc.UserId);
+    if (user is null) return Results.NotFound();
+    if (!await PruebaCorreo.HaceFaltaAsync(catalog, user, ClientIp.Of(http)))
+        return Results.Ok(new { required = false });
+    if (await Bloqueos.ReservarEnvioCodigoAsync(catalog, user.Id) is TimeSpan espera) return Demasiados.Resultado(espera);
+
+    var reto = await DosFactores.AbrirRetoAsync(catalog, user, PruebaCorreo.Proposito, email, logs, cfg,
+        modoForzado: "email", envioContado: true);
+    return Results.Ok(new { required = true, challengeId = reto.Id, email = user.Email });
 }).RequireAuthorization(PoliticasAcceso.Sesion);
 
 // Paso 1 del alta (o del cambio de autenticador): devuelve un secreto nuevo para
@@ -444,8 +600,11 @@ app.MapGet("/me/2fa", async (ITenantContext tc, CatalogDbContext catalog) =>
 // y un código válido del autenticador actual (quien solo tiene la sesión abierta no puede
 // registrar el suyo). El segundo factor SOLO se hace con app: el correo no cuenta como
 // segundo factor porque suele estar en el mismo dispositivo y con la misma sesión.
-app.MapPost("/me/2fa/setup", async (TwoFactorSetupRequest? req, ITenantContext tc, CatalogDbContext catalog,
-    IEmailSender email, ILoggerFactory logs) =>
+// La PRIMERA alta desde fuera de las redes de confianza exige además el código enviado al
+// correo (emailChallengeId + emailCode, de /me/2fa/setup/send-code); sin él responde 400
+// { requiresEmailCode: true }. Canjearlo vale 15 minutos desde la misma IP.
+app.MapPost("/me/2fa/setup", async (TwoFactorSetupRequest? req, ITenantContext tc, HttpContext http,
+    CatalogDbContext catalog, IEmailSender email, ILoggerFactory logs) =>
 {
     var user = await catalog.Users.FindAsync(tc.UserId);
     if (user is null) return Results.NotFound();
@@ -454,6 +613,29 @@ app.MapPost("/me/2fa/setup", async (TwoFactorSetupRequest? req, ITenantContext t
         return Results.BadRequest("La verificación en dos pasos se hace con app autenticadora.");
 
     var confirmado = user.TwoFactorMode == "totp" && user.TwoFactorConfirmedAt is not null;
+    var ip = ClientIp.Of(http);
+    if (await PruebaCorreo.HaceFaltaAsync(catalog, user, ip))
+    {
+        if (req?.EmailChallengeId is not Guid retoCorreo || string.IsNullOrWhiteSpace(req.EmailCode))
+            return Results.BadRequest(new
+            {
+                requiresEmailCode = true,
+                error = "Antes de registrar la app autenticadora, confirma el código que te enviamos por correo."
+            });
+        var rc = await DosFactores.ConsumirAsync(catalog, retoCorreo, req.EmailCode, PruebaCorreo.Proposito, email,
+            logs.CreateLogger("DosFactores"), dueño: user.Id);
+        if (rc.Espera is TimeSpan esperaCorreo) return Demasiados.Resultado(esperaCorreo, rc.Error);
+        if (!rc.Ok) return Results.BadRequest(new { requiresEmailCode = true, error = rc.Error ?? "El código no es válido." });
+        // El código llegó al correo de la cuenta: también lo valida.
+        if (user.EmailVerifiedAt is null)
+        {
+            user.EmailVerifiedAt = DateTime.UtcNow;
+            catalog.AuditLogs.Add(new CatalogAuditLog { Action = "email-verified", Detail = user.Email, UserId = user.Id });
+        }
+        PruebaCorreo.Anotar(catalog, user.Id, ip);
+        await catalog.SaveChangesAsync();
+    }
+
     if (confirmado)
     {
         var reserva = await Bloqueos.ReservarSensibleAsync(catalog, user.Id);
@@ -594,9 +776,16 @@ app.MapPost("/me/2fa/disable", async (DisableTwoFactorRequest? req, ITenantConte
 // en los dos casos se busca el usuario, se cuentan sus solicitudes y se anota un
 // SecurityEvent; el token y el correo se hacen en segundo plano (RestablecerWorker). Por
 // cuenta: 3 por hora y 5 al día (las de más no hacen nada).
-app.MapPost("/auth/forgot-password", async (ForgotPasswordRequest? req, HttpRequest http, CatalogDbContext catalog,
-    ColaRestablecer cola, IConfiguration cfg, ILoggerFactory logs, IWebHostEnvironment env) =>
+// Turnstile se valida antes de buscar el usuario. El admin de plataforma no recibe enlace
+// por correo (respuesta igual y queda en la auditoría): lo restablece otro admin de
+// plataforma o se vuelve a sembrar.
+app.MapPost("/auth/forgot-password", async (ForgotPasswordRequest? req, HttpContext httpCtx, Turnstile turnstile,
+    CatalogDbContext catalog, ColaRestablecer cola, IConfiguration cfg, ILoggerFactory logs, IWebHostEnvironment env) =>
 {
+    var verificacion = await turnstile.ValidarAsync(httpCtx, req?.TurnstileToken);
+    if (verificacion != Turnstile.Resultado.Ok) return Turnstile.Respuesta(verificacion);
+
+    var http = httpCtx.Request;
     var generico = Results.Ok(new { message = "Si el correo está registrado, te enviamos un enlace para restablecer la contraseña." });
     var correo = (req?.Email ?? "").Trim();
     if (correo.Length == 0 || correo.Length > 254) return generico;
@@ -605,12 +794,15 @@ app.MapPost("/auth/forgot-password", async (ForgotPasswordRequest? req, HttpRequ
     // en paralelo no se aceptan más de las que permite el tope. El cerrojo es por correo,
     // exista o no, para que el trabajo sea el mismo en los dos casos.
     Guid? id;
-    bool pasado;
+    bool pasado, plataforma;
     var recurso = "olvido:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(correo.ToLowerInvariant())));
     await using (var tx = await CerrojoCuenta.TomarAsync(catalog, recurso))
     {
         var ahora = DateTime.UtcNow;
-        id = await catalog.Users.AsNoTracking().Where(u => u.Email == correo).Select(u => (Guid?)u.Id).FirstOrDefaultAsync();
+        var fila = await catalog.Users.AsNoTracking().Where(u => u.Email == correo)
+            .Select(u => new { u.Id, u.TenantId, u.Role }).FirstOrDefaultAsync();
+        id = fila?.Id;
+        plataforma = fila is not null && fila.TenantId == null && fila.Role == "Admin";
         var cuenta = id ?? Guid.Empty;
         var dia = ahora.AddDays(-1);
         var hora = ahora.AddHours(-1);
@@ -618,11 +810,21 @@ app.MapPost("/auth/forgot-password", async (ForgotPasswordRequest? req, HttpRequ
             .Where(e => e.Kind == EventosSeguridad.Restablecer && e.UserId == cuenta && e.At > dia)
             .Select(e => e.At).ToListAsync();
         pasado = previas.Count(a => a > hora) >= 3 || previas.Count >= 5;
-        EventosSeguridad.Anotar(catalog, pasado ? EventosSeguridad.RestablecerIgnorado : EventosSeguridad.Restablecer, id);
+        EventosSeguridad.Anotar(catalog,
+            pasado ? EventosSeguridad.RestablecerIgnorado
+            : plataforma ? EventosSeguridad.RestablecerDenegado
+            : EventosSeguridad.Restablecer, id);
+        if (plataforma && !pasado)
+            catalog.AuditLogs.Add(new CatalogAuditLog
+            {
+                Action = "password-reset-denied",
+                Detail = $"{correo} (admin de plataforma: no se envía enlace por correo)",
+                UserId = id
+            });
         await catalog.SaveChangesAsync();
         await tx.CommitAsync();
     }
-    if (id is null || pasado) return generico;
+    if (id is null || pasado || plataforma) return generico;
 
     // Fuera de Development el enlace sale SOLO de App:BaseUrl (el arranque exige que
     // exista y sea https): la cabecera Host la controla quien pide el correo.
@@ -639,8 +841,17 @@ app.MapPost("/auth/forgot-password", async (ForgotPasswordRequest? req, HttpRequ
 
 // Consumir el enlace (restablecimiento o invitación) y fijar la contraseña nueva. El
 // token es de un solo uso también con peticiones en paralelo (UPDATE condicionado).
-app.MapPost("/auth/reset-password", async (ResetWithTokenRequest? req, CatalogDbContext catalog, IMemoryCache cache) =>
+// Turnstile se valida antes de buscar el token. Si la cuenta tiene app autenticadora y la
+// petición no llega desde una red de confianza, exige también totpCode (cuenta para el
+// bloqueo del doble factor); si falta, responde 400 { requiresTotp: true } SIN gastar el
+// enlace. Tras restablecer, aviso a los Admin de la compañía (notifyAdmins) si fue desde
+// fuera de sus redes de confianza.
+app.MapPost("/auth/reset-password", async (ResetWithTokenRequest? req, HttpContext http, Turnstile turnstile,
+    CatalogDbContext catalog, IMemoryCache cache, IEmailSender email, ILoggerFactory logs) =>
 {
+    var verificacion = await turnstile.ValidarAsync(http, req?.TurnstileToken);
+    if (verificacion != Turnstile.Resultado.Ok) return Turnstile.Respuesta(verificacion);
+
     var invalido = Results.BadRequest("El enlace no es válido o ya venció. Pide uno nuevo desde el login.");
     var texto = req?.Token ?? "";
     if (texto.Length is 0 or > 128) return invalido;
@@ -653,7 +864,30 @@ app.MapPost("/auth/reset-password", async (ResetWithTokenRequest? req, CatalogDb
 
     var user = await catalog.Users.FindAsync(registro.UserId);
     if (user is null) return invalido;
+    var invitacion = registro.Purpose == "invite";
+    // El admin de plataforma no restablece por enlace (un enlace anterior a este cambio ya no vale).
+    if (!invitacion && user.TenantId is null && user.Role == "Admin") return invalido;
     if (PoliticaClave.Validar(req!.NewPassword, user.Email) is string error) return Results.BadRequest(error);
+
+    var log = logs.CreateLogger("PasswordReset");
+    var ip = ClientIp.Of(http);
+    var tieneApp = user.TwoFactorMode == "totp" && user.TwoFactorConfirmedAt is not null && !string.IsNullOrEmpty(user.TotpSecret);
+    if (tieneApp && !await RedesConfianza.ParaUsuarioAsync(catalog, user, ip))
+    {
+        if (string.IsNullOrWhiteSpace(req.TotpCode))
+            return Results.BadRequest(new { requiresTotp = true, error = "Escribe el código de tu app autenticadora para restablecer la contraseña." });
+        if (Bloqueos.Espera(user.TwoFactorLockedUntil) is TimeSpan bloqueado) return Demasiados.Resultado(bloqueado);
+        if (!await Bloqueos.Reservar2faAsync(catalog, user.Id))
+            return Demasiados.Resultado(await Bloqueos.Espera2faAsync(catalog, user, email, log));
+        var paso = Totp.Verificar(user.TotpSecret, req.TotpCode);
+        if (paso is not long p || p <= (user.LastTotpStep ?? long.MinValue) || !await DosFactores.MarcarPasoAsync(catalog, user.Id, p))
+        {
+            var hasta = await Bloqueos.Fallo2faAsync(catalog, user, email, log);
+            if (hasta is DateTime h) return Demasiados.Resultado(h - DateTime.UtcNow);
+            return Results.BadRequest(new { requiresTotp = true, error = "El código de tu app autenticadora no es válido." });
+        }
+        await Bloqueos.Limpiar2faAsync(catalog, user.Id);
+    }
 
     var n = await catalog.PasswordResetTokens.Where(t => t.Id == registro.Id && t.UsedAt == null)
         .ExecuteUpdateAsync(s => s.SetProperty(t => t.UsedAt, (DateTime?)ahora));
@@ -674,10 +908,16 @@ app.MapPost("/auth/reset-password", async (ResetWithTokenRequest? req, CatalogDb
         .Where(t => t.UserId == user.Id && t.UsedAt == null && t.Id != registro.Id).ToListAsync();
     catalog.PasswordResetTokens.RemoveRange(otros);
 
-    var invitacion = registro.Purpose == "invite";
-    catalog.AuditLogs.Add(new CatalogAuditLog { Action = invitacion ? "invite-accepted" : "password-reset", Detail = user.Email, UserId = user.Id });
+    catalog.AuditLogs.Add(new CatalogAuditLog
+    {
+        Action = invitacion ? "invite-accepted" : "password-reset",
+        Detail = $"{user.Email} ({ip}{(tieneApp ? ", con app autenticadora" : "")})",
+        UserId = user.Id
+    });
     await catalog.SaveChangesAsync();
     await Bloqueos.LimpiarLoginAsync(catalog, user.Id);   // por si el contador cambió después de leerlo
+    if (!invitacion)
+        await AvisosSeguridad.AdminsAsync(catalog, email, log, user, "password-reset", ip, soloFueraDeConfianza: true);
     return Results.Ok(new { message = invitacion ? "Contraseña creada. Ya puedes entrar." : "Contraseña actualizada. Ya puedes entrar." });
 }).AllowAnonymous();
 
@@ -804,7 +1044,8 @@ app.MapGet("/admin/tenants", async (CatalogDbContext catalog) =>
 
 // Dispara el resumen semanal de inmediato (para probar o forzar un envío).
 // Vista previa de las plantillas de correo, para revisar cómo se ven sin enviar nada.
-// /admin/email-preview?kind=reminder|open|overdue|invite|reset|2fa|locked|2fa-locked|2fa-changed|completion|digest|certificate|certificate-officer|compliance
+// /admin/email-preview?kind=reminder|open|overdue|invite|reset|2fa|locked|2fa-locked|2fa-changed|recover|enroll-code|
+//   2fa-reset|2fa-recovered|admin-reset-notice|admin-2fa-notice|completion|digest|certificate|certificate-officer|compliance
 app.MapGet("/admin/email-preview", (string? kind) =>
 {
     var k = (kind ?? "reminder").ToLowerInvariant();
@@ -817,6 +1058,14 @@ app.MapGet("/admin/email-preview", (string? kind) =>
         "locked" => EmailTemplates.AccountLocked("María Rivera", "password", 15),
         "2fa-locked" => EmailTemplates.AccountLocked("María Rivera", "2fa", 15),
         "2fa-changed" => EmailTemplates.AuthenticatorChanged("María Rivera", "changed", DateTime.UtcNow),
+        "recover" => EmailTemplates.RecoveryCode("María Rivera", "428913", DosFactores.VigenciaMinutos),
+        "enroll-code" => EmailTemplates.EnrollCode("María Rivera", "428913", DosFactores.VigenciaMinutos),
+        "2fa-reset" => EmailTemplates.AuthenticatorReset("María Rivera", "admin", DateTime.UtcNow),
+        "2fa-recovered" => EmailTemplates.AuthenticatorReset("María Rivera", "recovered", DateTime.UtcNow),
+        "admin-reset-notice" => EmailTemplates.AdminSecurityNotice("José Torres", "María Rivera", "maria.rivera@advancelogisticspr.com",
+                    "Advance Logistics", "password-reset", DateTime.UtcNow, "203.0.113.7"),
+        "admin-2fa-notice" => EmailTemplates.AdminSecurityNotice("José Torres", "María Rivera", "maria.rivera@advancelogisticspr.com",
+                    "Advance Logistics", "2fa-recovered", DateTime.UtcNow, "203.0.113.7"),
         "reset" => EmailTemplates.PasswordReset("María Rivera", "https://aprendor.advancelogisticspr.com/index.html#reset=demo", 60),
         "2fa" => EmailTemplates.TwoFactorCode("María Rivera", "428913", 10),
         "completion" => EmailTemplates.Completion("María Rivera", "Cumplimiento HIPAA para transporte y logística", 270, 300),
@@ -985,7 +1234,7 @@ app.MapGet("/admin/users", async (Guid? tenantId, ITenantContext tc, ClaimsPrinc
         var gente = await catalog.Users
             .Where(u => (u.TenantId == suya || extras.Contains(u.Id)) && !(u.TenantId == null && u.Role == "Admin"))
             .OrderBy(u => u.Name)
-            .Select(u => new { u.Id, u.Email, u.Name, u.Role, u.TenantId, u.MustChangePassword }).ToListAsync();
+            .Select(u => new { u.Id, u.Email, u.Name, u.Role, u.TenantId, u.MustChangePassword, TwoFactorEnabled = u.TwoFactorMode == "totp" && u.TwoFactorConfirmedAt != null }).ToListAsync();
         var ids = gente.Select(u => u.Id).ToList();
         var aqui = await catalog.UserCompanies.Where(m => m.TenantId == suya && ids.Contains(m.UserId))
             .Select(m => new { m.Id, m.UserId, m.TenantId, m.Role, m.IsComplianceOfficer }).ToListAsync();
@@ -1000,6 +1249,7 @@ app.MapGet("/admin/users", async (Guid? tenantId, ITenantContext tc, ClaimsPrinc
                 role = principalAqui ? u.Role : (m?.Role ?? u.Role),
                 tenantId = (Guid?)suya,
                 u.MustChangePassword,
+                twoFactorEnabled = u.TwoFactorEnabled,
                 isComplianceOfficer = m?.IsComplianceOfficer == true,
                 memberships = m is null ? Array.Empty<object>() : new object[]
                 {
@@ -1013,7 +1263,7 @@ app.MapGet("/admin/users", async (Guid? tenantId, ITenantContext tc, ClaimsPrinc
     var q = catalog.Users.AsQueryable();
     if (tenantId is not null) q = q.Where(u => u.TenantId == tenantId);
     var users = await q.OrderBy(u => u.Name)
-        .Select(u => new { u.Id, u.Email, u.Name, u.Role, u.TenantId, u.MustChangePassword })
+        .Select(u => new { u.Id, u.Email, u.Name, u.Role, u.TenantId, u.MustChangePassword, TwoFactorEnabled = u.TwoFactorMode == "totp" && u.TwoFactorConfirmedAt != null })
         .ToListAsync();
 
     // Membresías (UserCompany) de esos usuarios, con la marca de oficial de cumplimiento.
@@ -1028,6 +1278,7 @@ app.MapGet("/admin/users", async (Guid? tenantId, ITenantContext tc, ClaimsPrinc
         return new
         {
             u.Id, u.Email, u.Name, u.Role, u.TenantId, u.MustChangePassword,
+            twoFactorEnabled = u.TwoFactorEnabled,
             // Oficial de cumplimiento en la compañía filtrada (o, sin filtro, en su principal).
             isComplianceOfficer = suyas.Any(m => m.TenantId == compañia && m.IsComplianceOfficer),
             memberships = suyas.Select(m => new
@@ -1254,6 +1505,81 @@ app.MapPost("/admin/tenants/{id:guid}/status", async (Guid id, StatusRequest req
     return Results.Ok();
 }).RequireAuthorization(AdminPlataforma.Politica);
 
+// ---------- Seguridad de acceso de la compañía (bloque S3) ----------
+// Redes de confianza (CIDR o IP sola), recuperación del doble factor por correo y avisos a
+// los Admin. El Admin de la compañía, la suya (la activa del token); el admin de
+// plataforma, cualquiera. La política de doble factor se sigue cambiando en
+// /admin/tenants/{id}/two-factor (aquí solo se muestra). yourIp / yourIpTrusted: la IP con
+// la que el servidor ve a quien llama y si hoy sería de confianza para esta compañía.
+app.MapGet("/company/security", async (ITenantContext tc, HttpContext http, CatalogDbContext catalog) =>
+{
+    if (tc.TenantId is not Guid tid || tc.Role != "Admin") return Results.Forbid();
+    var t = await catalog.Tenants.FindAsync(tid);
+    return t is null ? Results.NotFound() : Results.Ok(SeguridadCompañia.Vista(t, ClientIp.Of(http), conInstancia: false));
+}).RequireAuthorization("Admin");
+
+app.MapPut("/company/security", async (SecurityConfigRequest? req, ITenantContext tc, HttpContext http, CatalogDbContext catalog) =>
+{
+    if (tc.TenantId is not Guid tid || tc.Role != "Admin") return Results.Forbid();
+    var t = await catalog.Tenants.FindAsync(tid);
+    if (t is null) return Results.NotFound();
+    return await SeguridadCompañia.GuardarAsync(catalog, t, req, tc.UserId, ClientIp.Of(http), conInstancia: false);
+}).RequireAuthorization("Admin");
+
+app.MapGet("/admin/tenants/{id:guid}/security", async (Guid id, HttpContext http, CatalogDbContext catalog) =>
+{
+    var t = await catalog.Tenants.FindAsync(id);
+    return t is null ? Results.NotFound() : Results.Ok(SeguridadCompañia.Vista(t, ClientIp.Of(http), conInstancia: true));
+}).RequireAuthorization(AdminPlataforma.Politica);
+
+app.MapPut("/admin/tenants/{id:guid}/security", async (Guid id, SecurityConfigRequest? req, ITenantContext tc,
+    HttpContext http, CatalogDbContext catalog) =>
+{
+    var t = await catalog.Tenants.FindAsync(id);
+    if (t is null) return Results.NotFound();
+    return await SeguridadCompañia.GuardarAsync(catalog, t, req, tc.UserId, ClientIp.Of(http), conInstancia: true);
+}).RequireAuthorization(AdminPlataforma.Politica);
+
+// Reiniciar el doble factor de alguien que perdió su app: quita el autenticador, cierra
+// sus sesiones (sello nuevo), audita y le avisa por correo. Al entrar, si su compañía lo
+// exige, tendrá que registrar uno nuevo. El Admin de una compañía, sobre su gente (nunca
+// un admin de plataforma, y si la persona pertenece también a otra compañía responde 409,
+// igual que el restablecimiento de la clave); el admin de plataforma, sobre cualquiera que
+// no sea admin de plataforma. Nadie sobre sí mismo (para eso está el perfil).
+app.MapPost("/company/users/{id:guid}/reset-2fa", async (Guid id, ITenantContext tc, ClaimsPrincipal principal,
+    CatalogDbContext catalog, IMemoryCache cache, IEmailSender email, ILoggerFactory logs) =>
+{
+    var alcance = await AdminUsuarios.AlcanceAsync(tc, principal, catalog, cache);
+    if (alcance is null) return Results.Forbid();
+    if (tc.UserId == id) return Results.BadRequest("Para cambiar tu propia verificación en dos pasos usa tu perfil.");
+    var user = await catalog.Users.FindAsync(id);
+    if (user is null) return Results.NotFound();
+    if (user.TenantId is null && user.Role == "Admin") return Results.Forbid();   // admin de plataforma
+    if (!await AdminUsuarios.PuedeGestionarAsync(alcance, user, catalog)) return Results.Forbid();
+    if (alcance.Compañia is Guid suya && await AdminUsuarios.TieneOtraCompañiaAsync(user, suya, catalog))
+        return Results.Conflict("Esta persona también pertenece a otra compañía; pide al administrador de la plataforma que reinicie su verificación en dos pasos.");
+
+    var tenia = DobleFactor.Tiene(user);
+    DobleFactor.Quitar(catalog, user, cache);
+    catalog.AuditLogs.Add(new CatalogAuditLog
+    {
+        Action = "2fa-reset-by-admin",
+        Detail = $"{user.Email}{(tenia ? "" : " (no tenía doble factor)")}",
+        UserId = tc.UserId
+    });
+    await catalog.SaveChangesAsync();
+    await Bloqueos.Limpiar2faAsync(catalog, user.Id);
+
+    if (tenia)
+        try
+        {
+            await email.SendAsync(user.Email, user.Name, "Se reinició tu verificación en dos pasos de Aprendor",
+                EmailTemplates.AuthenticatorReset(user.Name, "admin", DateTime.UtcNow));
+        }
+        catch (Exception ex) { logs.CreateLogger("DosFactores").LogWarning(ex, "No se pudo avisar del reinicio del 2FA a {Email}", user.Email); }
+    return Results.Ok(new { reset = true, hadTwoFactor = tenia });
+}).RequireAuthorization("Admin");
+
 // ---------- Tenant-scoped content (proves multitenancy end to end) ----------
 app.MapGet("/categories", (ITenantContext tc, IServiceProvider sp) =>
 {
@@ -1440,14 +1766,16 @@ static class DosFactores
 
         if (modo == "email" && codigo is not null)
         {
-            var esValidacion = proposito == "verify-email";
+            var (asunto, html) = proposito switch
+            {
+                "verify-email" => ("Valida tu correo en Aprendor", EmailTemplates.VerifyEmail(user.Name, codigo, VigenciaMinutos)),
+                "recover-2fa" => ("Código para recuperar tu acceso a Aprendor", EmailTemplates.RecoveryCode(user.Name, codigo, VigenciaMinutos)),
+                "enroll-2fa" => ("Código para registrar tu app autenticadora en Aprendor", EmailTemplates.EnrollCode(user.Name, codigo, VigenciaMinutos)),
+                _ => ("Tu código de verificación de Aprendor", EmailTemplates.TwoFactorCode(user.Name, codigo, VigenciaMinutos)),
+            };
             try
             {
-                await email.SendAsync(user.Email, user.Name,
-                    esValidacion ? "Valida tu correo en Aprendor" : "Tu código de verificación de Aprendor",
-                    esValidacion
-                        ? EmailTemplates.VerifyEmail(user.Name, codigo, VigenciaMinutos)
-                        : EmailTemplates.TwoFactorCode(user.Name, codigo, VigenciaMinutos));
+                await email.SendAsync(user.Email, user.Name, asunto, html);
             }
             catch (Exception ex)
             {
@@ -1756,7 +2084,7 @@ static class AdminUsuarios
 }
 
 // ---- Request DTOs ----
-record LoginRequest(string? Email, string? Password);
+record LoginRequest(string? Email, string? Password, string? TurnstileToken = null);
 record CreateTenantRequest(string Name, string? ConnectionString = null, string? DatabaseName = null);
 record CreateUserRequest(string Email, string Name, string? Password, string Role, Guid? TenantId, bool? SendInvite);
 record CreateCategoryRequest(string Name, Guid? ParentId);
@@ -1764,11 +2092,13 @@ record CreateTrainingRequest(string Title, string? Description, Guid? CategoryId
 record ChangePasswordRequest(string? CurrentPassword, string? NewPassword);
 record RoleRequest(string Role);
 record ResetPasswordRequest(string? TempPassword);
-record ForgotPasswordRequest(string? Email);
-record ResetWithTokenRequest(string? Token, string? NewPassword);
+record ForgotPasswordRequest(string? Email, string? TurnstileToken = null);
+record ResetWithTokenRequest(string? Token, string? NewPassword, string? TotpCode = null, string? TurnstileToken = null);
+record RecoverStartRequest(Guid ChallengeId, string? TurnstileToken = null);
 record TwoFactorVerifyRequest(Guid ChallengeId, string? Code);
 record ResendRequest(Guid ChallengeId);
-record TwoFactorSetupRequest(string? Mode, string? CurrentPassword = null, string? Code = null);
+record TwoFactorSetupRequest(string? Mode, string? CurrentPassword = null, string? Code = null,
+    Guid? EmailChallengeId = null, string? EmailCode = null);
 record TwoFactorConfirmRequest(string? Mode, string? Code, Guid? ChallengeId);
 record SwitchCompanyRequest(Guid TenantId);
 record TwoFactorPolicyRequest(string Policy);

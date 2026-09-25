@@ -22,6 +22,163 @@ public class Tenant
     // Reglas de cumplimiento de la compañía (blob JSON, ver ComplianceConfig):
     // a quién más se copia, cómo se entrega el certificado y cadencia de avisos.
     public string ComplianceConfigJson { get; set; } = "{}";
+
+    // Seguridad de acceso de la compañía (blob JSON, ver SecurityConfig): redes de
+    // confianza, recuperación del 2FA por correo y avisos a los Admin. Migración
+    // CompanySecurityConfig; las filas que ya existían toman "{}" (valores por defecto).
+    public string SecurityConfigJson { get; set; } = "{}";
+}
+
+// Seguridad de acceso por compañía, guardada en Tenant.SecurityConfigJson. Lectura
+// tolerante (como ComplianceConfig): un blob que falta, corrupto o con valores malos
+// deja el valor por defecto de ese campo; las redes que no se entienden se descartan.
+public class SecurityConfig
+{
+    public const int MaxRedes = 50;
+
+    // Redes (CIDR, o una IP sola) desde las que no se pide el doble factor ni su alta.
+    public List<string> TrustedNetworks { get; set; } = new();
+    // «Perdí mi autenticador»: recuperar el acceso con un código al correo validado.
+    public bool EmailRecoveryEnabled { get; set; } = true;
+    // Avisar a los Admin de la compañía de recuperaciones y restablecimientos de clave.
+    public bool NotifyAdmins { get; set; } = true;
+
+    public List<Cidr> Redes()
+    {
+        var lista = new List<Cidr>();
+        foreach (var s in TrustedNetworks)
+            if (Cidr.TryParse(s, out var c, out _)) lista.Add(c);
+        return lista;
+    }
+
+    public static SecurityConfig Parse(string? json)
+    {
+        var cfg = new SecurityConfig();
+        System.Text.Json.Nodes.JsonObject? n;
+        try { n = System.Text.Json.Nodes.JsonNode.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json!) as System.Text.Json.Nodes.JsonObject; }
+        catch { return cfg; }
+        if (n is null) return cfg;
+
+        IEnumerable<string?> redes = Array.Empty<string?>();
+        if (n["trustedNetworks"] is System.Text.Json.Nodes.JsonArray arr) redes = arr.Select(Texto);
+        else if (Texto(n["trustedNetworks"]) is string lista) redes = lista.Split(',', ';');
+        cfg.TrustedNetworks = Normalizar(redes, out _);
+
+        cfg.EmailRecoveryEnabled = Booleano(n["emailRecoveryEnabled"]) ?? cfg.EmailRecoveryEnabled;
+        cfg.NotifyAdmins = Booleano(n["notifyAdmins"]) ?? cfg.NotifyAdmins;
+        return cfg;
+    }
+
+    // Deja cada red en su forma canónica (dirección de red/prefijo), sin repetidas y
+    // con el tope de MaxRedes. invalidas: las que no se entendieron (para el 400 del PUT).
+    public static List<string> Normalizar(IEnumerable<string?> redes, out List<string> invalidas)
+    {
+        var ok = new List<string>();
+        invalidas = new List<string>();
+        foreach (var r in redes)
+        {
+            var s = (r ?? "").Trim();
+            if (s.Length == 0) continue;
+            if (Cidr.TryParse(s, out var c, out _))
+            {
+                var canon = c.ToString();
+                if (!ok.Contains(canon, StringComparer.OrdinalIgnoreCase)) ok.Add(canon);
+            }
+            else invalidas.Add(s);
+        }
+        return ok.Take(MaxRedes).ToList();
+    }
+
+    public string ToJson() => System.Text.Json.JsonSerializer.Serialize(new
+    {
+        trustedNetworks = TrustedNetworks,
+        emailRecoveryEnabled = EmailRecoveryEnabled,
+        notifyAdmins = NotifyAdmins
+    });
+
+    private static string? Texto(System.Text.Json.Nodes.JsonNode? x)
+    {
+        try { return x?.GetValue<string>(); } catch { return null; }
+    }
+
+    // Acepta true/false y "true"/"false".
+    private static bool? Booleano(System.Text.Json.Nodes.JsonNode? x)
+    {
+        if (x is null) return null;
+        try { return x.GetValue<bool>(); }
+        catch { return bool.TryParse(Texto(x), out var b) ? b : null; }
+    }
+}
+
+// Red IP en notación CIDR (203.0.113.0/24, 2001:db8::/48) o una IP sola (/32 o /128).
+// Las IPv4 escritas como IPv6 (::ffff:1.2.3.4) se tratan como IPv4. Se rechazan las
+// redes demasiado amplias (menos de /8 en IPv4 o de /32 en IPv6): una red de confianza
+// quita el doble factor a quien entre desde ella, y 0.0.0.0/0 sería quitárselo a todos.
+public readonly struct Cidr
+{
+    public const int MinPrefijoV4 = 8;
+    public const int MinPrefijoV6 = 32;
+
+    public System.Net.IPAddress Red { get; }
+    public int Prefijo { get; }
+
+    private Cidr(System.Net.IPAddress red, int prefijo) { Red = red; Prefijo = prefijo; }
+
+    public static bool TryParse(string? texto, out Cidr cidr, out string? error)
+    {
+        cidr = default;
+        error = null;
+        var s = (texto ?? "").Trim();
+        if (s.Length == 0 || s.Length > 64) { error = "vacía o demasiado larga"; return false; }
+        var partes = s.Split('/');
+        if (partes.Length > 2 || partes[0].Contains('%')) { error = "formato no válido"; return false; }
+        // IPAddress.TryParse acepta formas raras de IPv4 ("10" = 0.0.0.10): se exigen los 4 números.
+        var esV6 = partes[0].Contains(':');
+        if (!esV6 && partes[0].Count(ch => ch == '.') != 3) { error = "formato no válido"; return false; }
+        if (!System.Net.IPAddress.TryParse(partes[0], out var ip)) { error = "IP no válida"; return false; }
+        if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+
+        var v4 = ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork;
+        var prefijo = v4 ? 32 : 128;
+        if (partes.Length == 2)
+        {
+            if (!int.TryParse(partes[1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out prefijo)
+                || prefijo > (esV6 ? 128 : 32))
+            { error = "prefijo no válido"; return false; }
+            // ::ffff:1.2.3.0/120 → 1.2.3.0/24
+            if (esV6 && v4) prefijo -= 96;
+            if (prefijo < 0) { error = "prefijo no válido"; return false; }
+        }
+        if (prefijo < (v4 ? MinPrefijoV4 : MinPrefijoV6)) { error = "red demasiado amplia"; return false; }
+
+        cidr = new Cidr(new System.Net.IPAddress(Enmascarar(ip.GetAddressBytes(), prefijo)), prefijo);
+        return true;
+    }
+
+    public bool Contiene(System.Net.IPAddress? ip)
+    {
+        if (ip is null || Red is null) return false;
+        if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+        if (ip.AddressFamily != Red.AddressFamily) return false;
+        var a = Enmascarar(ip.GetAddressBytes(), Prefijo);
+        return a.AsSpan().SequenceEqual(Red.GetAddressBytes());
+    }
+
+    public bool Contiene(string? ip)
+        => System.Net.IPAddress.TryParse(ip ?? "", out var dir) && Contiene(dir);
+
+    private static byte[] Enmascarar(byte[] bytes, int prefijo)
+    {
+        var r = (byte[])bytes.Clone();
+        for (int i = 0; i < r.Length; i++)
+        {
+            var bits = Math.Clamp(prefijo - i * 8, 0, 8);
+            r[i] &= (byte)(0xFF << (8 - bits));
+        }
+        return r;
+    }
+
+    public override string ToString() => Red is null ? "" : $"{Red}/{Prefijo}";
 }
 
 // Enlace directo a un certificado (GET /c/{token}), con vencimiento. Vive en el
@@ -386,6 +543,9 @@ public class CatalogDbContext : DbContext
         b.Entity<SecurityEvent>().Property(e => e.Ip).HasMaxLength(64);
         b.Entity<SecurityEvent>().HasIndex(e => new { e.Kind, e.UserId, e.At });
         b.Entity<SecurityEvent>().HasIndex(e => new { e.Kind, e.Ip, e.At });
+
+        // ---- CompanySecurityConfig ----
+        b.Entity<Tenant>().Property(t => t.SecurityConfigJson).HasDefaultValue("{}");
     }
 }
 

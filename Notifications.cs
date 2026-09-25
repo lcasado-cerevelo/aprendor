@@ -514,6 +514,88 @@ public static class EmailTemplates
         return Render(body, titulo + ".");
     }
 
+    // Código para «Perdí mi autenticador»: recuperar el acceso quitando la app autenticadora.
+    public static string RecoveryCode(string name, string code, int minutos)
+    {
+        string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        var body =
+            Titulo("Código para recuperar tu acceso") +
+            $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
+            "<p style=\"margin:0;\">Alguien que conoce tu contraseña dijo haber perdido tu app autenticadora y pidió " +
+            "recuperar el acceso a tu cuenta. Si fuiste tú, escribe este código en la pantalla de entrada:</p>" +
+            CodigoGrande(code) +
+            $"<p style=\"margin:0;color:#64748b;font-size:13px;\">Vence en {minutos} minutos y solo se puede usar una vez. " +
+            "Al usarlo quitaremos la app autenticadora de tu cuenta y tendrás que registrarla de nuevo.</p>" +
+            "<p style=\"margin:10px 0 0;color:#b91c1c;font-size:13px;\"><b>Si no fuiste tú, no compartas este código con nadie</b> " +
+            "y cambia tu contraseña enseguida: alguien la conoce.</p>";
+        return Render(body, "Código para recuperar el acceso a tu cuenta de Aprendor.");
+    }
+
+    // Código para registrar la app autenticadora por primera vez desde fuera de una red de
+    // confianza: confirma que quien la registra también tiene acceso a este correo.
+    public static string EnrollCode(string name, string code, int minutos)
+    {
+        string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        var body =
+            Titulo("Confirma el registro de tu app autenticadora") +
+            $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
+            "<p style=\"margin:0;\">Para registrar una app autenticadora en tu cuenta, escribe este código en la plataforma:</p>" +
+            CodigoGrande(code) +
+            $"<p style=\"margin:0;color:#64748b;font-size:13px;\">Vence en {minutos} minutos y solo se puede usar una vez.</p>" +
+            "<p style=\"margin:6px 0 0;color:#64748b;font-size:13px;\">Si no fuiste tú, no compartas este código y cambia tu contraseña: alguien la conoce.</p>";
+        return Render(body, "Código para registrar tu app autenticadora en Aprendor.");
+    }
+
+    // Aviso de que se quitó la app autenticadora de la cuenta.
+    // motivo: admin (lo reinició un administrador) | recovered (el propio usuario, con el código por correo).
+    public static string AuthenticatorReset(string name, string motivo, DateTime cuandoUtc)
+    {
+        string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        var texto = motivo == "admin"
+            ? "Un administrador reinició la verificación en dos pasos de tu cuenta: tu app autenticadora anterior ya no sirve para entrar."
+            : "Recuperaste el acceso a tu cuenta con un código enviado a este correo y quitamos tu app autenticadora anterior.";
+        var body =
+            Titulo("Quitamos tu app autenticadora") +
+            $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
+            $"<p style=\"margin:0;\">{Enc(texto)}</p>" +
+            Recuadro($"<div><span style=\"color:#64748b;\">Fecha:</span> <b>{cuandoUtc:yyyy-MM-dd HH:mm} UTC</b></div>") +
+            "<p style=\"margin:0;\">Si tu compañía exige la verificación en dos pasos, al entrar te pediremos registrar una app autenticadora nueva.</p>" +
+            "<p style=\"margin:10px 0 0;color:#64748b;font-size:13px;\">Si no fuiste tú ni lo pediste, cambia tu contraseña enseguida y avisa al administrador de tu compañía.</p>";
+        return Render(body, "Se quitó la app autenticadora de tu cuenta.");
+    }
+
+    // Aviso a los Admin de la compañía de un cambio sensible en la cuenta de alguien.
+    // evento: password-reset (restableció su contraseña con el enlace) | 2fa-recovered
+    // (recuperó el acceso por correo y se quitó su app autenticadora).
+    public static string AdminSecurityNotice(string adminName, string userName, string userEmail, string companyName,
+        string evento, DateTime cuandoUtc, string? ip)
+    {
+        string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        var (titulo, texto) = evento == "2fa-recovered"
+            ? ("Un usuario recuperó su acceso sin su app autenticadora",
+               "recuperó el acceso a su cuenta con un código enviado a su correo y se quitó su app autenticadora.")
+            : ("Un usuario restableció su contraseña",
+               "restableció su contraseña con un enlace enviado a su correo, desde fuera de las redes de confianza de la compañía.");
+        var body =
+            Titulo(titulo) +
+            $"<p style=\"margin:0 0 10px;\">Hola {Enc(adminName)},</p>" +
+            $"<p style=\"margin:0;\"><b>{Enc(string.IsNullOrWhiteSpace(userName) ? userEmail : userName)}</b> {Enc(texto)}</p>" +
+            Recuadro(
+                $"<div><span style=\"color:#64748b;\">Usuario:</span> <b>{Enc(userEmail)}</b></div>" +
+                $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Compañía:</span> <b>{Enc(companyName)}</b></div>" +
+                $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Fecha:</span> <b>{cuandoUtc:yyyy-MM-dd HH:mm} UTC</b></div>" +
+                (string.IsNullOrWhiteSpace(ip) ? "" : $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">IP:</span> <b>{Enc(ip!)}</b></div>")) +
+            "<p style=\"margin:0;color:#64748b;font-size:13px;\">Si no esperabas este cambio, confirma con la persona que fue ella. " +
+            "Desde Usuarios puedes reiniciar su doble factor o restablecer su contraseña.</p>";
+        return Render(body, titulo + ".");
+    }
+
+    private static string CodigoGrande(string code)
+        => "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" " +
+           "style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:18px 0;\"><tr>" +
+           "<td align=\"center\" style=\"padding:18px;font:700 32px/1 Consolas,Menlo,monospace;letter-spacing:8px;color:#0f172a;\">" +
+           $"{System.Net.WebUtility.HtmlEncode(code ?? "")}</td></tr></table>";
+
     public static string PasswordReset(string name, string link, int minutos)
     {
         string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
