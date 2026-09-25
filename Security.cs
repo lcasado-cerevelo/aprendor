@@ -894,6 +894,11 @@ public static class RedesConfianza
 // (APRENDOR_Turnstile__SecretKey) queda APAGADO (no se valida y /auth/config no da la
 // site key), para que un despliegue sin la variable no bloquee la entrada; al arrancar
 // se deja una advertencia. Desde las redes de confianza de la instancia no se pide.
+// Turnstile:ExemptNetworks (vacío por defecto; se activa listándolo a propósito) quita
+// SOLO Turnstile, y solo a peticiones sin token que llegan DIRECTAS desde esas redes (sin
+// cabeceras de proxy): sirve para que los seeds y tools/Seed-Curso.ps1 entren por la API
+// desde el propio servidor (http://localhost:8086) y el front de desarrollo funcione sin
+// widget. No es red de confianza: el doble factor se sigue pidiendo. Con token se valida.
 public sealed class Turnstile
 {
     public enum Resultado { Ok, Invalido, NoDisponible }
@@ -904,10 +909,18 @@ public sealed class Turnstile
     private readonly IHttpClientFactory _http;
     private readonly IConfiguration _cfg;
     private readonly ILogger<Turnstile> _log;
+    private readonly IReadOnlyList<Cidr> _exentas;
 
     public Turnstile(IHttpClientFactory http, IConfiguration cfg, ILogger<Turnstile> log)
     {
         _http = http; _cfg = cfg; _log = log;
+        var exentas = new List<Cidr>();
+        foreach (var s in ArranqueSeguro.Lista(cfg, "Turnstile:ExemptNetworks"))
+        {
+            if (Cidr.TryParse(s, out var c, out var error)) exentas.Add(c);
+            else log.LogWarning("Turnstile:ExemptNetworks: se ignora «{Red}» ({Motivo}).", s, error);
+        }
+        _exentas = exentas;
     }
 
     private static string? Limpio(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
@@ -916,6 +929,29 @@ public sealed class Turnstile
     private string? SecretKey => Limpio(_cfg["Turnstile:SecretKey"]);
 
     public bool Activo => Encendido && SiteKey is not null && SecretKey is not null;
+
+    // Cabeceras que ponen los proxies y túneles (cloudflared, Cloudflare, IIS ARR, nginx) o
+    // que deja UseForwardedHeaders al aplicarlas (X-Original-*). Con cualquiera de ellas la
+    // petición no llega directa, aunque el socket venga de una red exenta: lo que entra por
+    // el túnel sale de loopback, pero Cloudflare siempre añade CF-Ray y CF-Connecting-IP.
+    private static readonly string[] CabecerasProxy =
+    {
+        "X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Host", "Forwarded",
+        "X-Original-For", "X-Original-Proto", "X-Original-Host",
+        "CF-Connecting-IP", "CF-Ray", "CF-Visitor", "True-Client-IP", "X-Real-IP", "X-ARR-LOG-ID"
+    };
+
+    // ¿Petición directa (el socket, no una cabecera) desde una red de Turnstile:ExemptNetworks?
+    private bool DirectaDesdeExenta(HttpContext ctx)
+    {
+        if (_exentas.Count == 0) return false;
+        var ip = ctx.Connection.RemoteIpAddress;
+        if (ip is null) return false;
+        if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+        if (!_exentas.Any(r => r.Contiene(ip))) return false;
+        var cabeceras = ctx.Request.Headers;
+        return !CabecerasProxy.Any(h => cabeceras.ContainsKey(h));
+    }
 
     public void AdvertirAlArrancar()
     {
@@ -927,6 +963,9 @@ public sealed class Turnstile
             _log.LogWarning("Turnstile:Enabled está en true pero falta Turnstile:SiteKey: Turnstile queda APAGADO.");
         else
             _log.LogInformation("Turnstile activo en el acceso (site key {SiteKey}).", SiteKey);
+        if (Activo && _exentas.Count > 0)
+            _log.LogInformation("Turnstile no se exige a las peticiones directas sin token desde {Redes} (Turnstile:ExemptNetworks).",
+                string.Join(", ", _exentas));
     }
 
     // La site key para el front: null si está apagado o si la petición viene de una red de
@@ -940,6 +979,9 @@ public sealed class Turnstile
         var ip = ClientIp.Of(ctx);
         if (RedesConfianza.EnInstancia(ip)) return Resultado.Ok;
         token = token?.Trim();
+        // Sin token y directa desde Turnstile:ExemptNetworks (seeds en el servidor, front de
+        // desarrollo sin widget): no se exige. Con token se valida como cualquier otra.
+        if (string.IsNullOrEmpty(token) && DirectaDesdeExenta(ctx)) return Resultado.Ok;
         if (string.IsNullOrEmpty(token) || token.Length > 2048) return Resultado.Invalido;
 
         var campos = new Dictionary<string, string> { ["secret"] = SecretKey!, ["response"] = token };

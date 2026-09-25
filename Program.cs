@@ -409,15 +409,29 @@ app.MapPost("/auth/2fa/resend", async (ResendRequest req, CatalogDbContext catal
         return generico;
     var user = await catalog.Users.FindAsync(viejo.UserId);
     if (user is null) return generico;
-    // El código de «Perdí mi autenticador» tiene además su tope (3 al día) y se vuelve a
-    // comprobar que la cuenta pueda recuperarse (la compañía pudo apagarlo entretanto).
-    var recuperacion = viejo.Purpose == Recuperacion.Proposito;
-    if (recuperacion && await Recuperacion.MotivoRechazoAsync(catalog, user) is not null) return generico;
-    var espera = recuperacion
-        ? await Recuperacion.ReservarEnvioAsync(catalog, user.Id)
-        : await Bloqueos.ReservarEnvioCodigoAsync(catalog, user.Id);
-    if (espera is TimeSpan e) return Demasiados.Resultado(e);
+    // El código de «Perdí mi autenticador» se trata como en /auth/2fa/recover/start: se
+    // vuelve a comprobar que la cuenta pueda recuperarse (la compañía pudo apagarlo
+    // entretanto), no se manda nada con el doble factor bloqueado (no se podría canjear) y
+    // tiene su tope (3 al día). La respuesta es siempre la misma, con un challengeId: el
+    // nuevo si se envió; si no, el mismo reto, que sigue vigente.
+    if (viejo.Purpose == Recuperacion.Proposito)
+    {
+        IResult Recuperar(Guid id) => Results.Ok(new
+        {
+            challengeId = id,
+            message = "Si tu cuenta permite recuperar el acceso por correo, te reenviamos el código. Revisa tu bandeja de entrada."
+        });
+        if (await Recuperacion.MotivoRechazoAsync(catalog, user) is not null) return Recuperar(viejo.Id);
+        if (Bloqueos.Espera(user.TwoFactorLockedUntil) is not null) return Recuperar(viejo.Id);
+        if (await Recuperacion.ReservarEnvioAsync(catalog, user.Id) is not null) return Recuperar(viejo.Id);
+        var otro = await DosFactores.AbrirRetoAsync(catalog, user, viejo.Purpose, email, logs, cfg, modoForzado: "email",
+            destino: viejo.TargetTenantId, sesionHasta: viejo.SessionExpiresAt, envioContado: true);
+        catalog.AuditLogs.Add(new CatalogAuditLog { Action = "2fa-recover-code-sent", Detail = $"{user.Email} (reenvío)", UserId = user.Id });
+        await catalog.SaveChangesAsync();
+        return Recuperar(otro.Id);
+    }
 
+    if (await Bloqueos.ReservarEnvioCodigoAsync(catalog, user.Id) is TimeSpan e) return Demasiados.Resultado(e);
     var nuevo = await DosFactores.AbrirRetoAsync(catalog, user, viejo.Purpose, email, logs, cfg, modoForzado: "email",
         destino: viejo.TargetTenantId, sesionHasta: viejo.SessionExpiresAt, envioContado: true);
     return Results.Ok(new { challengeId = nuevo.Id, message = "Te reenviamos el código." });
@@ -806,8 +820,11 @@ app.MapPost("/auth/forgot-password", async (ForgotPasswordRequest? req, HttpCont
         var cuenta = id ?? Guid.Empty;
         var dia = ahora.AddDays(-1);
         var hora = ahora.AddHours(-1);
+        // Cuentan las aceptadas y las denegadas al admin de plataforma: así su tope también
+        // se aplica y, pasado, no se añaden más filas password-reset-denied a la auditoría.
         var previas = await catalog.SecurityEvents
-            .Where(e => e.Kind == EventosSeguridad.Restablecer && e.UserId == cuenta && e.At > dia)
+            .Where(e => (e.Kind == EventosSeguridad.Restablecer || e.Kind == EventosSeguridad.RestablecerDenegado)
+                        && e.UserId == cuenta && e.At > dia)
             .Select(e => e.At).ToListAsync();
         pasado = previas.Count(a => a > hora) >= 3 || previas.Count >= 5;
         EventosSeguridad.Anotar(catalog,

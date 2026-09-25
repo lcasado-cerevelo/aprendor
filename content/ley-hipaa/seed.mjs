@@ -9,6 +9,10 @@
 //                                      recurrencia y certificado. No crea un Training
 //                                      nuevo ni duplica el curso.
 //   node seed.mjs ... --publish        publica la versión al terminar
+//   node seed.mjs ... --totp 123456    código de la app autenticadora si la cuenta lo
+//                                      pide (o TP_TOTP; sin él se pregunta). Contra el
+//                                      servidor, ejecútalo en él (http://localhost:8086)
+//                                      con Turnstile:ExemptNetworks (ver _shared/session.mjs)
 //   node seed.mjs --dry-run            no llama a la API; escribe course.json
 //   node seed.mjs --preview            escribe preview.html (revisión sin servidor)
 //
@@ -21,6 +25,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import course from './course.mjs';
+import { iniciarSesion } from '../_shared/session.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -191,7 +196,7 @@ async function main() {
   summary();
   console.log(`\nServidor: ${BASE}`);
 
-  const login = await api('/auth/login', 'POST', { email: EMAIL, password: PASSWORD });
+  const login = await iniciarSesion(api, { email: EMAIL, password: PASSWORD, totp: opt('totp') });
   token = login.token;
   console.log(`Autenticado como ${login.user.name || login.user.email} (${login.user.role}).`);
   if (!login.user.tenantId) throw new Error('Ese usuario no pertenece a un tenant; usa un autor del tenant destino.');

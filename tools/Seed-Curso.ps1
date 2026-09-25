@@ -17,6 +17,13 @@
   .\Seed-Curso.ps1 -Url http://localhost:8086 -Email autor@cliente.com -Password "clave" -CoursePath .\course.json -Publish
 
 .EXAMPLE
+  # Cuenta con verificacion en dos pasos: el codigo de la app autenticadora (si no se
+  # pasa, el script lo pregunta). Turnstile no se puede resolver desde un script: ejecutalo
+  # en el propio servidor contra http://localhost:8086 con
+  # APRENDOR_Turnstile__ExemptNetworks="127.0.0.1/32,::1/128" en el sitio.
+  .\Seed-Curso.ps1 -Url http://localhost:8086 -Email autor@cliente.com -Password "clave" -CoursePath .\course.json -TotpCode 123456
+
+.EXAMPLE
   # Actualiza el curso YA EXISTENTE (por título exacto) en vez de crear uno nuevo:
   # reemplaza todos sus items y refresca titulo, descripcion, recurrencia y certificado.
   # No crea un Training nuevo ni duplica el curso.
@@ -30,7 +37,9 @@ param(
     [Parameter(Mandatory = $true)][string]$CoursePath,
     [switch]$Publish,
     [switch]$Update,
-    [switch]$SoloProbarConexion
+    [switch]$SoloProbarConexion,
+    # Codigo de la app autenticadora, si la cuenta lo pide (si no se pasa, se pregunta).
+    [string]$TotpCode
 )
 
 $ErrorActionPreference = 'Stop'
@@ -84,14 +93,44 @@ Write-Output "Items:     $($items.Count)  ($pantallas pantallas, $($preguntas.Co
 Write-Output ''
 
 # ---- Login ----
+# Turnstile: un script no puede resolver el widget, asi que solo entra por una conexion
+# DIRECTA (sin tunel ni proxy) desde una red de Turnstile:ExemptNetworks. En el servidor:
+# -Url http://localhost:8086 y APRENDOR_Turnstile__ExemptNetworks="127.0.0.1/32,::1/128".
+# Doble factor: si la cuenta lo pide, se usa -TotpCode o se pregunta en la consola.
 try {
     $login = Invoke-Api -Path '/auth/login' -Method 'POST' -Body @{ email = $Email; password = $Password }
 } catch {
-    if ("$_" -match 'HTTP 401') {
+    if ("$_" -match 'turnstileFailed') {
+        Write-Error ('El servidor pidio la verificacion de Turnstile, que un script no puede resolver. ' +
+            'Ejecuta el script en el propio servidor contra http://localhost:<puerto> (sin pasar por el tunel ni por un proxy) ' +
+            'con APRENDOR_Turnstile__ExemptNetworks="127.0.0.1/32,::1/128" en la configuracion del sitio.')
+    } elseif ("$_" -match 'HTTP 401') {
         Write-Error 'Correo o contrasena incorrectos (o la URL no es la de este Aprendor).'
+    } elseif ("$_" -match 'HTTP 429') {
+        Write-Error "Demasiados intentos: $_"
     } else {
         Write-Error "No pude conectar: $_"
     }
+    exit 1
+}
+if ($login.requires2fa) {
+    $codigo = if ($TotpCode) { $TotpCode } else { Read-Host 'Codigo de la app autenticadora' }
+    if (-not $codigo) { Write-Error 'La cuenta pide el codigo de la app autenticadora: pasalo con -TotpCode.'; exit 1 }
+    try {
+        $login = Invoke-Api -Path '/auth/2fa/verify' -Method 'POST' -Body @{ challengeId = $login.challengeId; code = "$codigo".Trim() }
+    } catch {
+        Write-Error "El codigo de la app autenticadora no fue aceptado: $_"
+        exit 1
+    }
+}
+if ($login.scope -and $login.scope -ne 'full') {
+    $motivo = switch ($login.scope) {
+        'change-password' { 'la cuenta tiene que cambiar su contrasena' }
+        'enroll-2fa' { 'la compania exige verificacion en dos pasos y la cuenta no tiene app autenticadora' }
+        'verify-email' { 'la cuenta tiene que validar su correo' }
+        default { "la sesion es restringida ($($login.scope))" }
+    }
+    Write-Error "No se puede sembrar: $motivo. Completalo en la app y vuelve a correr el script."
     exit 1
 }
 $script:token = $login.token

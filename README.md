@@ -274,6 +274,10 @@ restablecimiento y los códigos de doble factor solo se escriben en la bitácora
   bitácora), así que desplegar sin ella no bloquea la entrada.
 - Opcional: `APRENDOR_Security__TrustedNetworks` con las redes de confianza de la instancia (CIDR o IP
   sola, separadas por comas). Las que no se entienden se ignoran con una advertencia.
+- **Seeds de cursos** (`content/*/seed.mjs`, `tools/Seed-Curso.ps1`): con Turnstile encendido no pueden
+  entrar por el dominio público (no resuelven el widget). Se corren en el propio servidor contra
+  `http://localhost:8086` con `APRENDOR_Turnstile__ExemptNetworks="127.0.0.1/32,::1/128"`. El doble
+  factor se sigue pidiendo (`--totp` / `-TotpCode`, o lo preguntan). Detalle en `content/README.md`.
 
 ### Configuración
 | Clave | Qué hace |
@@ -281,10 +285,13 @@ restablecimiento y los códigos de doble factor solo se escriben en la bitácora
 | `Turnstile:Enabled` | `true` en el archivo. Solo se activa con las dos claves. |
 | `Turnstile:SiteKey` | Pública. En Development, la de prueba de Cloudflare (`1x00000000000000000000AA`). |
 | `Turnstile:SecretKey` | Secreta, solo por variable de entorno. En Development, la de prueba (`1x0000000000000000000000000000000AA`). |
+| `Turnstile:ExemptNetworks` | Vacío en el archivo. Redes cuyas peticiones **directas** (sin cabeceras de proxy: `X-Forwarded-For`, `CF-Ray`, `CF-Connecting-IP`...) y **sin token** no pasan por Turnstile. Solo quita Turnstile, no el doble factor; si la petición trae token, se valida. En Development: `127.0.0.1/32` y `::1/128`, para que el `index.html` de `https://localhost:52044` entre mientras no tenga el widget y para los seeds. |
 | `Security:TrustedNetworks` | Redes de confianza de la instancia: sin doble factor, sin su alta y sin Turnstile. |
 
 Loopback **no** es de confianza salvo que se liste: detrás del túnel cuenta la IP real (`ClientIp`).
-No se admiten redes más amplias que /8 (IPv4) o /32 (IPv6).
+No se admiten redes más amplias que /8 (IPv4) o /32 (IPv6). Listar loopback en
+`Turnstile:ExemptNetworks` no lo vuelve de confianza: lo que llega por el túnel también sale de
+loopback, pero siempre con `CF-Ray` y `CF-Connecting-IP`, así que se le sigue exigiendo Turnstile.
 
 ### Qué cambia
 - `GET /auth/config` (anónimo): `{ turnstileSiteKey }`, `null` si Turnstile está apagado o la petición
@@ -306,14 +313,18 @@ No se admiten redes más amplias que /8 (IPv4) o /32 (IPv6).
 - «Perdí mi autenticador»: `POST /auth/2fa/recover/start { challengeId, turnstileToken }` desde la
   pantalla del código y `POST /auth/2fa/recover/verify { challengeId, code }`. Solo con el correo
   validado, si ninguna de sus compañías apagó la recuperación y nunca para el admin de plataforma;
-  la respuesta del inicio es siempre la misma. 3 códigos al día por cuenta y 5 por hora por IP. Al
+  la respuesta del inicio es siempre la misma. 3 códigos al día por cuenta y 5 por hora por IP.
+  `POST /auth/2fa/resend` con ese reto aplica lo mismo (recuperación permitida, doble factor sin
+  bloquear, tope diario) y responde siempre `200 { challengeId, message }`: el reto nuevo si se envió
+  el código; si no, el mismo, que sigue vigente. Al
   canjearlo se quita el autenticador, se cierran sus sesiones, se avisa a la persona y a los Admin
   (`notifyAdmins`), y se devuelve la sesión (con `enroll-2fa` si la política lo exige).
 - `POST /auth/reset-password` acepta `totpCode`: si la cuenta tiene app autenticadora y la petición no
   llega desde una red de confianza, lo exige (`400 { requiresTotp: true }` sin gastar el enlace; los
   fallos cuentan para el bloqueo del doble factor). Tras restablecer desde fuera, aviso a los Admin
   (`notifyAdmins`). El admin de plataforma ya no recibe enlaces de restablecimiento (respuesta genérica
-  y auditoría `password-reset-denied`).
+  y auditoría `password-reset-denied`); sus solicitudes cuentan para el mismo tope por cuenta (3/h y
+  5/día), y pasado el tope no se añaden más filas a la auditoría.
 - `POST /company/users/{id}/reset-2fa`: el Admin de la compañía reinicia el doble factor de su gente
   (409 si la persona pertenece también a otra compañía; nunca a un admin de plataforma ni a sí mismo);
   el admin de plataforma, a cualquiera que no lo sea. Cierra sus sesiones, audita y le avisa por correo.

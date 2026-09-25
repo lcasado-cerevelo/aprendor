@@ -91,11 +91,25 @@ deck original que quedó incompleta y se completó al transcribir) y de
 
 ## Pasos para producción
 
-Requiere Node 18+ en la máquina desde la que se corra (usa `fetch` nativo; no hace
-falta tenerlo en el servidor de producción). La cuenta debe tener rol `Admin`,
+Requiere Node 18+ (usa `fetch` nativo) en el servidor de producción, porque con
+Turnstile encendido los seeds se corren ahí (ver abajo); si no hay Node, está
+`tools/Seed-Curso.ps1`. La cuenta debe tener rol `Admin`,
 `Author` o `Moderator` **dentro del tenant de Advance Logistics** — un admin de
 plataforma sin tenant no sirve, y los cursos se crean en la base del tenant que
 resuelve el token de esa cuenta.
+
+**Acceso desde los scripts (Turnstile y doble factor).** Con Turnstile encendido
+(`APRENDOR_Turnstile__SecretKey` definida), `/auth/login` exige la verificación de
+Cloudflare, que un script no puede resolver, así que los seeds **no entran por el
+dominio público** (`https://<host-produccion>` pasa por el túnel). Se corren **en el
+propio servidor** contra `http://localhost:8086`, con
+`APRENDOR_Turnstile__ExemptNetworks="127.0.0.1/32,::1/128"` en las variables del sitio:
+así solo esas peticiones directas y sin token se saltan Turnstile; lo que entra por el
+túnel lo sigue pasando. **Loopback no pasa a ser red de confianza**, así que el doble
+factor se sigue pidiendo. Si la cuenta lo pide, se da con `--totp 123456` (`seed.mjs`,
+o `TP_TOTP`) o `-TotpCode 123456` (`Seed-Curso.ps1`); si no se pasa, el script lo
+pregunta. La cuenta tiene que tener la sesión completa: si debe cambiar la contraseña,
+dar de alta el autenticador o validar el correo, hay que hacerlo antes en la app.
 
 1. **Actualizar los 4 cursos** (ya existen desde la siembra anterior; esto reemplaza su
    contenido sin crear cursos duplicados — ver la nota más arriba). Quedan en borrador;
@@ -103,17 +117,20 @@ resuelve el token de esa cuenta.
    misma corrida:
 
    ```bash
-   node content/ley-hipaa/seed.mjs --update --url https://<host-produccion> --email autor@advancelogistics.com --password "***"
-   node content/violencia-domestica/seed.mjs --update --url https://<host-produccion> --email autor@advancelogistics.com --password "***"
-   node content/acoso-laboral/seed.mjs --update --url https://<host-produccion> --email autor@advancelogistics.com --password "***"
-   node content/hostigamiento-sexual/seed.mjs --update --url https://<host-produccion> --email autor@advancelogistics.com --password "***"
+   node content/ley-hipaa/seed.mjs --update --url http://localhost:8086 --email autor@advancelogistics.com --password "***"
+   node content/violencia-domestica/seed.mjs --update --url http://localhost:8086 --email autor@advancelogistics.com --password "***"
+   node content/acoso-laboral/seed.mjs --update --url http://localhost:8086 --email autor@advancelogistics.com --password "***"
+   node content/hostigamiento-sexual/seed.mjs --update --url http://localhost:8086 --email autor@advancelogistics.com --password "***"
    ```
+
+   (Añade `--totp <código>` si la cuenta usa app autenticadora; cada corrida hace su
+   propio login, así que cada una pide un código nuevo.)
 
    Si el servidor de producción no tiene Node, usa `tools/Seed-Curso.ps1` (PowerShell,
    sin dependencias) contra el `course.json` ya generado de cada carpeta, con `-Update`:
 
    ```powershell
-   .\tools\Seed-Curso.ps1 -Url https://<host-produccion> -Email autor@advancelogistics.com -Password "***" -CoursePath .\content\ley-hipaa\course.json -Update
+   .\tools\Seed-Curso.ps1 -Url http://localhost:8086 -Email autor@advancelogistics.com -Password "***" -CoursePath .\content\ley-hipaa\course.json -Update
    ```
 
    (Si algún día se necesita crear un curso nuevo desde cero en otro tenant, se omite
