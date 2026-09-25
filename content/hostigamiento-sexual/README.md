@@ -8,6 +8,9 @@ panel diagonal con el título en mayúsculas).
 - **21 láminas** en el orden del deck: 1 portada, 2-3 instrucciones y objetivo, 4-13
   contenido, 14-20 las **7 preguntas** de selección única (70 puntos; se aprueba con 70 % =
   49 puntos), y una lámina final «Recursos adicionales» fuera del deck.
+- **Pantalla de entrada** antes de la portada (`intro()` en `m0-apertura.mjs`: descripción para
+  el empleado, 25 min estimados y la portada atenuada de fondo). No es lámina ni cuenta en el
+  contador; el reproductor le añade láminas, preguntas y puntos, y `--preview` la dibuja aparte.
 - Recurrencia **anual** (`recurrenceMonths: 12`, reabre 30 días antes de vencer).
 - `course.mjs` trae `playerConfig.presentation` (tema y transición `cover`); `seed.mjs` lo
   manda a `PUT /trainings/{id}/player-config` al crear o actualizar el curso.

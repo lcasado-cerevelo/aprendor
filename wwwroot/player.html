@@ -171,9 +171,26 @@
   .pres-arrow.l{left:14px;} .pres-arrow.r{right:14px;}
   .pres-arrow:hover{background:rgba(0,0,0,.75);}
   #presRoot.idle .pres-arrow{opacity:0;}
-  .pres-start{position:fixed;inset:0;z-index:30;background:var(--pbg);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;font-family:Arial,Helvetica,sans-serif;}
+  .pres-start{position:fixed;inset:0;z-index:30;background:var(--pbg);color:#fff;display:flex;flex-direction:column;overflow-y:auto;text-align:center;padding:20px;font-family:Arial,Helvetica,sans-serif;container-type:inline-size;}
+  .pres-start .ps-inner{position:relative;z-index:1;margin:auto;display:flex;flex-direction:column;align-items:center;width:100%;max-width:980px;}   /* margin:auto centra sin recortar arriba si no cabe */
   .pres-start h1{font-size:34px;margin:0 0 12px;text-transform:uppercase;max-width:800px;}
   .pres-start p{color:#a3a3a3;margin:0 0 28px;font-size:15px;max-width:520px;line-height:1.5;}
+  .pres-start .ps-resume{margin-top:14px;color:#e5e5e5;font-size:15px;}
+  /* pantalla de entrada del curso (ítem Info con layout 'intro'): foto atenuada, título,
+     descripción y fila de datos. Tamaños en cqw: se ajustan al ancho de la pantalla de
+     entrada (y al del marco en la vista previa de seed.mjs). */
+  .pres-start .ps-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.3;pointer-events:none;}
+  .pres-start .ps-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,color-mix(in srgb,var(--pbg) 78%,transparent) 55%,var(--pbg) 100%);pointer-events:none;}
+  .pres-start.intro h1{font-size:44px;font-size:clamp(28px,5cqw,62px);line-height:1.08;text-transform:none;max-width:none;margin:0 0 18px;}
+  .pres-start .ps-rule{width:120px;border-top:3px solid var(--pacc);margin:0 auto 22px;}
+  .pres-start .ps-desc{color:#e5e5e5;font-size:18px;font-size:clamp(15px,1.7cqw,21px);line-height:1.55;max-width:760px;margin:0 0 24px;}
+  .pres-start .ps-desc p{color:inherit;font-size:inherit;line-height:inherit;max-width:none;margin:0 0 10px;}
+  .pres-start .ps-desc b{color:#fff;}
+  .pres-start .ps-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 34px;padding:14px 10px;margin:0 0 28px;border-top:1px solid rgba(255,255,255,.2);border-bottom:1px solid rgba(255,255,255,.2);}
+  .pres-start .ps-stat b{display:block;font-size:30px;font-size:clamp(22px,2.7cqw,34px);font-weight:700;color:var(--pacc);line-height:1.1;}
+  .pres-start .ps-stat span{display:block;margin-top:4px;font:600 12px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#bdbdbd;}
+  .pres-start.intro .pbtn{font-size:19px;padding:15px 46px;}
+  .pres-start .ps-hint{margin-top:12px;font:13px system-ui,sans-serif;color:#9a9a9a;letter-spacing:.02em;}
   .pres-toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:10px;font:600 14px system-ui,sans-serif;z-index:25;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;}
   .pres-toast.show{opacity:1;}
   /*PRES-CSS-END*/
@@ -202,10 +219,19 @@
   <button class="pres-arrow r" id="presNext" title="Siguiente (→)">&#9654;</button>
   <div class="pres-counter" id="presCounter"></div>
   <div class="pres-toast" id="presToast"></div>
+  <!-- Pantalla de entrada. Si el curso trae un ítem 'intro' se añaden la foto atenuada, la
+       descripción y los datos del curso (#presStartIntro); si no, solo título y botón. -->
   <div class="pres-start hidden" id="presStart">
-    <h1 id="presStartTitle"></h1>
-    <p>Avanza con → o Espacio y retrocede con ←. Esc sale de pantalla completa sin cerrar el adiestramiento.</p>
-    <button class="pbtn" id="presStartBtn">Comenzar</button>
+    <img class="ps-photo hidden" id="presStartPhoto" alt="" />
+    <div class="ps-shade hidden" id="presStartShade"></div>
+    <div class="ps-inner">
+      <h1 id="presStartTitle"></h1>
+      <div class="hidden" id="presStartIntro"></div>
+      <p id="presStartHelp">Avanza con → o Espacio y retrocede con ←. Esc sale de pantalla completa sin cerrar el adiestramiento.</p>
+      <button class="pbtn" id="presStartBtn">Comenzar</button>
+      <div class="ps-resume hidden" id="presStartResume"></div>
+      <div class="ps-hint hidden" id="presStartHint">Pantalla completa · avanza con → o Enter</div>
+    </div>
   </div>
 </div>
 
@@ -261,6 +287,7 @@ function infoBody(p){
   return h;
 }
 function renderInfo(p){
+  if(p.layout==='intro') return introClassicHtml(p);
   let h = p.title ? `<h2>${p.title}</h2>` : '';
   // Foto de lámina (cover / photo-left): en modo clásico se muestra como una imagen más.
   if(p.photo) h += `<img src="${p.photo}" alt="" />`;
@@ -275,6 +302,57 @@ function renderInfo(p){
     }
   } else { h += mediaEl(p.mediaUrl,p.mediaType) + `<div>${p.bodyHtml||''}</div>`; }
   return h;
+}
+
+// ---- Pantalla de entrada (ítem Info con layout 'intro', helper intro() de authoring.mjs) ----
+// Solo trae título, descripción, minutos y foto; los demás datos los calcula el reproductor.
+// En modo presentación sale de las páginas y dibuja #presStart (ver presBegin); en modo
+// clásico y en la revisión de intento se ve como una página más, con caja de resumen.
+let passPercent = null;          // umbral de aprobación, solo si la configuración lo trae
+function noteCfg(cfg){
+  const v = cfg && (cfg.passPercent ?? cfg.PassPercent);
+  if(typeof v==='number' && isFinite(v)) passPercent = v;
+}
+function introPayload(it){
+  if(!it || it.type!=='Info') return null;
+  try{ const p=JSON.parse(it.payloadJson); return (p && p.layout==='intro') ? p : null; }catch{ return null; }
+}
+function introDescHtml(d){
+  d = d || '';
+  return /<[a-z][\s\S]*>/i.test(d) ? d : `<p>${d.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</p>`;
+}
+// Datos del curso: láminas = pantallas Info sin contar el intro; puntos = suma de Points.
+function introStats(p){
+  const items = (T && T.items) || [];
+  return {
+    slides: items.filter(it=>it.type==='Info' && !introPayload(it)).length,
+    questions: items.filter(isQuestion).length,
+    points: items.reduce((s,it)=>s+(Number(it.points)||0),0),
+    pass: passPercent,
+    minutes: Number(p.minutes)||0
+  };
+}
+function plural(n, uno, varios){ return n===1 ? uno : varios; }
+function introClassicHtml(p){
+  const st = introStats(p);
+  const row = h => `<div style="margin:4px 0">${h}</div>`;
+  const box =
+    `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin:16px auto 0;max-width:440px;color:#334155;font-size:14px">` +
+    row(`📄 <b>${st.slides} ${plural(st.slides,'pantalla','pantallas')}</b> de contenido`) +
+    (st.minutes ? row(`⏱ Duración estimada: <b>${st.minutes} min</b>`) : '') +
+    row(`📝 ${st.questions} ${plural(st.questions,'pregunta','preguntas')} (${st.points} puntos)`) +
+    (st.pass!=null ? row(`✅ Aprobación: <b>${st.pass}%</b>`) : '') +
+    `</div>`;
+  const img = p.photo ? `<img src="${p.photo}" alt="" style="width:100%;max-height:260px;object-fit:cover" />` : '';
+  return `<h1 style="margin:0 0 10px">${p.title||''}</h1>${img}<div style="font-size:16px;line-height:1.6">${introDescHtml(p.description)}</div>${box}`;
+}
+// Mismo contenido para #presStart (y réplica en content/<curso>/seed.mjs --preview).
+function introScreenHtml(p, st){
+  const cells = [[st.slides, plural(st.slides,'lámina','láminas')], [st.questions, plural(st.questions,'pregunta','preguntas')], [st.points, 'puntos']];
+  if(st.pass!=null) cells.push([st.pass+' %', 'para aprobar']);
+  if(st.minutes) cells.push([st.minutes+' min', 'tiempo estimado']);
+  return `<div class="ps-rule"></div><div class="ps-desc">${introDescHtml(p.description)}</div>` +
+         `<div class="ps-stats">${cells.map(([v,l])=>`<div class="ps-stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>`;
 }
 function isQuestion(it){ return it.type==='MultipleChoice' || it.type==='MultiSelect' || it.type==='Matching' || it.type==='OpenResponse'; }
 function isAnswered(it){
@@ -339,6 +417,7 @@ async function startTake(){
       const cfg = await api('/versions/'+versionId+'/config');
       allowBack = cfg.allowBack !== false;
       immediateFeedback = !!cfg.immediateFeedback;
+      noteCfg(cfg);
       presActivate(cfg);
     }catch{ allowBack = true; immediateFeedback = false; }
     el('prevBtn').classList.toggle('hidden', !allowBack);
@@ -354,6 +433,7 @@ async function startTake(){
       if(r.isCorrect!==null && r.isCorrect!==undefined) revealed[r.itemId]=r.isCorrect;
     });
     const pages = buildPages(items);
+    const intro = presTakeIntro(pages);   // antes de indexar páginas: en modo presentación no es una lámina
     const revealedPages = {};
     // Si se reanuda un intento, bloquea de una vez las páginas cuyas preguntas
     // calificables ya se contestaron — así no se puede aprovechar para cambiarlas
@@ -362,7 +442,10 @@ async function startTake(){
       const checkable = pg.items.filter(it=>isQuestion(it) && it.type!=='OpenResponse');
       if(checkable.length>0 && checkable.every(it=>revealed[it.id]!==undefined)) revealedPages[i]=true;
     });
-    T = { attemptId:s.attemptId, items, pages, idx:0, answers, revealed, revealedPages, review:false };
+    T = { attemptId:s.attemptId, items, pages, idx:0, answers, revealed, revealedPages, review:false, intro };
+    // Modo presentación: un intento en progreso se retoma en la lámina donde iba (la
+    // pantalla de entrada lo anuncia con «Continuar»).
+    if(PRES) T.idx = presResumeIdx(s.attemptId, pages, answers);
     el('nav').style.display='flex';
     presBegin();
     renderStep();
@@ -402,6 +485,7 @@ function renderStep(){
     }).join('');
   } else renderSummary();
   T.lastIdx = T.idx;
+  if(PRES) presSavePos();
   setModuleHeader();
   const total=N+1;
   el('progressText').textContent = `Página ${T.idx+1} de ${total}`;
@@ -535,6 +619,7 @@ el('finishBtn').onclick = async () => {
   stopHeartbeat();
   try{
     const r=await api('/attempts/'+T.attemptId+'/complete','POST');
+    try{ localStorage.removeItem('tp_pos_'+T.attemptId); }catch{}
     const tiempo = `<div class="tiempo" style="color:#64748b;font-size:13px;margin-top:8px">⏱️ Tiempo en el curso: ${fmtTime(r.activeSeconds)}</div>`;
     if(r.pendingGrading || r.status==='pending-grading'){
       showFinal(`<div class="res" style="background:#fef9c3;color:#854d0e">📝 Respuestas enviadas<br>Tienes preguntas abiertas pendientes de evaluación del moderador. Tu resultado final aparecerá cuando las califiquen.</div>${tiempo}
@@ -627,8 +712,9 @@ async function startPreview(){
   try{
     const items = await api('/versions/'+previewId+'/preview');
     if(!items.length){ el('screen').innerHTML=`<div class="center">Este adiestramiento no tiene contenido todavía.</div>`; return; }
-    try{ presActivate(await api('/versions/'+previewId+'/config')); }catch{}
-    T = { items, pages:buildPages(items), idx:0, answers:{}, revealed:{}, revealedPages:{}, review:false, preview:true };
+    try{ const cfg = await api('/versions/'+previewId+'/config'); noteCfg(cfg); presActivate(cfg); }catch{}
+    const pages = buildPages(items), intro = presTakeIntro(pages);
+    T = { items, pages, idx:0, answers:{}, revealed:{}, revealedPages:{}, review:false, preview:true, intro };
     el('nav').style.display='flex';
     presBegin();
     renderStep();
@@ -642,8 +728,9 @@ async function startRepaso(){
   try{
     const items = await api('/versions/'+repasoId+'/take'+(setId?('?setId='+encodeURIComponent(setId)):''));
     if(!items.length){ el('screen').innerHTML=`<div class="center">Este adiestramiento no tiene contenido.</div>`; return; }
-    try{ presActivate(await api('/versions/'+repasoId+'/config')); }catch{}
-    T = { items, pages:buildPages(items), idx:0, answers:{}, revealed:{}, revealedPages:{}, review:false, preview:true, repaso:true };
+    try{ const cfg = await api('/versions/'+repasoId+'/config'); noteCfg(cfg); presActivate(cfg); }catch{}
+    const pages = buildPages(items), intro = presTakeIntro(pages);
+    T = { items, pages, idx:0, answers:{}, revealed:{}, revealedPages:{}, review:false, preview:true, repaso:true, intro };
     el('nav').style.display='flex';
     el('prevBtn').classList.remove('hidden');   // en repaso siempre se puede ir y venir
     presBegin();
@@ -680,10 +767,59 @@ function presActivate(cfg){
 function presFit(){ el('presStage').style.setProperty('--pk', Math.min(innerWidth/1280, innerHeight/720)); }
 function panelTitle(){ return ((PRES && PRES.theme.panelTitle) || '').trim() || title.toUpperCase(); }
 
+// El ítem 'intro' (si es la primera página) sale de las páginas: la portada queda como
+// lámina 1 y el contador «n / N» no lo cuenta. Devuelve su payload, o null. Sin modo
+// presentación no se toca nada: el intro se ve como primera página (introClassicHtml).
+function presTakeIntro(pages){
+  if(!PRES || !pages.length || pages[0].items.length!==1) return null;
+  const p = introPayload(pages[0].items[0]);
+  if(p) pages.shift();
+  return p;
+}
+// Lámina donde retomar un intento en progreso: la última guardada en este navegador o,
+// si las respuestas del servidor van más adelante (otro equipo), la siguiente a la última
+// página con alguna pregunta contestada. Nunca pasa del resumen (índice = nº de páginas).
+function presResumeIdx(attemptId, pages, answers){
+  let saved = 0;
+  try{ saved = parseInt(localStorage.getItem('tp_pos_'+attemptId)||'0',10) || 0; }catch{}
+  let last = -1;
+  pages.forEach((pg,i)=>{ if(pg.items.some(it=>isQuestion(it) && answers[it.id])) last = i; });
+  return Math.max(0, Math.min(pages.length, Math.max(saved, last+1)));
+}
+function presSavePos(){
+  if(!T || !T.attemptId || T.preview || T.review) return;
+  try{ localStorage.setItem('tp_pos_'+T.attemptId, String(T.idx)); }catch{}
+}
+function firstCoverPhoto(){
+  for(const pg of T.pages) for(const it of pg.items){
+    if(it.type!=='Info') continue;
+    let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
+    if(p.layout==='cover' && p.photo) return p.photo;
+  }
+  return '';
+}
+
 // Pantalla de inicio: pide pantalla completa (si el navegador lo niega, sigue igual).
+// Con ítem 'intro' muestra además la foto de portada atenuada, la descripción y los datos
+// del curso; al retomar un intento el botón dice «Continuar» e indica la lámina.
 function presBegin(){
   if(!PRES) return;
-  el('presStartTitle').textContent = title;
+  const intro = T && T.intro;
+  el('presStart').classList.toggle('intro', !!intro);
+  if(intro) el('presStartTitle').innerHTML = intro.title || title;
+  else el('presStartTitle').textContent = title;
+  const photo = intro ? (intro.photo || firstCoverPhoto()) : '';
+  if(photo) el('presStartPhoto').src = photo;
+  el('presStartPhoto').classList.toggle('hidden', !photo);
+  el('presStartShade').classList.toggle('hidden', !photo);
+  el('presStartIntro').innerHTML = intro ? introScreenHtml(intro, introStats(intro)) : '';
+  el('presStartIntro').classList.toggle('hidden', !intro);
+  el('presStartHelp').classList.toggle('hidden', !!intro);
+  el('presStartHint').classList.toggle('hidden', !intro);
+  const resume = !!T && T.idx>0;
+  el('presStartBtn').textContent = resume ? 'Continuar' : 'Comenzar';
+  el('presStartResume').textContent = resume ? `Vas por la lámina ${T.idx+1} de ${T.pages.length+1}` : '';
+  el('presStartResume').classList.toggle('hidden', !resume);
   el('presStart').classList.remove('hidden');
   el('presStartBtn').onclick = ()=>{
     try{ const r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); if(r && r.catch) r.catch(()=>{}); }catch{}
@@ -765,6 +901,9 @@ function presInfoSlide(p){
   const layout = p.layout || 'dark';
   const body = infoBody(p);
   const tt = p.title ? `<h2>${p.title}</h2>` : '';
+  // Un 'intro' fuera de la primera posición (seed.mjs no lo deja pasar) se ve como lámina oscura.
+  if(layout==='intro')
+    return slideWrap('sl-dark', `<h1 class="sl-kicker">${panelTitle()}</h1><div class="sl-rule"></div>`, (p.title?`<h3>${p.title}</h3>`:'')+introDescHtml(p.description));
   if(layout==='cover')
     return slideWrap('sl-cover', `<img class="cover-photo" src="${p.photo||''}" alt="" /><div class="cover-band"><h1>${p.title||''}</h1></div>`, body);
   if(layout==='photo-left')

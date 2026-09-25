@@ -1,7 +1,21 @@
-// Láminas 1-3 del deck: portada, instrucciones y objetivo.
-import { slide, T, photo, bullets, heading } from '../_shared/authoring.mjs';
+// Pantalla de entrada y láminas 1-3 del deck: portada, instrucciones y objetivo.
+import { slide, intro, T, photo, bullets, heading } from '../_shared/authoring.mjs';
 
 export default [
+  // Pantalla de entrada (no es lámina): el resumen del curso que antes daba la página de
+  // apertura con resumen(). El reproductor le añade láminas, preguntas y puntos, y en modo
+  // presentación la dibuja antes del botón «Comenzar» con la portada atenuada de fondo.
+  intro({
+    title: 'Hostigamiento Sexual en el Empleo',
+    description:
+      '<p>En este adiestramiento aprenderás qué es el hostigamiento sexual según la <b>Ley Núm. 17 de Puerto ' +
+      'Rico</b>, sus dos formas (<b>quid pro quo</b> y <b>ambiente hostil</b>), qué te toca hacer como empleado ' +
+      'o supervisor, cómo se reporta y se investiga una situación en la empresa, y por qué está prohibido ' +
+      'tomar represalias contra quien reporta.</p>',
+    minutes: 25,
+    photo: photo(import.meta.url, './img/portada.jpg'),
+  }),
+
   // Lámina 1 — portada: la foto del deck (image12.jpeg) a sangre con la banda de título.
   slide({ layout: 'cover', title: 'Hostigamiento Sexual en el Empleo',
           photo: photo(import.meta.url, './img/portada.jpg') }),

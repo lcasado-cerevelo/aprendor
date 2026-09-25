@@ -221,9 +221,11 @@ function summary() {
   const questions = course.items.filter(i => i.points > 0);
   const points = questions.reduce((s, i) => s + i.points, 0);
   const pres = course.training.playerConfig?.presentation?.enabled;
+  const entry = introOf();
   console.log(`Curso: ${course.training.title}`);
+  if (entry) console.log(`  Entrada:   pantalla de entrada${entry.minutes ? ` (${entry.minutes} min estimados)` : ''}, fuera de la numeración`);
   if (count('ModuleHeader')) console.log(`  Módulos:   ${count('ModuleHeader')}`);
-  console.log(`  Contenido: ${count('Info')} ${pres ? 'láminas (modo presentación)' : 'pantallas'}`);
+  console.log(`  Contenido: ${count('Info') - (entry ? 1 : 0)} ${pres ? 'láminas (modo presentación)' : 'pantallas'}`);
   console.log(`  Preguntas: ${questions.length} (${count('MultipleChoice')} selección única, ` +
               `${count('MultiSelect')} selección múltiple, ${count('Matching')} pareo) — ${points} puntos`);
   console.log(`  Aprobación: 70% → ${Math.ceil(points * 0.7)} puntos`);
@@ -238,7 +240,13 @@ function validate() {
   const errs = [];
   course.items.forEach((it, i) => {
     const p = it.payload, where = `ítem #${i + 1} (${it.type})`;
-    if (it.type === 'Info') {
+    if (it.type === 'Info' && p.layout === 'intro') {
+      // Pantalla de entrada (intro()): sólo como primer ítem; no lleva bloques.
+      if (i !== 0) errs.push(`${where}: la pantalla de entrada (layout intro) sólo puede ser el primer ítem del curso.`);
+      if (!p.title) errs.push(`${where}: la pantalla de entrada no tiene título.`);
+      if (!p.description) errs.push(`${where}: la pantalla de entrada no tiene descripción.`);
+      if (p.minutes !== undefined && !(Number(p.minutes) > 0)) errs.push(`${where}: minutes debe ser un número positivo.`);
+    } else if (it.type === 'Info') {
       // Una portada (cover) puede no tener bloques: la foto y el título son la lámina.
       if ((!p.blocks || !p.blocks.length) && p.layout !== 'cover') errs.push(`${where}: sin bloques.`);
       if (p.layout && !LAYOUTS.includes(p.layout)) errs.push(`${where}: layout desconocido "${p.layout}".`);
@@ -273,6 +281,34 @@ function validate() {
 
 // ---- Vista previa estática --------------------------------------------------
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+
+// Pantalla de entrada (ítem Info con layout 'intro', siempre el primero) o null.
+function introOf() {
+  const first = course.items[0];
+  return first && first.type === 'Info' && first.payload.layout === 'intro' ? first.payload : null;
+}
+// Réplica de introStats/introScreenHtml de player.html: mismos datos que calcula el
+// reproductor (láminas = Info sin el intro, preguntas, suma de puntos, aprobación y
+// minutos). La aprobación del reproductor sale de la configuración si la trae; aquí se
+// usa el 70 % que asume el resumen de este script. Si cambia una, cambiar la otra.
+function introDescHtml(d) { return /<[a-z][\s\S]*>/i.test(d || '') ? d : `<p>${esc(d || '')}</p>`; }
+function introStats(p) {
+  return {
+    slides: course.items.filter(it => it.type === 'Info' && it.payload.layout !== 'intro').length,
+    questions: course.items.filter(it => ['MultipleChoice', 'MultiSelect', 'Matching', 'OpenResponse'].includes(it.type)).length,
+    points: course.items.reduce((s, it) => s + (Number(it.points) || 0), 0),
+    pass: 70,
+    minutes: Number(p.minutes) || 0,
+  };
+}
+function introScreenHtml(p, st) {
+  const pl = (n, uno, varios) => n === 1 ? uno : varios;
+  const cells = [[st.slides, pl(st.slides, 'lámina', 'láminas')], [st.questions, pl(st.questions, 'pregunta', 'preguntas')], [st.points, 'puntos']];
+  if (st.pass != null) cells.push([st.pass + ' %', 'para aprobar']);
+  if (st.minutes) cells.push([st.minutes + ' min', 'tiempo estimado']);
+  return `<div class="ps-rule"></div><div class="ps-desc">${introDescHtml(p.description)}</div>` +
+         `<div class="ps-stats">${cells.map(([v, l]) => `<div class="ps-stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>`;
+}
 
 // Con modo presentación, la vista previa dibuja cada lámina en un escenario 16:9 con
 // la misma hoja de estilos del reproductor (bloque PRES-CSS de wwwroot/player.html),
@@ -337,7 +373,18 @@ function slideHtml(it, ctx) {
 function buildSlidePreview(pres) {
   const theme = { bg: '#0d0d0d', accent: '#f97316', panel: true, panelTitle: '', ...(pres.theme || {}) };
   const ctx = { q: 0, panel: theme.panel, panelTitle: (theme.panelTitle || '').trim() || course.training.title.toUpperCase() };
-  const slides = course.items.map((it, i) => {
+  // La pantalla de entrada va aparte, antes de las láminas: no se numera ni entra en el
+  // chequeo de desborde (no es una .sl), igual que en el reproductor.
+  const entry = introOf();
+  const entryHtml = entry ? (() => {
+    const ph = entry.photo || course.items.find(it => it.type === 'Info' && it.payload.layout === 'cover' && it.payload.photo)?.payload.photo;
+    return `<section><span class="tag">Pantalla de entrada · no cuenta como lámina</span>
+      <div class="frame entry"><div class="pres-start intro">${ph ? `<img class="ps-photo" src="${ph}" alt="" /><div class="ps-shade"></div>` : ''}
+        <div class="ps-inner"><h1>${entry.title}</h1>${introScreenHtml(entry, introStats(entry))}
+          <button class="pbtn" type="button">Comenzar</button>
+          <div class="ps-hint">Pantalla completa · avanza con → o Enter</div></div></div></div></section>`;
+  })() : '';
+  const slides = course.items.filter(it => it.payload !== entry).map((it, i) => {
     const label = it.type === 'Info' ? `Lámina ${i + 1} · ${it.payload.layout || 'dark'}${it.payload.variant ? ' / ' + it.payload.variant : ''}`
                 : it.type === 'ModuleHeader' ? `Lámina ${i + 1} · módulo`
                 : `Lámina ${i + 1} · ${it.type} · ${it.points} pts`;
@@ -365,6 +412,8 @@ function buildSlidePreview(pres) {
   ${playerCss()}
   /* La vista previa escala cada escenario al ancho de su marco, no a la ventana */
   .frame .pstage{left:0;top:0;transform:scale(var(--pk,1));transform-origin:top left}
+  /* La pantalla de entrada ocupa el marco (en el reproductor cubre la ventana) */
+  .frame.entry .pres-start{position:absolute;overflow:hidden}
 </style></head><body>
 <header>
   <h1>${esc(course.training.title)}</h1>
@@ -374,6 +423,7 @@ function buildSlidePreview(pres) {
   <div class="note"><strong>Vista previa para revisión (modo presentación).</strong> Cada lámina se ve como en el
   reproductor, con la respuesta correcta marcada en verde. Si el cuerpo de una lámina no cabe, aparece el aviso
   <b>«Excede la lámina»</b> — hay que recortar el texto o repartirlo. ${questions.length} preguntas · ${points} puntos · aprueba con 70%.</div>
+  ${entryHtml}
   ${slides}
 </main>
 <script>
@@ -401,6 +451,13 @@ function buildClassicPreview() {
     const p = it.payload;
     if (it.type === 'ModuleHeader')
       return `<section class="mod"><h2>${esc(p.title)}</h2>${p.subtitle ? `<p>${esc(p.subtitle)}</p>` : ''}</section>`;
+    if (it.type === 'Info' && p.layout === 'intro') {
+      // Pantalla de entrada: en modo clásico el reproductor la muestra como primera página.
+      const st = introStats(p);
+      return `<section class="screen"><span class="tag">Pantalla de entrada</span>
+                <h3>${esc(p.title || '')}</h3>${introDescHtml(p.description)}
+                <p class="tag">${st.slides} pantallas · ${st.questions} preguntas (${st.points} puntos) · aprueba con ${st.pass}%${st.minutes ? ` · ${st.minutes} min` : ''}</p></section>`;
+    }
     if (it.type === 'Info')
       return `<section class="screen"><span class="tag">Pantalla ${++n}</span>
                 <h3>${esc(p.title || '')}</h3>${(p.blocks || []).map(b => b.html || '').join('')}</section>`;

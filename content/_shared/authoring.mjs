@@ -48,6 +48,10 @@ export const info = (title, ...blocks) => ({ type: 'Info', payload: { title, blo
 //               del panel entre dos líneas de acento).
 //   photo-left  foto a la izquierda (~40 %), contenido a la derecha. `photoPos` es el
 //               object-position CSS para elegir qué parte de la foto se ve.
+//   intro       PANTALLA DE ENTRADA, no una lámina: sólo puede ser el primer ítem del
+//               curso (ver intro() más abajo). En modo presentación el reproductor la
+//               saca de la numeración y la usa para dibujar la pantalla previa al botón
+//               «Comenzar» (foto atenuada, título, descripción y datos del curso).
 // Sin modo presentación, el reproductor ignora estos campos y la pantalla se ve como
 // cualquier otra Info (título, foto si la hay, bloques). El cuerpo de la lámina se
 // escribe en HTML semántico (p, ul/li, b, h3) sin estilos inline: la hoja de estilos
@@ -61,17 +65,37 @@ export const photo = (moduleUrl, relPath) => {
   return `data:image/${mime};base64,${fs.readFileSync(filePath).toString('base64')}`;
 };
 
-export const LAYOUTS = ['cover', 'dark', 'split', 'photo-left'];
+export const LAYOUTS = ['cover', 'dark', 'split', 'photo-left', 'intro'];
 export const SPLIT_VARIANTS = ['left', 'right', 'lines'];
 
 export const slide = ({ layout = 'dark', title = '', photo, photoPos, variant, kicker }, ...blocks) => {
   if (!LAYOUTS.includes(layout)) throw new Error(`layout desconocido: ${layout}`);
+  if (layout === 'intro') throw new Error('la pantalla de entrada se escribe con intro(), no con slide()');
   if (variant && !SPLIT_VARIANTS.includes(variant)) throw new Error(`variant desconocida: ${variant}`);
   const payload = { title, layout, blocks };
   if (photo) payload.photo = photo;
   if (photoPos) payload.photoPos = photoPos;
   if (variant) payload.variant = variant;
   if (kicker) payload.kicker = kicker;
+  return { type: 'Info', payload };
+};
+
+// Pantalla de entrada del curso (layout 'intro'). Va SIEMPRE como primer ítem (seed.mjs
+// lo valida) y no lleva bloques: el reproductor calcula por su cuenta los datos del curso
+// (láminas, preguntas, puntos y la aprobación si la conoce) y los muestra junto a:
+//   title        título grande del curso
+//   description  resumen para el empleado, en HTML (p, b…) o texto plano
+//   minutes      tiempo estimado en minutos (opcional)
+//   photo        data URL de la foto de fondo, atenuada (opcional; si falta, el
+//                reproductor usa la de la primera lámina 'cover')
+// En modo presentación no cuenta como lámina (queda fuera del contador «n / N»); en modo
+// clásico se ve como primera página con una caja de datos del mismo estilo que resumen().
+export const intro = ({ title, description, minutes, photo }) => {
+  if (!title) throw new Error('intro(): falta el título');
+  if (!description) throw new Error('intro(): falta la descripción');
+  const payload = { layout: 'intro', title, description };
+  if (minutes) payload.minutes = minutes;
+  if (photo) payload.photo = photo;
   return { type: 'Info', payload };
 };
 

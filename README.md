@@ -111,6 +111,15 @@ En el `PUT`, `presentation` es opcional: si no viene se conserva lo guardado; si
 El curso de Hostigamiento ya lo trae en `content/hostigamiento-sexual/course.mjs`
 (`seed.mjs` y `tools/Seed-Curso.ps1` lo envían al sembrar).
 
+**Pantalla de entrada (layout `intro`).** Un ítem Info con `layout: 'intro'` como **primer** ítem
+(helper `intro({ title, description, minutes, photo })` de `content/_shared/authoring.mjs`; `seed.mjs`
+rechaza un `intro` en otra posición) no es una lámina: en modo presentación el player lo saca de las
+páginas y del contador «n / N» (la portada sigue siendo la 1) y lo usa para la pantalla previa al
+botón «Comenzar»: foto de portada atenuada, título, descripción y los datos que calcula él mismo
+(láminas, preguntas, puntos, aprobación si `/config` trae `passPercent`, tiempo estimado). Si se
+retoma un intento, el botón dice «Continuar» e indica la lámina donde iba. En modo clásico el
+`intro` se ve como primera página con una caja de resumen.
+
 ### Reglas de cumplimiento por compañía (`Tenant.ComplianceConfigJson`)
 JSON tolerante (`ComplianceConfig` en `Catalog.cs`), editable con `GET/PUT /company/compliance`
 (el Admin de la compañía escribe; los oficiales sólo leen). Valores por defecto:
