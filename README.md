@@ -155,6 +155,11 @@ Si venció o no existe responde 410 con una página sin datos personales y un bo
 `POST /certificates/{serial}/resend` (enlace nuevo), `POST /certificates/{serial}/revoke` y
 `GET /certificates/{serial}/links` (accesos). Cada envío, reenvío y revocación queda en `AuditLogs` del cliente.
 
+El PDF (`CertificatePdf.cs`, el mismo para `/c/{token}`, el adjunto y `GET /certificates/{serial}/pdf`)
+reproduce la plantilla en pantalla (`wwwroot/certificate.html`): mismos textos, orden, colores, doble
+marco, sello, logo y firma (PNG no entrelazado o JPEG; WebP y GIF se omiten en el PDF). A4 apaisado,
+fuentes estándar Times y Helvetica. Si se cambia la plantilla, hay que cambiar también el PDF.
+
 ### Marcar un oficial de cumplimiento
 Es una marca en la membresía (`UserCompany.IsComplianceOfficer`), no un rol: se suma al rol que ya tenga.
 - Desde la UI: pantalla de usuarios del admin de plataforma (casilla «Oficial de cumplimiento») o, para
@@ -225,7 +230,7 @@ con el prefijo `APRENDOR_` o sin él (`Jwt__Key`):
 | Variable | Qué exige |
 | --- | --- |
 | `APRENDOR_Jwt__Key` | 32 bytes UTF-8 o más, sin `CHANGE-ME` (la de ejemplo se rechaza). |
-| `APRENDOR_App__BaseUrl` | URL pública `https://...`. Los enlaces de los correos (restablecer contraseña, certificados, recordatorios) se arman solo con ella. |
+| `APRENDOR_App__BaseUrl` | URL pública `https://...`. Los enlaces de los correos (restablecer contraseña, certificados, recordatorios) se arman solo con ella, y también la imagen del logo de los correos (`/img/logo-email.png`, estático público). |
 
 Para el primer arranque con el catálogo vacío hacen falta además `APRENDOR_Bootstrap__AdminEmail` y
 `APRENDOR_Bootstrap__AdminPassword`: sin ellas (o con `ChangeMe123!`) no se siembra el admin y queda un
