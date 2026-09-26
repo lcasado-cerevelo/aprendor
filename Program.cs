@@ -444,6 +444,10 @@ app.MapGet("/auth/config", (HttpContext http, Turnstile turnstile) =>
     Results.Ok(new { turnstileSiteKey = turnstile.SiteKeyPara(http) }))
     .AllowAnonymous();
 
+// El navegador pide /favicon.ico por su cuenta; no hay icono en wwwroot y, con la
+// FallbackPolicy, respondería 401 en cada carga (ruido en la consola y en la bitácora).
+app.MapGet("/favicon.ico", () => Results.NoContent()).AllowAnonymous();
+
 // ---------- «Perdí mi autenticador» ----------
 // Paso 1, desde la pantalla del código (reto de login vigente, así que ya dio la clave
 // buena): si el correo está validado, sus compañías no apagaron la recuperación y no es
@@ -725,6 +729,9 @@ app.MapPost("/me/2fa/confirm", async (TwoFactorConfirmRequest? req, ITenantConte
     Bloqueos.OkSensible(reserva);
     catalog.AuditLogs.Add(new CatalogAuditLog { Action = cambio ? "2fa-changed" : "2fa-enabled", Detail = $"{user.Email} (totp)", UserId = user.Id });
     await catalog.SaveChangesAsync();
+    // Si el contador ya valía 0 al leer la fila, EF no lo escribe: un fallo contado
+    // mientras tanto con ExecuteUpdate quedaría vivo. Se limpia en la base.
+    await Bloqueos.Limpiar2faAsync(catalog, user.Id);
 
     try
     {

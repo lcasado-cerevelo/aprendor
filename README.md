@@ -167,6 +167,52 @@ Es una marca en la membresía (`UserCompany.IsComplianceOfficer`), no un rol: se
   `/compliance/alerts`, «Recordar ahora») y puede leer el expediente de cualquier empleado. No obtiene
   permisos de edición.
 
+## Seguridad (septiembre 2026)
+
+Resumen para desplegar la Fase 6. El detalle de cada bloque (S1 a F2) está en las secciones siguientes.
+
+### Variables de entorno obligatorias en producción
+Fuera de `Development`, sin las dos primeras la app **no arranca** (el mensaje dice cuál falta):
+
+| Variable | Qué exige |
+| --- | --- |
+| `APRENDOR_Jwt__Key` | Secreto aleatorio de 32 bytes UTF-8 o más, sin `CHANGE-ME`. Cambiarlo cierra todas las sesiones. |
+| `APRENDOR_App__BaseUrl` | URL pública `https://...` (p. ej. `https://aprendor.advancelogisticspr.com`). Todos los enlaces de los correos salen de aquí. |
+| `APRENDOR_Turnstile__SecretKey` | Clave secreta de Cloudflare Turnstile. Sin ella la app arranca, pero Turnstile queda **apagado** (advertencia en la bitácora). |
+| `APRENDOR_Bootstrap__AdminEmail` y `APRENDOR_Bootstrap__AdminPassword` | Solo si se siembra el admin de plataforma (catálogo vacío). Sin ellas, o con `ChangeMe123!`, no se siembra. |
+
+Además, recomendadas: `APRENDOR_Email__ApiKey` (Brevo; sin ella no salen correos ni invitaciones y
+las altas devuelven una clave temporal), `APRENDOR_AllowedHosts` (dominio público más `localhost`) y
+`APRENDOR_Security__ForwardedForHeader=CF-Connecting-IP` detrás de Cloudflare.
+
+### Claves de configuración nuevas
+| Clave | Por defecto | Qué hace |
+| --- | --- | --- |
+| `Security:TrustedProxies` | `[]` | IPs de proxies, además de loopback, cuyo `X-Forwarded-For` (o la cabecera configurada) se cree. Solo si el proxy o `cloudflared` corre en otra máquina. |
+| `Security:ForwardedForHeader` | vacío (`X-Forwarded-For`) | `CF-Connecting-IP` con Cloudflare. De aquí sale la IP real para los límites, la auditoría y las redes de confianza. |
+| `Security:TrustedNetworks` | `[]` | Redes de confianza de la instancia (CIDR o IP sola). Desde ellas no se pide el doble factor ni Turnstile. Loopback no cuenta salvo que se liste. |
+| `Security:MaxRequestBytes` / `Security:AuthoringMaxRequestBytes` | 1 MB / 8 MB | Tamaño máximo del cuerpo en general y en el contenido del autor. |
+| `Turnstile:Enabled` | `true` | Enciende Turnstile (si además hay site key y secreta). |
+| `Turnstile:SiteKey` | `0x4AAAAAAFDvHyVdv4bWY_CA` | Site key pública (hostname `aprendor.advancelogisticspr.com`). |
+| `Turnstile:SecretKey` | vacía | Solo por `APRENDOR_Turnstile__SecretKey`. |
+| `Turnstile:ExemptNetworks` | `[]` | Redes cuyas peticiones directas y sin token no pasan por Turnstile (para los seeds en el propio servidor). |
+| `Tenants:ConnectionTemplate` | vacía | Cadena con `{db}`: el alta de compañía arma la conexión en el servidor e ignora la del cliente. |
+| `Media:MaxBytes` | 52428800 (50 MB) | Máximo por archivo en `POST /media` (413 si se pasa). |
+
+### Migraciones nuevas
+- Cliente: `20260925201356_SecureMedia` (`MediaAsset.Purpose` y `OwnerUserId`).
+- Catálogo: `20260925210824_SecurityHardening` (tabla `SecurityEvent`, sello de seguridad, contadores y
+  bloqueos, `PasswordResetToken.Purpose`, `AuditLog.Ip`) y `20260925220342_CompanySecurityConfig`
+  (`Tenant.SecurityConfigJson`).
+
+El catálogo se migra solo al arrancar, pero las bases de **cada compañía** no. En cada despliegue,
+después de copiar los binarios y antes de abrir el tráfico:
+```bash
+dotnet TrainingPlatform.dll migrate
+```
+Al desplegar, las sesiones abiertas dejan de valer (los tokens viejos no llevan sello): cada persona
+vuelve a entrar una vez.
+
 ## Seguridad para publicar en internet (septiembre 2026, bloque S1)
 
 ### Variables obligatorias fuera de Development
