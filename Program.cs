@@ -477,9 +477,10 @@ app.MapGet("/auth/config", (HttpContext http, Turnstile turnstile) =>
     Results.Ok(new { turnstileSiteKey = turnstile.SiteKeyPara(http) }))
     .AllowAnonymous();
 
-// El navegador pide /favicon.ico por su cuenta; no hay icono en wwwroot y, con la
-// FallbackPolicy, respondería 401 en cada carga (ruido en la consola y en la bitácora).
-app.MapGet("/favicon.ico", () => Results.NoContent()).AllowAnonymous();
+// El icono de la pestaña (/favicon.ico, /favicon.svg, /img/apple-touch-icon.png) está en
+// wwwroot y lo sirve UseStaticFiles antes de la autorización, así que no le aplica la
+// FallbackPolicy. No mapear aquí /favicon.ico: un endpoint con esa ruta haría que
+// UseStaticFiles se saltara el archivo. Se regenera con tools/Generar-Favicon.ps1.
 
 // ---------- «Perdí mi autenticador» ----------
 // Paso 1, desde la pantalla del código (reto de login vigente, así que ya dio la clave

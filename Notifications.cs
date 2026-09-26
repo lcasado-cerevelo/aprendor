@@ -44,7 +44,7 @@ public class SmtpEmailSender : IEmailSender
         {
             From = new MailAddress(fromEmail, fromName),
             Subject = subject,
-            Body = htmlBody,
+            Body = EmailTemplates.ConLogoPublico(htmlBody, _cfg["App:BaseUrl"]),
             IsBodyHtml = true
         };
         msg.To.Add(new MailAddress(toEmail, string.IsNullOrWhiteSpace(toName) ? toEmail : toName));
@@ -104,7 +104,7 @@ public class BrevoApiEmailSender : IEmailSender
                 ["name"] = string.IsNullOrWhiteSpace(toName) ? toEmail : toName
             }),
             ["subject"] = subject,
-            ["htmlContent"] = htmlBody
+            ["htmlContent"] = EmailTemplates.ConLogoPublico(htmlBody, _cfg["App:BaseUrl"])
         };
 
         var lista = attachments?.ToList();
@@ -380,8 +380,11 @@ public static class EmailTemplates
     // sistema con respaldo Arial, y todo el color puesto a mano (los clientes de
     // correo ignoran <style> y las hojas externas).
     // Mismo logo del ícono de la app (wwwroot/index.html, la "brand" del login),
-    // rasterizado a PNG e incrustado como data URL: los clientes de correo no
-    // respetan <svg> por igual, pero sí un <img> con data URL.
+    // rasterizado a PNG. Gmail y Outlook bloquean las imágenes en data URL, así que al
+    // enviar (ConLogoPublico) se cambia por la URL absoluta del mismo PNG servido como
+    // estático público (wwwroot/img/logo-email.png). El data URL solo queda cuando no hay
+    // App:BaseUrl (desarrollo), donde no hay una URL pública a la que apuntar.
+    public const string LogoRuta = "/img/logo-email.png";
     private const string LogoDataUri =
         "data:image/png;base64,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";
 
@@ -418,6 +421,18 @@ public static class EmailTemplates
 
     private static string Render(string body, string preheader)
         => Wrap.Replace("{BODY}", body).Replace("{PREHEADER}", System.Net.WebUtility.HtmlEncode(preheader ?? ""));
+
+    // Lo llaman los IEmailSender justo antes de enviar: con App:BaseUrl absoluto (http o
+    // https) el logo pasa a ser <BaseUrl>/img/logo-email.png; si no, se deja el data URL.
+    public static string ConLogoPublico(string html, string? baseUrl)
+    {
+        if (string.IsNullOrEmpty(html) || !html.Contains(LogoDataUri)) return html;
+        if (string.IsNullOrWhiteSpace(baseUrl)
+            || !Uri.TryCreate(baseUrl.Trim().TrimEnd('/'), UriKind.Absolute, out var b)
+            || (b.Scheme != Uri.UriSchemeHttps && b.Scheme != Uri.UriSchemeHttp)) return html;
+        var url = b.GetLeftPart(UriPartial.Path).TrimEnd('/') + LogoRuta;
+        return html.Replace(LogoDataUri, System.Net.WebUtility.HtmlEncode(url));
+    }
 
     // Botón "a prueba de balas": tabla en vez de <a> con padding, que Outlook rompe.
     private static string Boton(string texto, string url)

@@ -333,11 +333,13 @@ public static class CertificateEndpoints
         return enviados;
     }
 
+    // El PDF reproduce certificate.html con el snapshot congelado (logo y firma incluidos).
     private static byte[] RenderPdf(Certificate cert, CertificateConfig cfg, string emisor)
         => CertificatePdf.Render(emisor, cert.LearnerName, cert.TrainingTitle, cert.Serial,
             cert.IssuedAt, cert.ExpiresAt, cert.ScorePercent, cert.PassPercent,
             cfg.ShowScore, cfg.ShowValidity, cfg.Statement,
-            cfg.SignatoryName, cfg.SignatoryTitle, cfg.AccentColor);
+            cfg.SignatoryName, cfg.SignatoryTitle, cfg.AccentColor,
+            cfg.LogoDataUrl, cfg.SignatureDataUrl);
 
     private static string NombreArchivo(Certificate cert)
         => $"Certificado-{Limpiar(cert.TrainingTitle)}-{Limpiar(cert.LearnerName)}-{cert.Serial}.pdf";
@@ -430,10 +432,7 @@ public static class CertificateEndpoints
             var emisor = string.IsNullOrWhiteSpace(cfg.IssuerName)
                 ? await IssuerNameAsync(catalog, tc.TenantId) : cfg.IssuerName!;
 
-            var pdf = CertificatePdf.Render(emisor, cert.LearnerName, cert.TrainingTitle, cert.Serial,
-                cert.IssuedAt, cert.ExpiresAt, cert.ScorePercent, cert.PassPercent,
-                cfg.ShowScore, cfg.ShowValidity, cfg.Statement,
-                cfg.SignatoryName, cfg.SignatoryTitle, cfg.AccentColor);
+            var pdf = RenderPdf(cert, cfg, emisor);
 
             return Results.File(pdf, "application/pdf", $"Certificado-{cert.Serial}.pdf");
         }).RequireAuthorization();
