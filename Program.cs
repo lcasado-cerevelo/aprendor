@@ -50,8 +50,18 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
     o.KnownProxies.Clear();
     o.KnownProxies.Add(IPAddress.Loopback);
     o.KnownProxies.Add(IPAddress.IPv6Loopback);
+    // Cada entrada es una IP (10.0.0.5) o un rango CIDR (173.245.48.0/20). Los rangos
+    // sirven para poner el proxy de Cloudflare (nube naranja) delante de IIS: sus IPs
+    // de borde se publican como rangos, no como direcciones sueltas.
     foreach (var p in ArranqueSeguro.Lista(cfg, "Security:TrustedProxies"))
-        if (IPAddress.TryParse(p, out var ip)) o.KnownProxies.Add(ip);
+    {
+        var partes = p.Split('/', 2);
+        if (partes.Length == 2 && IPAddress.TryParse(partes[0], out var red) && int.TryParse(partes[1], out var prefijo)
+            && prefijo >= 0 && prefijo <= (red.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? 128 : 32))
+            o.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(red, prefijo));
+        else if (IPAddress.TryParse(p, out var ip))
+            o.KnownProxies.Add(ip);
+    }
     var cabecera = cfg["Security:ForwardedForHeader"];
     if (!string.IsNullOrWhiteSpace(cabecera)) o.ForwardedForHeaderName = cabecera.Trim();
 });
@@ -67,8 +77,9 @@ builder.WebHost.ConfigureKestrel(o =>
 });
 builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = Limites.MediaMaxBytes(cfg) + MediaTipos.MargenMultipart);
 
-// HSTS (solo fuera de Development). Sin UseHttpsRedirection: detrás del túnel la app
-// recibe http y el HTTPS lo fuerza el borde (Cloudflare).
+// HSTS (solo fuera de Development). La redirección de http a https es opcional
+// (Security:RedirectHttps): con IIS publicado directo a internet se enciende; detrás de
+// un túnel el HTTPS lo fuerza el borde (Cloudflare) y se deja apagada.
 builder.Services.AddHsts(o => o.MaxAge = TimeSpan.FromDays(365));
 builder.Services.AddMemoryCache();
 
@@ -194,6 +205,28 @@ using (var scope = app.Services.CreateScope())
 
 // Primero: la IP y el esquema reales (X-Forwarded-For / CF-Connecting-IP, X-Forwarded-Proto).
 app.UseForwardedHeaders();
+
+// http -> https (Security:RedirectHttps). No se hace con UseHttpsRedirection ni con
+// URL Rewrite en web.config (cada publicación lo sobrescribe): así se deja pasar lo que
+// entra por localhost, que es cómo se corren los seeds y el migrador en el servidor
+// (http://localhost:8086). 308 conserva el método y el cuerpo.
+if (cfg.GetValue<bool>("Security:RedirectHttps"))
+{
+    var puertoHttps = cfg.GetValue<int?>("Security:HttpsPort");
+    app.Use(async (ctx, next) =>
+    {
+        var host = ctx.Request.Host.Host;
+        var esLocal = string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
+                      || (IPAddress.TryParse(host, out var ipHost) && IPAddress.IsLoopback(ipHost));
+        if (ctx.Request.IsHttps || esLocal || string.IsNullOrEmpty(host)) { await next(); return; }
+
+        var destino = new UriBuilder("https", host, puertoHttps is int p && p != 443 ? p : -1).Uri.GetLeftPart(UriPartial.Authority)
+                      + ctx.Request.PathBase + ctx.Request.Path + ctx.Request.QueryString;
+        ctx.Response.StatusCode = StatusCodes.Status308PermanentRedirect;
+        ctx.Response.Headers.Location = destino;
+    });
+}
+
 if (!app.Environment.IsDevelopment()) app.UseHsts();
 
 // IP de la petición para la auditoría del catálogo (CatalogAuditLog.Ip y SecurityEvent).

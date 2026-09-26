@@ -188,7 +188,9 @@ las altas devuelven una clave temporal), `APRENDOR_AllowedHosts` (dominio públi
 ### Claves de configuración nuevas
 | Clave | Por defecto | Qué hace |
 | --- | --- | --- |
-| `Security:TrustedProxies` | `[]` | IPs de proxies, además de loopback, cuyo `X-Forwarded-For` (o la cabecera configurada) se cree. Solo si el proxy o `cloudflared` corre en otra máquina. |
+| `Security:TrustedProxies` | `[]` | IPs o rangos CIDR de proxies, además de loopback, cuyo `X-Forwarded-For` (o la cabecera configurada) se cree. Solo si el proxy o `cloudflared` corre en otra máquina, o con los rangos de Cloudflare si el DNS está en nube naranja. Con IIS publicado directo no hace falta. |
+| `Security:RedirectHttps` | `false` | Redirige http a https (308) salvo lo que entra por `localhost`. Encenderlo con IIS publicado directo a internet; apagado detrás de un túnel. |
+| `Security:HttpsPort` | `443` | Puerto https al que redirige `Security:RedirectHttps`. |
 | `Security:ForwardedForHeader` | vacío (`X-Forwarded-For`) | `CF-Connecting-IP` con Cloudflare. De aquí sale la IP real para los límites, la auditoría y las redes de confianza. |
 | `Security:TrustedNetworks` | `[]` | Redes de confianza de la instancia (CIDR o IP sola). Desde ellas no se pide el doble factor ni Turnstile. Loopback no cuenta salvo que se liste. |
 | `Security:MaxRequestBytes` / `Security:AuthoringMaxRequestBytes` | 1 MB / 8 MB | Tamaño máximo del cuerpo en general y en el contenido del autor. |
@@ -234,7 +236,8 @@ error en la bitácora. El admin sembrado nace con cambio de contraseña obligato
 - `APRENDOR_AllowedHosts`: en el archivo queda `*`; en el servidor conviene fijarlo al dominio
   público más localhost (`aprendor.midominio.com;localhost`) para que otra cabecera Host reciba 400.
 - `APRENDOR_Email__ApiKey`: clave de Brevo (sin ella no salen correos).
-- `Security:TrustedProxies`: IPs de proxies, además de loopback, cuyo `X-Forwarded-For` se cree.
+- `Security:TrustedProxies`: IPs o rangos CIDR de proxies, además de loopback, cuyo `X-Forwarded-For` se cree.
+- `Security:RedirectHttps`: `true` con IIS publicado directo (redirige http a https salvo `localhost`).
   Solo hace falta si el proxy o `cloudflared` corre en otra máquina.
 - `Security:ForwardedForHeader`: `CF-Connecting-IP` detrás de Cloudflare; vacío usa `X-Forwarded-For`.
 - `Security:MaxRequestBytes` (1 MB) y `Security:AuthoringMaxRequestBytes` (8 MB, contenido del autor
