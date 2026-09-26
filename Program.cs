@@ -244,7 +244,17 @@ app.Use(async (ctx, next) =>
 });
 
 app.UseDefaultFiles();
-app.UseStaticFiles();
+// Las páginas (.html) se revalidan siempre (no-cache + ETag: si no cambiaron, 304 sin
+// cuerpo). Sin Cache-Control el navegador las guarda por heurística días enteros y, tras
+// publicar, puede seguir mostrando el reproductor o el panel de la versión anterior.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        if (ctx.File.Name.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+            ctx.Context.Response.Headers.CacheControl = "no-cache";
+    }
+});
 
 // Lo que pasa de aquí no es un archivo estático: respuestas de la API, que llevan datos
 // personales y no deben quedar en cachés intermedias ni del navegador.
