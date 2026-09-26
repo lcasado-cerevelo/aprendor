@@ -165,7 +165,10 @@ Es una marca en la membresía (`UserCompany.IsComplianceOfficer`), no un rol: se
   exponen `isComplianceOfficer`.
 - El oficial recibe copia de los certificados y el resumen, ve **Cumplimiento** (`/compliance/summary`,
   `/compliance/alerts`, «Recordar ahora») y puede leer el expediente de cualquier empleado. No obtiene
-  permisos de edición.
+  permisos de edición. El panel tiene cuatro listas: vencidos, por vencer, sin comenzar y **al día**
+  (`current`: aprobado y vigente, con fecha de aprobación, vigencia y folio del último certificado
+  vigente para bajarlo con `/certificates/{serial}/pdf`); en los vencidos sale el último certificado
+  aunque haya caducado. Búsqueda por nombre y filtros por curso y grupo en las cuatro.
 
 ## Seguridad (septiembre 2026)
 
@@ -359,6 +362,9 @@ loopback, pero siempre con `CF-Ray` y `CF-Connecting-IP`, así que se le sigue e
   código enviado al correo (`POST /me/2fa/setup/send-code`, luego `/me/2fa/setup` con
   `emailChallengeId` y `emailCode`; sin él responde `400 { requiresEmailCode: true }`). `GET /me/2fa`
   dice si hace falta (`emailCodeRequired`). La prueba vale 15 minutos desde la misma IP.
+- `/me/2fa/setup` devuelve, además de `secret` y `uri`, `otpauthUri` (el mismo URI) y `qrDataUri`: el
+  código QR en SVG (`data:image/svg+xml;base64,...`, generado en el servidor con QRCoder, MIT). La
+  pantalla muestra el QR para escanearlo; la clave escrita queda detrás de «¿No puedes escanearlo?».
 - «Perdí mi autenticador»: `POST /auth/2fa/recover/start { challengeId, turnstileToken }` desde la
   pantalla del código y `POST /auth/2fa/recover/verify { challengeId, code }`. Solo con el correo
   validado, si ninguna de sus compañías apagó la recuperación y nunca para el admin de plataforma;

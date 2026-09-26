@@ -145,6 +145,22 @@
   /* ===== Acceso: Turnstile, clave del autenticador y avisos ===== */
   .ts-slot{margin-top:16px;display:flex;justify-content:center;} .ts-slot:empty{display:none;}
   .secret{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;font:600 15px ui-monospace,Consolas,monospace;letter-spacing:2px;word-break:break-all;user-select:all;}
+  /* Alta del autenticador: el QR manda; la clave escrita queda detrás de un enlace */
+  .tfa-qr{display:flex;justify-content:center;margin:14px 0 8px;}
+  .tfa-qr img{width:220px;height:220px;max-width:100%;background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);padding:6px;image-rendering:pixelated;}
+  .tfa-paso{text-align:center;margin:0 0 10px;font-size:14px;color:var(--ink);}
+  .tfa-manual{margin:0 0 6px;text-align:center;}
+  .tfa-manual>summary{display:inline;cursor:pointer;color:var(--brand);font-size:13.5px;list-style:none;}
+  .tfa-manual>summary::-webkit-details-marker{display:none;}
+  .tfa-manual>summary:hover{text-decoration:underline;}
+  .tfa-manual[open]>summary{color:var(--muted);}
+  .tfa-manual .inner{text-align:left;margin-top:10px;}
+  .tfa-manual .code-row{display:flex;gap:8px;align-items:stretch;} .tfa-manual .code-row .secret{flex:1;min-width:0;}
+  .tfa-manual .sub{margin:8px 0 0;font-size:13px;}
+  .tfa-aviso{display:flex;gap:12px;align-items:flex-start;background:var(--brand-soft);border-radius:var(--r-sm);padding:12px 14px;margin:14px 0 4px;text-align:left;}
+  .tfa-aviso .ic{color:var(--brand);flex:0 0 auto;margin-top:1px;} .tfa-aviso b{display:block;font-size:14.5px;color:var(--ink);}
+  .tfa-aviso p{margin:3px 0 0;font-size:13.5px;color:var(--ink);}
+  .tfa-pasos{margin:12px 0 4px;padding-left:22px;font-size:13.5px;color:var(--ink);text-align:left;} .tfa-pasos li{margin:4px 0;}
   .login-card h2{margin:14px 0 4px;font-size:19px;}
   .login-card .linkrow{margin:12px 0 0;text-align:center;font-size:14px;}
   .login-card .linkrow a{color:var(--brand);text-decoration:none;} .login-card .linkrow a.gray{color:var(--muted);} .login-card .linkrow a:not(.hidden) ~ a{margin-left:12px;}
@@ -380,6 +396,9 @@
   .kpi.go:hover{border-color:#c7d2fe;} .kpi.go.on{border-color:var(--brand);background:#fff;}
   .kpi.go:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .kpi.gray .n{color:var(--gray);}
+  .kpi3.kpi4{grid-template-columns:repeat(4,1fr);}
+  @media (max-width:760px){.kpi3.kpi4{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:420px){.kpi3.kpi4{grid-template-columns:1fr;}}
   .fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 6px;}
   .field.sm{padding:7px 10px;font-size:13px;width:auto;max-width:100%;}
   .lacts{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px;font-size:12.5px;}
@@ -549,15 +568,35 @@
       </svg>
       Aprendor
     </div>
-    <h2>Activa la verificación en dos pasos</h2>
-    <p class="sub" style="margin-bottom:0">Tu compañía la exige. Además de la contraseña, al entrar se pedirá el código de una app autenticadora (Google Authenticator, Microsoft Authenticator, Authy, 1Password…).</p>
+    <!-- Antesala: por qué sale esta pantalla (no es un cambio de contraseña) -->
+    <div class="tfa-aviso" role="note">
+      <span class="ic" id="enAvisoIc"></span>
+      <div><b><span id="enCompania">Tu compañía</span> activó la verificación en dos pasos</b>
+        <p>Por eso te mostramos esta pantalla antes de entrar. No tienes que cambiar tu contraseña: sigue siendo la misma.</p></div>
+    </div>
+    <h2>Vincula una app de códigos a tu cuenta</h2>
+    <p class="sub" style="margin-bottom:0">Desde ahora, al entrar te pediremos tu contraseña y un código de 6 dígitos de una app en tu teléfono. Se configura una sola vez y toma unos 2 minutos.</p>
     <div id="enStart">
+      <ol class="tfa-pasos">
+        <li>Instala en tu teléfono una app autenticadora: Google Authenticator, Microsoft Authenticator, Authy o 1Password.</li>
+        <li>Escanea con ella el código QR que te mostraremos.</li>
+        <li>Escribe aquí el código de 6 dígitos que aparece en la app.</li>
+      </ol>
       <button class="btn full" id="enStartBtn">Empezar</button>
     </div>
     <div id="enSecretBox" class="hidden">
-      <p class="sub" style="margin:16px 0 6px">En la app, elige «Introducir una clave de configuración» y escribe esta clave:</p>
-      <div class="secret" id="enSecret"></div>
-      <p class="sub" style="margin:8px 0 0">Cuenta: <b id="enCuenta"></b> · Emisor: <b>Aprendor</b> · <a href="#" id="enUri" style="color:#4f46e5">abrir en la app (en el teléfono)</a></p>
+      <div class="tfa-qr"><img id="enQr" alt="Código QR para agregar tu cuenta de Aprendor a la app autenticadora" /></div>
+      <p class="tfa-paso">En la app, toca <b>Agregar cuenta</b> y elige <b>Escanear código QR</b>.</p>
+      <details class="tfa-manual" id="enManual">
+        <summary>¿No puedes escanearlo? Escribe la clave a mano</summary>
+        <div class="inner">
+          <p class="sub" style="margin:0 0 6px">En la app, elige «Introducir una clave de configuración» y escribe esta clave:</p>
+          <div class="code-row"><div class="secret" id="enSecret"></div>
+            <button type="button" class="btn sm ghost" onclick="copiarClave2FA('enSecret', this)">Copiar</button></div>
+          <p class="sub">Cuenta: <b id="enCuenta"></b> · Emisor: <b>Aprendor</b> · Tipo: basada en tiempo</p>
+          <p class="sub">¿Estás en el mismo teléfono? <a href="#" id="enUri" style="color:#4f46e5">Ábrelo directo en la app</a></p>
+        </div>
+      </details>
       <label>Código de 6 dígitos que muestra la app</label>
       <input id="enCode" class="field" type="text" inputmode="numeric" autocomplete="one-time-code"
              maxlength="6" placeholder="000000" style="letter-spacing:6px;text-align:center;font-size:20px" />
@@ -1867,20 +1906,39 @@ function mostrarAlta2FA(){
   el('enStart').classList.remove('hidden'); el('enSecretBox').classList.add('hidden');
   el('enCode').value = ''; el('enMsg').textContent = '';
   el('enCuenta').textContent = user ? user.email : '';
+  // Antesala: quién la exige, para que no parezca un cambio de contraseña.
+  const suya = user && (user.companies || []).find(c => c.tenantId === user.tenantId);
+  el('enCompania').textContent = (suya && suya.nombre) || 'Tu compañía';
+  el('enAvisoIc').innerHTML = ic('shield', 22);
   mostrarSolo('enrollView');
+}
+// Pinta el QR (data URI SVG que genera el servidor), la clave escrita y el enlace otpauth.
+// Sin QR (respuesta antigua), la clave a mano queda abierta.
+function pintarQr2FA(pre, r){
+  const img = el(pre + 'Qr'), man = el(pre + 'Manual');
+  img.src = r.qrDataUri || '';
+  img.parentElement.classList.toggle('hidden', !r.qrDataUri);
+  el(pre + 'Secret').textContent = r.secret;
+  el(pre + 'Uri').href = r.otpauthUri || r.uri || '#';
+  man.open = !r.qrDataUri;
+}
+async function copiarClave2FA(id, btn){
+  const ok = await copiarTexto(el(id).textContent.trim());
+  toast(ok ? 'Clave copiada.' : 'No se pudo copiar: selecciónala y cópiala a mano.', ok ? 'ok' : 'err');
+  if (ok && btn){ btn.textContent = 'Copiada'; setTimeout(() => { btn.textContent = 'Copiar'; }, 1800); }
 }
 async function altaEmpezar(){
   const m = el('enMsg'); m.className='msg err'; m.textContent='';
-  el('enStartBtn').disabled = true;
+  const b = el('enStartBtn'), txt = b.textContent;
+  b.disabled = true; b.textContent = 'Preparando…'; b.setAttribute('aria-busy', 'true');
   try{
     const r = await prepararAlta2FA();
     if (!r) return;
-    el('enSecret').textContent = r.secret;
-    el('enUri').href = r.uri || '#';
+    pintarQr2FA('en', r);
     el('enStart').classList.add('hidden'); el('enSecretBox').classList.remove('hidden');
     el('enCode').focus();
   }catch(e){ if (e.status !== 401) m.textContent = e.message; }
-  finally{ el('enStartBtn').disabled = false; }
+  finally{ b.disabled = false; b.textContent = txt; b.removeAttribute('aria-busy'); }
 }
 async function altaConfirmar(){
   const m = el('enMsg'); m.className='msg err'; m.textContent='';
@@ -2072,28 +2130,38 @@ function tfaCancelar(){
   el('tfaTotpBox').classList.add('hidden');
   el('tfaConfirmBox').classList.add('hidden');
   el('tfaReemplazo').classList.add('hidden');
+  el('tfaQr').removeAttribute('src'); el('tfaSecret').textContent = '';   // el QR lleva la clave
   el('tfaCode').value = '';
 }
 function mostrarSecreto2FA(r){
   tfaPendiente = { mode:'totp', replacing: !!r.replacing };
-  el('tfaSecret').textContent = r.secret;
-  el('tfaUri').href = r.uri || '#';
+  pintarQr2FA('tfa', r);
   el('tfaCuenta').textContent = user.email;
   el('tfaReemplazo').classList.toggle('hidden', !r.replacing);
   el('tfaTotpBox').classList.remove('hidden');
   el('tfaConfirmBox').classList.remove('hidden');
   el('tfaCode').focus();
 }
-async function tfaSetup(){
+// Botón ocupado mientras se prepara el QR: deshabilitado y con texto de espera. Devuelve
+// la función que lo deja como estaba.
+function ocupar2FA(btn, texto){
+  if (!btn) return () => {};
+  const antes = btn.textContent;
+  btn.disabled = true; btn.textContent = texto || 'Preparando…'; btn.setAttribute('aria-busy', 'true');
+  return () => { btn.disabled = false; btn.textContent = antes; btn.removeAttribute('aria-busy'); };
+}
+async function tfaSetup(btn){
   const m = el('tfaMsg'); m.className='msg'; m.textContent='';
+  const listo = ocupar2FA(btn);
   try{
     const r = await prepararAlta2FA();
     if (r) mostrarSecreto2FA(r);
   }catch(e){ if (e.status !== 401){ m.className='msg err'; m.textContent = e.message; } }
+  finally{ listo(); }
 }
 // Cambiar de app (teléfono nuevo): el servidor pide la contraseña actual y un código de la
 // app de ahora; la actual sigue valiendo hasta confirmar la nueva.
-async function tfaCambiar(){
+async function tfaCambiar(btn){
   const m = el('tfaMsg'); m.className='msg'; m.textContent='';
   const d = await dialog({ title:'Cambiar de app autenticadora', icon:'lock', okText:'Continuar',
     text:'Para confirmar que eres tú, escribe tu contraseña actual y el código que muestra ahora tu app autenticadora. Si ya no la tienes, cierra sesión y usa «Perdí mi autenticador» en la pantalla del código.',
@@ -2101,10 +2169,12 @@ async function tfaCambiar(){
             { name:'code', label:'Código de la app actual', placeholder:'000000', width:'180px' }],
     validate: v => !v.pwd ? 'Escribe tu contraseña.' : !/^\d{6}$/.test(String(v.code || '').trim()) ? 'El código son 6 dígitos.' : null });
   if (!d) return;
+  const listo = ocupar2FA(btn);
   try{
     const r = await prepararAlta2FA({ currentPassword: d.values.pwd, code: String(d.values.code).trim() });
     if (r) mostrarSecreto2FA(r);
   }catch(e){ if (e.status !== 401){ m.className='msg err'; m.textContent = e.message; } }
+  finally{ listo(); }
 }
 async function tfaConfirm(){
   const m = el('tfaMsg'); m.className='msg err'; m.textContent='';
@@ -2678,23 +2748,29 @@ async function deleteCert(id){
 
 // ===== Cumplimiento =====
 // Para el Admin de la compañía y los oficiales de cumplimiento (marca en la membresía, no
-// un rol). Tres listas de /compliance/summary (vencidos = caducados o fuera de plazo; por
-// vencer dentro de la ventana de la empresa; sin comenzar), las reglas de la empresa
+// un rol). Cuatro listas de /compliance/summary (vencidos = caducados o fuera de plazo; por
+// vencer dentro de la ventana de la empresa; sin comenzar; al día = aprobado y vigente, con
+// su certificado para descargar), con búsqueda por nombre y filtros; las reglas de la empresa
 // (/company/compliance: solo el Admin las cambia), el correo de prueba y, en el inicio,
 // un banner rojo por curso con personas vencidas (/compliance/alerts).
 let compAlerts = null;     // último /compliance/alerts
 let alertIds = [];         // cursos de los banners que se ven ahora (para «Ocultar hasta mañana»)
-let compView = { bucket:'overdue', trainingId:'', group:'' };
+let compView = { bucket:'overdue', trainingId:'', group:'', q:'' };
 let compCfg = null;        // /company/compliance tal como está guardado
 let CC = null, compCfgDirty = false;   // copia editable
 let compOfficers = null;   // solo Admin: usuarios de la compañía con su marca de oficial
+// «Al día» (current): aprobado y vigente, fuera de la ventana de «por vencer»; no se pisa
+// con las otras tres listas.
 const COMP_BUCKETS = [
   { key:'overdue',     list:'overdue',    tone:'err',  label:'Vencidos' },
   { key:'due-soon',    list:'dueSoon',    tone:'warn', label:'Vencen en {n} días' },
-  { key:'not-started', list:'notStarted', tone:'gray', label:'Sin comenzar' }
+  { key:'not-started', list:'notStarted', tone:'gray', label:'Sin comenzar' },
+  { key:'current',     list:'current',    tone:'ok',   label:'Al día' }
 ];
 const DIAS_SEMANA = [['Monday','lunes'],['Tuesday','martes'],['Wednesday','miércoles'],['Thursday','jueves'],['Friday','viernes'],['Saturday','sábado'],['Sunday','domingo']];
 
+// Pendientes (vencidos, por vencer, sin comenzar): lo que usan Grupos y «Recordar ahora»;
+// quien no sale aquí está al día.
 function compRowsAll(){ return compSummary ? [...(compSummary.overdue || []), ...(compSummary.dueSoon || []), ...(compSummary.notStarted || [])] : []; }
 // Fecha de una fila del panel: txt para la lista, short para las pastillas de Grupos.
 function compWhen(r){
@@ -2708,6 +2784,8 @@ function compWhen(r){
     const t = (lim ? 'límite ' : 'vence ') + enDias(n);
     return { tone:'warn', short:t, txt: t + (f ? ' · ' + fmtShort(f) : '') };
   }
+  if (r.bucket === 'current')
+    return { tone:'ok', short:'al día', txt: f ? 'vigente hasta ' + fmtShort(f) : 'sin vencimiento' };
   return { tone:'gray', short:'sin comenzar', txt: f ? 'sin comenzar · límite ' + fmtShort(f) : 'sin comenzar' };
 }
 
@@ -2773,7 +2851,7 @@ function renderAlerts(){
 // ----- Sección Cumplimiento -----
 function openCompliance(o){
   o = o || {};
-  compView = { bucket: o.bucket || 'overdue', trainingId: o.trainingId || '', group: '' };
+  compView = { bucket: o.bucket || 'overdue', trainingId: o.trainingId || '', group: '', q: '' };
   showSection('sec-compliance');
 }
 async function loadCompliance(){
@@ -2789,29 +2867,32 @@ async function loadCompliance(){
   if (isCompanyAdmin()) loadCompOfficers();
   loadAlerts();
 }
+// Sin acentos ni mayúsculas, para que «maria» encuentre a «María».
+function normBusca(s){ return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(); }
+// Curso, grupo y búsqueda por nombre (o correo) aplican a las cuatro listas y a sus contadores.
 function compFilter(list){
+  const q = normBusca(compView.q);
   return (list || []).filter(r => (!compView.trainingId || r.trainingId === compView.trainingId)
-                                && (!compView.group || (r.groups || []).includes(compView.group)));
+                                && (!compView.group || (r.groups || []).includes(compView.group))
+                                && (!q || normBusca(r.name).includes(q) || normBusca(r.email).includes(q)));
 }
 function setCompBucket(k){
-  compView.bucket = k; renderCompliance();
+  compView.bucket = k; renderCompList();
   const b = document.querySelector('#compKpis .kpi.on'); if (b) b.focus();
 }
 function setCompFilter(k, v){
-  if (k === '*'){ compView.trainingId = ''; compView.group = ''; } else compView[k] = v;
+  if (k === '*'){ compView.trainingId = ''; compView.group = ''; compView.q = ''; } else compView[k] = v;
   renderCompliance();
+}
+// La búsqueda repinta solo contadores y lista: así el campo no pierde el foco al escribir.
+function setCompSearch(v){
+  const antes = !!compView.q; compView.q = v;
+  if (antes !== !!compView.q) renderCompFbarLimpiar();
+  renderCompList();
 }
 function renderCompliance(){
   if (!compSummary) return;
-  const n = compSummary.dueSoonDays || 30;
-  const listas = {}; COMP_BUCKETS.forEach(b => listas[b.key] = compFilter(compSummary[b.list]));
-  el('compKpis').innerHTML = `<div class="kpi3" role="group" aria-label="Listas de cumplimiento">${COMP_BUCKETS.map(b => {
-      const on = compView.bucket === b.key;
-      return `<button type="button" class="kpi go ${b.tone} ${on ? 'on' : ''}" aria-pressed="${on}" onclick="setCompBucket('${b.key}')">
-        <div class="n">${listas[b.key].length}</div><div class="l">${esc(b.label.replace('{n}', n))}</div></button>`;
-    }).join('')}</div>`;
-
-  const todas = compRowsAll();
+  const todas = [...compRowsAll(), ...(compSummary.current || [])];
   const cursos = [...new Map(todas.map(r => [r.trainingId, r.title]))].sort((a, b) => a[1].localeCompare(b[1], 'es'));
   if (compView.trainingId && !cursos.some(c => c[0] === compView.trainingId)){
     // Curso que llegó desde el banner y ya no tiene filas (se pusieron al día).
@@ -2819,31 +2900,85 @@ function renderCompliance(){
     cursos.push([compView.trainingId, a ? a.title : 'Curso']);
   }
   const grupos = [...new Set(todas.flatMap(r => r.groups || []))].sort((a, b) => a.localeCompare(b, 'es'));
-  const b = COMP_BUCKETS.find(x => x.key === compView.bucket) || COMP_BUCKETS[0];
-  const filas = listas[b.key];
-  const vacio = { overdue:'Nadie tiene cursos vencidos.', 'due-soon':`Nadie tiene cursos que venzan en los próximos ${n} días.`,
-                  'not-started':'Nadie tiene cursos sin comenzar.' }[b.key];
   el('compLeft').innerHTML = `
     <div class="fbar">
+      <input type="search" class="field sm" id="compBusca" placeholder="Buscar por nombre" aria-label="Buscar por nombre"
+             value="${esc(compView.q)}" oninput="setCompSearch(this.value)" style="min-width:180px" />
       <select class="field sm" aria-label="Filtrar por curso" onchange="setCompFilter('trainingId',this.value)">
         <option value="">Todos los cursos</option>${cursos.map(([id, t]) => `<option value="${id}" ${id === compView.trainingId ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
       ${grupos.length ? `<select class="field sm" aria-label="Filtrar por grupo" onchange="setCompFilter('group',this.value)">
         <option value="">Todos los grupos</option>${grupos.map(g => `<option value="${esc(g)}" ${g === compView.group ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select>` : ''}
-      ${compView.trainingId || compView.group ? `<button type="button" class="linkbtn" onclick="setCompFilter('*','')">Quitar filtros</button>` : ''}
+      <span id="compLimpiar"></span>
     </div>
+    <div id="compLista"></div>`;
+  renderCompFbarLimpiar();
+  renderCompList();
+}
+function renderCompFbarLimpiar(){
+  const s = el('compLimpiar'); if (!s) return;
+  s.innerHTML = compView.trainingId || compView.group || compView.q
+    ? `<button type="button" class="linkbtn" onclick="setCompFilter('*','')">Quitar filtros</button>` : '';
+}
+// Contadores de las cuatro tarjetas y la lista elegida, con los filtros aplicados.
+function renderCompList(){
+  if (!compSummary) return;
+  const n = compSummary.dueSoonDays || 30;
+  const listas = {}; COMP_BUCKETS.forEach(b => listas[b.key] = compFilter(compSummary[b.list]));
+  el('compKpis').innerHTML = `<div class="kpi3 kpi4" role="group" aria-label="Listas de cumplimiento">${COMP_BUCKETS.map(b => {
+      const on = compView.bucket === b.key;
+      return `<button type="button" class="kpi go ${b.tone} ${on ? 'on' : ''}" aria-pressed="${on}" onclick="setCompBucket('${b.key}')">
+        <div class="n">${listas[b.key].length}</div><div class="l">${esc(b.label.replace('{n}', n))}</div></button>`;
+    }).join('')}</div>`;
+  const box = el('compLista'); if (!box) return;
+  const b = COMP_BUCKETS.find(x => x.key === compView.bucket) || COMP_BUCKETS[0];
+  const filas = listas[b.key];
+  const filtrado = compView.trainingId || compView.group || compView.q;
+  const vacio = filtrado ? 'Nadie coincide con estos filtros en esta lista.'
+    : { overdue:'Nadie tiene cursos vencidos.', 'due-soon':`Nadie tiene cursos que venzan en los próximos ${n} días.`,
+        'not-started':'Nadie tiene cursos sin comenzar.', current:'Todavía nadie tiene cursos aprobados y vigentes.' }[b.key];
+  box.innerHTML = `
     <div class="sectionhead"><h4>${esc(b.label.replace('{n}', n))} · ${filas.length}</h4></div>
     <div class="list" style="margin-top:0">${filas.length ? filas.map(compRowHtml).join('') : `<div class="empty">${esc(vacio)}</div>`}</div>`;
 }
 function compRowHtml(r){
   const w = compWhen(r);
   // El servidor no recuerda nada a quien ya aprobó y sigue vigente, ni a quien espera calificación.
-  const puede = !['current','done','pending-grading','pending-cancellation'].includes(r.status);
-  const sub = r.title + (r.groups && r.groups.length ? ' · ' + r.groups.join(', ') : '');
+  const puede = r.bucket !== 'current' && !['current','done','pending-grading','pending-cancellation'].includes(r.status);
+  const partes = [r.title];
+  if (r.groups && r.groups.length) partes.push(r.groups.join(', '));
+  if (r.bucket === 'current' && r.approvedAt) partes.push('aprobado el ' + fmtShort(r.approvedAt));
+  // Certificado: el vigente o, en las otras listas, el último emitido aunque ya haya caducado.
+  const cert = r.certificateSerial
+    ? `<button type="button" class="linkbtn" onclick="descargarCertComp(this,'${esc(r.certificateSerial)}')"
+         title="Folio ${esc(r.certificateSerial)}">${r.certificateExpired ? 'Descargar certificado vencido' : 'Descargar certificado'}</button>` : '';
   return `<div class="li"><div class="av">${esc(initials(r.name))}</div>
-    <div class="t">${esc(r.name)}<small>${esc(sub)}</small>
+    <div class="t">${esc(r.name)}<small>${esc(partes.join(' · '))}</small>
       <div class="lacts">${puede ? `<button type="button" class="linkbtn" onclick="remindNow(this,'${r.userId}','${r.trainingId}')">Recordar ahora</button>` : ''}
+        ${cert}
         <button type="button" class="linkbtn" onclick="openRecordFor('${r.userId}')">Ver expediente</button></div></div>
     <span class="st ${w.tone}">${esc(w.txt)}</span></div>`;
+}
+// Baja el PDF de un certificado (endpoint autenticado): fetch con el token, Blob y un
+// enlace de descarga. El botón queda ocupado mientras se genera.
+async function descargarCertComp(btn, serial){
+  const r = [...compRowsAll(), ...((compSummary && compSummary.current) || [])].find(x => x.certificateSerial === serial);
+  const antes = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Descargando…'; btn.setAttribute('aria-busy', 'true');
+  try{
+    const res = await fetch(API + '/certificates/' + encodeURIComponent(serial) + '/pdf', { headers:{ Authorization:'Bearer ' + token } });
+    if (res.status === 401){ sesionTerminada(); return; }
+    if (!res.ok) throw new Error(res.status === 403 ? 'No tienes permiso para ver este certificado.'
+      : res.status === 404 ? 'No se encontró el certificado.' : 'No se pudo generar el PDF.');
+    const blob = await res.blob();
+    const slug = s => normBusca(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = ['certificado', r ? slug(r.title) : '', r ? slug(r.name) : '', serial].filter(Boolean).join('-') + '.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    toast('Certificado descargado.');
+  }catch(e){ toast(e.message, 'err'); }
+  finally{ btn.disabled = false; btn.textContent = antes; btn.removeAttribute('aria-busy'); }
 }
 // «Recordar ahora»: correo inmediato al empleado, saltando la cadencia de los avisos.
 async function remindNow(btn, uid, tid){
@@ -5753,15 +5888,23 @@ else { if (token) logout(); else mostrarSolo('loginView'); }
         <p class="sub" id="tfaPolitica" style="margin:0 0 10px"></p>
 
         <div id="tfaOff">
-          <button class="btn sm ghost" onclick="tfaSetup()">📱 Activar con app autenticadora</button>
+          <button class="btn sm ghost" onclick="tfaSetup(this)">📱 Activar con app autenticadora</button>
         </div>
 
         <div id="tfaTotpBox" class="hidden" style="margin-top:12px">
-          <p class="sub" style="margin:0 0 6px">Agrega esta clave en Google Authenticator, Authy, 1Password o Microsoft Authenticator (opción "introducir clave de configuración"):</p>
-          <div id="tfaSecret" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;
-               font-family:ui-monospace,Consolas,monospace;font-size:15px;letter-spacing:2px;word-break:break-all"></div>
-          <p class="sub" style="margin:8px 0 4px">Cuenta: <b id="tfaCuenta"></b> · Emisor: <b>Aprendor</b> · <a href="#" id="tfaUri" style="color:#4f46e5">abrir en la app (en el teléfono)</a></p>
-          <p class="sub hidden" id="tfaReemplazo" style="margin:4px 0 0">La app actual sigue valiendo hasta que confirmes la nueva.</p>
+          <p class="sub hidden" id="tfaReemplazo" style="margin:0 0 4px;text-align:center">La app actual sigue valiendo hasta que confirmes la nueva.</p>
+          <div class="tfa-qr"><img id="tfaQr" alt="Código QR para agregar tu cuenta de Aprendor a la app autenticadora" /></div>
+          <p class="tfa-paso">En la app (Google Authenticator, Microsoft Authenticator, Authy, 1Password…), toca <b>Agregar cuenta</b> y elige <b>Escanear código QR</b>.</p>
+          <details class="tfa-manual" id="tfaManual">
+            <summary>¿No puedes escanearlo? Escribe la clave a mano</summary>
+            <div class="inner">
+              <p class="sub" style="margin:0 0 6px">En la app, elige «Introducir una clave de configuración» y escribe esta clave:</p>
+              <div class="code-row"><div class="secret" id="tfaSecret"></div>
+                <button type="button" class="btn sm ghost" onclick="copiarClave2FA('tfaSecret', this)">Copiar</button></div>
+              <p class="sub">Cuenta: <b id="tfaCuenta"></b> · Emisor: <b>Aprendor</b> · Tipo: basada en tiempo</p>
+              <p class="sub">¿Estás en el mismo teléfono? <a href="#" id="tfaUri" style="color:#4f46e5">Ábrelo directo en la app</a></p>
+            </div>
+          </details>
         </div>
 
         <div id="tfaConfirmBox" class="hidden" style="margin-top:12px">
@@ -5773,7 +5916,7 @@ else { if (token) logout(); else mostrarSolo('loginView'); }
         </div>
 
         <div id="tfaOn" class="hidden">
-          <button class="btn sm ghost" onclick="tfaCambiar()">Cambiar de app</button>
+          <button class="btn sm ghost" onclick="tfaCambiar(this)">Cambiar de app</button>
           <button class="btn sm ghost danger" id="tfaDisableBtn" onclick="tfaDisable()">Desactivar</button>
         </div>
         <p class="msg" id="tfaMsg"></p>

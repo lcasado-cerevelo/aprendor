@@ -104,6 +104,19 @@ public static class Totp
         => $"otpauth://totp/{Uri.EscapeDataString(emisor)}:{Uri.EscapeDataString(cuenta)}" +
            $"?secret={secreto}&issuer={Uri.EscapeDataString(emisor)}&algorithm=SHA1&digits={Digitos}&period={PeriodoSegundos}";
 
+    // Código QR del URI otpauth, en SVG y como data URI (data:image/svg+xml;base64,...),
+    // para escanearlo con la app en vez de teclear la clave. Se genera en el servidor
+    // (QRCoder, MIT) y no sale a ningún servicio externo: el QR lleva el secreto.
+    // Corrección M y zona tranquila de 4 módulos, lo que leen bien todas las apps.
+    public static string QrDataUri(string uri)
+    {
+        using var generador = new QRCoder.QRCodeGenerator();
+        using var datos = generador.CreateQrCode(uri, QRCoder.QRCodeGenerator.ECCLevel.M);
+        var svg = new QRCoder.SvgQRCode(datos).GetGraphic(8, "#000000", "#ffffff", true,
+            QRCoder.SvgQRCode.SizingMode.ViewBoxAttribute);
+        return "data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg));
+    }
+
     private static string Calcular(byte[] clave, long contador)
     {
         var bytes = BitConverter.GetBytes(contador);
