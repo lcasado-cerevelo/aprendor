@@ -418,9 +418,34 @@
   .cert .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
   @media (max-width:640px){.cert{grid-template-columns:auto 1fr;}.cert .acts{grid-column:1/-1;justify-content:flex-start;}}
   @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
+
+  /* ===== Indicador de carga =====
+     Barra fina e indeterminada arriba de la pantalla mientras hay llamadas a la API que
+     tardan más de 150 ms (las rápidas no la llegan a mostrar), y botón ocupado: el que
+     disparó la acción queda deshabilitado, con un spinner pequeño y su texto intacto. */
+  #cargaBarra{position:fixed;top:0;left:0;right:0;height:3px;z-index:10000;pointer-events:none;overflow:hidden;
+    opacity:0;transition:opacity .2s;background:rgba(79,70,229,.14);}
+  #cargaBarra.on{opacity:1;}
+  #cargaBarra::before{content:"";position:absolute;top:0;bottom:0;left:-40%;width:40%;border-radius:0 3px 3px 0;
+    background:linear-gradient(90deg,var(--brand),var(--accent));animation:cargaBarra 1.1s ease-in-out infinite;animation-play-state:paused;}
+  #cargaBarra.on::before{animation-play-state:running;}
+  @keyframes cargaBarra{0%{left:-40%;}100%{left:100%;}}
+  @keyframes girar{to{transform:rotate(360deg);}}
+  @keyframes aparecer{to{opacity:1;}}
+  .busy{cursor:progress !important;}
+  .btn.busy:disabled{opacity:.72;cursor:progress;}
+  .btn.busy::after{content:"";display:inline-block;width:.9em;height:.9em;margin-left:8px;vertical-align:-.12em;box-sizing:border-box;
+    border:2px solid currentColor;border-right-color:transparent;border-radius:50%;opacity:0;
+    animation:girar .7s linear infinite,aparecer .01s linear .15s forwards;}
+  a.busy,[role="button"].busy{pointer-events:none;opacity:.6;}
+  @media (prefers-reduced-motion:reduce){
+    #cargaBarra::before{left:0;width:100%;animation:none;opacity:.85;}
+    .btn.busy::after{animation:aparecer .01s linear .15s forwards;border-right-color:currentColor;border-style:dotted;}
+  }
 </style>
 </head>
 <body>
+<div id="cargaBarra" role="progressbar" aria-label="Cargando" aria-hidden="true"></div>
 
 <!-- LOGIN -->
 <div id="loginView" class="login-wrap">
@@ -1399,7 +1424,85 @@ async function infoModal(title, text, o){
 //  - 429: el servidor ya manda «Demasiados intentos. Espera N minutos.»; si llega sin
 //    cuerpo, los minutos salen de Retry-After.
 function errorApi(msg, status, data){ const e = new Error(msg); e.status = status; e.data = data; return e; }
+
+// ----- Indicador de carga y botones ocupados -----
+// Toda llamada a api() (y las descargas que usan fetch directo, con conCarga) cuenta como
+// carga: si pasados 150 ms sigue alguna en curso aparece la barra fina de arriba; se quita
+// cuando ya no queda ninguna, con 120 ms de respiro para que dos llamadas encadenadas no
+// la hagan parpadear. Las llamadas rápidas no llegan a mostrarla.
+// Botón ocupado: el control pulsado (button, enlace o tarjeta con role=button) se anota
+// durante el tick del clic; las llamadas que empiezan en ese tick lo dejan deshabilitado,
+// con spinner y aria-busy, hasta que terminan todas. Los flujos de varios pasos lo sujetan
+// con ocupar(boton). Un clic sobre un control ocupado no llega a su manejador: así no hay
+// doble envío aunque sea un enlace.
+const Carga = { n:0, verT:null, ocultarT:null, boton:null, visible:false };
+function barraCarga(on){
+  if (Carga.visible === on) return;
+  Carga.visible = on;
+  const b = el('cargaBarra'); if (!b) return;
+  b.classList.toggle('on', on); b.setAttribute('aria-hidden', on ? 'false' : 'true');
+  document.body.setAttribute('aria-busy', on ? 'true' : 'false');
+}
+function cargaEmpieza(){
+  Carga.n++;
+  clearTimeout(Carga.ocultarT); Carga.ocultarT = null;
+  if (!Carga.visible && !Carga.verT)
+    Carga.verT = setTimeout(() => { Carga.verT = null; if (Carga.n > 0) barraCarga(true); }, 150);
+}
+function cargaTermina(){
+  Carga.n = Math.max(0, Carga.n - 1);
+  if (Carga.n > 0) return;
+  clearTimeout(Carga.ocultarT);
+  Carga.ocultarT = setTimeout(() => {
+    Carga.ocultarT = null;
+    if (Carga.n > 0) return;
+    clearTimeout(Carga.verT); Carga.verT = null;
+    barraCarga(false);
+  }, 120);
+}
+// Deja un control ocupado; devuelve la función que lo suelta (se puede llamar de más). Se
+// anida: el control vuelve a su estado cuando lo sueltan todos los que lo ocuparon.
+function ocupar(b){
+  if (!b || !b.classList) return () => {};
+  if (!b._ocupado){
+    b._ocupado = 0;
+    b._antesDisabled = !!b.disabled;
+    b.classList.add('busy'); b.setAttribute('aria-busy', 'true');
+    if (b.tagName === 'BUTTON') b.disabled = true;
+  }
+  b._ocupado++;
+  let suelto = false;
+  return () => {
+    if (suelto) return; suelto = true;
+    if (--b._ocupado > 0) return;
+    b._ocupado = 0;
+    b.classList.remove('busy'); b.removeAttribute('aria-busy');
+    if (b.tagName === 'BUTTON') b.disabled = b._antesDisabled;
+  };
+}
+function estaOcupado(b){ return !!(b && b._ocupado); }
+// Un fetch cualquiera con la barra de carga (y el botón del clic, si lo hay).
+async function conCarga(promesa){
+  const soltar = ocupar(Carga.boton);
+  cargaEmpieza();
+  try{ return await promesa; }
+  finally{ cargaTermina(); soltar(); }
+}
+window.addEventListener('click', e => {
+  const c = e.target && e.target.closest ? e.target.closest('button, a[href], [role="button"]') : null;
+  if (!c) return;
+  if (estaOcupado(c)){ e.preventDefault(); e.stopImmediatePropagation(); return; }
+  Carga.boton = c;
+  setTimeout(() => { if (Carga.boton === c) Carga.boton = null; }, 0);
+}, true);
+
 async function api(path, method='GET', body=null){
+  const soltar = ocupar(Carga.boton);
+  cargaEmpieza();
+  try{ return await apiPeticion(path, method, body); }
+  finally{ cargaTermina(); soltar(); }
+}
+async function apiPeticion(path, method, body){
   const headers = { 'Content-Type':'application/json' };
   if (token) headers['Authorization'] = 'Bearer ' + token;
   const res = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : null });
@@ -1536,12 +1639,16 @@ el('password').addEventListener('keydown', e => { if (e.key==='Enter') doLogin()
 let retoActual = null;   // { challengeId, mode, cambioCompania } mientras se resuelve el segundo factor
 
 async function doLogin(){
+  const btn = el('loginBtn');
+  if (estaOcupado(btn)) return;   // ya va uno en camino (Enter y clic, doble clic)
   const msg = el('loginMsg'); msg.textContent=''; msg.className='msg err';
   const email = el('email').value.trim(), password = el('password').value;
   if (!email || !password){ msg.textContent = 'Escribe tu correo y tu contraseña.'; return; }
-  if (await tsFalta('tsLogin', msg)) return;
-  el('loginBtn').disabled = true;
+  const soltar = ocupar(btn);
+  let enviado = false;
   try{
+    if (await tsFalta('tsLogin', msg)) return;
+    enviado = true;
     const r = await api('/auth/login','POST',{ email, password, turnstileToken: tsToken('tsLogin') });
     claveDelLogin = password;
     if (r.requires2fa){ el('password').value = ''; pedirSegundoFactor(r); return; }
@@ -1550,7 +1657,7 @@ async function doLogin(){
     // 401: correo o clave incorrectos (o la temporal venció, con su mensaje); 429: bloqueo
     // o límite con los minutos; 400/503: la verificación de seguridad.
     msg.textContent = e.status === 401 ? ((e.data && e.data.error) || 'Correo o contraseña incorrectos.') : e.message;
-  }finally{ el('loginBtn').disabled = false; tsReset('tsLogin'); }
+  }finally{ soltar(); if (enviado) tsReset('tsLogin'); }
 }
 
 // Se llama cuando el servidor ya no acepta la sesión (401): de vuelta al login, con aviso.
@@ -1561,38 +1668,82 @@ function sesionTerminada(){
 }
 
 // ----- Validación del correo (primera vez que entra) -----
+// El reto del código enviado se guarda también en sessionStorage (con el usuario y la hora):
+// si la página se recarga en esta pantalla no se manda otro código (el nuevo anularía el que
+// ya está en el correo, y dentro del minuto entre envíos el servidor respondería 429 y la
+// pantalla se quedaría sin reto).
 let retoCorreo = null;
+const RETO_CORREO_KEY = 'tp_reto_correo', RETO_CORREO_MS = 10 * 60 * 1000;
+function recordarRetoCorreo(id){
+  retoCorreo = id || null;
+  try{
+    if (retoCorreo && user) sessionStorage.setItem(RETO_CORREO_KEY, JSON.stringify({ uid:user.id, id:retoCorreo, at:Date.now() }));
+    else sessionStorage.removeItem(RETO_CORREO_KEY);
+  }catch{}
+}
+function retoCorreoGuardado(){
+  try{
+    const g = JSON.parse(sessionStorage.getItem(RETO_CORREO_KEY) || 'null');
+    if (g && user && g.uid === user.id && g.id && Date.now() - g.at < RETO_CORREO_MS) return g.id;
+  }catch{}
+  return null;
+}
 
-async function pedirValidacionCorreo(){
+// reenviar: el enlace «Reenviar código» (manda uno nuevo aunque haya uno vigente). Sin él,
+// si ya hay un código enviado en esta pantalla (o antes de recargar), no se manda otro:
+// irAlPasoPendiente puede volver a llamar aquí (un 403 de una llamada en curso).
+async function pedirValidacionCorreo(reenviar){
+  const yaAqui = !el('verifyEmailView').classList.contains('hidden');
   mostrarSolo('verifyEmailView');
   el('veEmail').textContent = user.email;
+  const m = el('veMsg');
+  const vigente = retoCorreo || retoCorreoGuardado();
+  if (!reenviar && vigente){
+    retoCorreo = vigente;
+    if (!yaAqui){
+      el('veCode').value = '';
+      m.className='msg ok'; m.textContent = 'Ya te enviamos un código a ' + user.email + '. Si no te llegó, pulsa «Reenviar código».';
+      el('veCode').focus();
+    }
+    return;
+  }
   el('veCode').value = '';
-  const m = el('veMsg'); m.className='msg'; m.textContent = 'Enviando el código…';
+  m.className='msg'; m.textContent = 'Enviando el código…';
   try{
     const r = await api('/me/email/send-code','POST');
-    if (r.verified){ adoptarSesion(r); irAlPasoPendiente(); return; }
-    retoCorreo = r.challengeId;
+    if (r.verified){ recordarRetoCorreo(null); adoptarSesion(r); irAlPasoPendiente(); return; }
+    recordarRetoCorreo(r.challengeId);
     m.className='msg ok'; m.textContent = 'Te enviamos un código a ' + (r.email || user.email) + '.';
     el('veCode').focus();
   }catch(e){ if (e.status !== 401){ m.className='msg err'; m.textContent = e.message; } }
 }
 
+// Tras validar entra directo a la aplicación (o al paso que quede). Si el código se vuelve a
+// enviar ya validado (aunque sea sin reto), el servidor ve el correo validado y responde
+// otra vez con la sesión, sin error.
 async function validarCorreo(){
+  const btn = el('veBtn');
+  if (estaOcupado(btn)) return;   // ya va uno en camino (Enter y clic, doble clic)
   const m = el('veMsg'); m.className='msg err'; m.textContent='';
   const code = el('veCode').value.trim();
   if (!/^\d{6}$/.test(code)){ m.textContent = 'El código son 6 dígitos.'; return; }
-  el('veBtn').disabled = true;
+  const soltar = ocupar(btn);
+  m.className='msg'; m.textContent = 'Validando el código…';
   try{
     const r = await api('/me/email/verify','POST',{ challengeId: retoCorreo, code });
-    retoCorreo = null;
-    adoptarSesion(r);
+    if (!adoptarSesion(r)) throw new Error('No se pudo abrir la sesión. Sal y vuelve a entrar.');
+    recordarRetoCorreo(null);
+    m.className='msg ok'; m.textContent = 'Correo validado.';
     irAlPasoPendiente();
-  }catch(e){ m.textContent = e.message; }
-  finally{ el('veBtn').disabled = false; }
+  }catch(e){
+    // 401: ya se volvió al login; 403: ya se fue al paso pendiente, con su propio mensaje.
+    if (e.status !== 401 && e.status !== 403){ m.className='msg err'; m.textContent = e.message; }
+  }
+  finally{ soltar(); }
 }
 el('veBtn').onclick = validarCorreo;
 el('veCode').addEventListener('keydown', e => { if(e.key==='Enter') validarCorreo(); });
-el('veResend').onclick = e => { e.preventDefault(); pedirValidacionCorreo(); };
+el('veResend').onclick = e => { e.preventDefault(); pedirValidacionCorreo(true); };
 el('veLogout').onclick = e => { e.preventDefault(); logout(); };
 
 // ----- Segundo factor en el login (o al cambiar a una compañía que lo exige) -----
@@ -1607,17 +1758,19 @@ function pedirSegundoFactor(r, cambioCompania){
   el('tfCode').focus();
 }
 async function verificarSegundoFactor(){
+  const btn = el('tfBtn');
+  if (estaOcupado(btn)) return;
   const m = el('tfMsg'); m.className='msg err'; m.textContent='';
   const code = el('tfCode').value.trim();
   if (!/^\d{6}$/.test(code)){ m.textContent = 'El código son 6 dígitos.'; return; }
   if (!retoActual){ m.textContent = 'Vuelve a iniciar sesión.'; return; }
-  el('tfBtn').disabled = true;
+  const soltar = ocupar(btn);
   try{
     const r = await api('/auth/2fa/verify','POST',{ challengeId: retoActual.challengeId, code });
     retoActual = null;
     entrarConSesion(r);
   }catch(e){ m.textContent = e.message; }
-  finally{ el('tfBtn').disabled = false; }
+  finally{ soltar(); }
 }
 el('tfBtn').onclick = verificarSegundoFactor;
 el('tfCode').addEventListener('keydown', e => { if(e.key==='Enter') verificarSegundoFactor(); });
@@ -1653,10 +1806,12 @@ function abrirRecuperacion(){
   mostrarSolo('recoverView');
 }
 async function recuperarEnviar(){
+  const btn = el('rcStartBtn');
+  if (estaOcupado(btn)) return;
   const m = el('rcMsg'); m.className='msg err'; m.textContent='';
   if (!retoActual){ m.textContent = 'Vuelve a iniciar sesión para empezar.'; return; }
   if (await tsFalta('tsRecover', m)) return;
-  el('rcStartBtn').disabled = true;
+  const soltar = ocupar(btn);
   try{
     const r = await api('/auth/2fa/recover/start','POST',{ challengeId: retoActual.challengeId, turnstileToken: tsToken('tsRecover') });
     retoRecuperar = r.challengeId;
@@ -1665,20 +1820,22 @@ async function recuperarEnviar(){
     el('rcResend').classList.remove('hidden');
     el('rcCode').focus();
   }catch(e){ m.textContent = e.message; }
-  finally{ el('rcStartBtn').disabled = false; tsReset('tsRecover'); }
+  finally{ soltar(); tsReset('tsRecover'); }
 }
 async function recuperarConfirmar(){
+  const btn = el('rcBtn');
+  if (estaOcupado(btn)) return;
   const m = el('rcMsg'); m.className='msg err'; m.textContent='';
   const code = el('rcCode').value.trim();
   if (!/^\d{6}$/.test(code)){ m.textContent = 'El código son 6 dígitos.'; return; }
-  el('rcBtn').disabled = true;
+  const soltar = ocupar(btn);
   try{
     const r = await api('/auth/2fa/recover/verify','POST',{ challengeId: retoRecuperar, code });
     retoActual = null; retoRecuperar = null;
     entrarConSesion(r);   // enroll-2fa si su compañía exige el doble factor: registra la app nueva
     toast('Quitamos la app autenticadora de tu cuenta. Te avisamos por correo.', 'info');
   }catch(e){ m.textContent = e.message; }
-  finally{ el('rcBtn').disabled = false; }
+  finally{ soltar(); }
 }
 el('rcStartBtn').onclick = recuperarEnviar;
 el('rcBtn').onclick = recuperarConfirmar;
@@ -1700,7 +1857,8 @@ el('rcBack').onclick = e => {
 };
 
 function logout(){
-  token=null; user=null; retoActual=null; retoRecuperar=null; retoCorreo=null; claveDelLogin='';
+  recordarRetoCorreo(null);
+  token=null; user=null; retoActual=null; retoRecuperar=null; claveDelLogin='';
   localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user');
   el('profileModal')?.classList.add('hidden'); el('segModal')?.classList.add('hidden');
   el('loginMsg').textContent = '';
@@ -1752,12 +1910,13 @@ function actualizarBotonCooldown(){
 }
 
 async function pedirEnlace(){
+  if (estaOcupado(el('fgBtn'))) return;
   const m = el('fgMsg'); m.className = 'msg'; m.textContent = '';
   if(msRestantesCooldown() > 0){ actualizarBotonCooldown(); return; }
   const correo = el('fgEmail').value.trim();
   if(!correo){ m.className = 'msg err'; m.textContent = 'Escribe tu correo.'; return; }
   if (await tsFalta('tsForgot', m)) return;
-  el('fgBtn').disabled = true;
+  const soltar = ocupar(el('fgBtn'));
   try{
     const r = await api('/auth/forgot-password','POST',{ email: correo, turnstileToken: tsToken('tsForgot') });
     m.className = 'msg ok';
@@ -1765,7 +1924,7 @@ async function pedirEnlace(){
     localStorage.setItem('tp_reset_last', String(Date.now()));
   }catch(e){
     m.className = 'msg err'; m.textContent = e.message || 'No se pudo procesar la solicitud. Intenta de nuevo.';
-  }finally{ actualizarBotonCooldown(); tsReset('tsForgot'); }
+  }finally{ soltar(); actualizarBotonCooldown(); tsReset('tsForgot'); }
 }
 el('fgBtn').onclick = pedirEnlace;
 el('fgEmail').addEventListener('keydown', e => { if(e.key==='Enter') pedirEnlace(); });
@@ -1803,6 +1962,7 @@ function mostrarRestablecer(){
 }
 
 async function guardarNuevaClave(){
+  if (estaOcupado(el('rsBtn'))) return;
   const m = el('rsMsg'); m.className = 'msg err'; m.textContent = '';
   const n1 = el('rsNew').value, n2 = el('rsNew2').value;
   const err = politicaClave(n1, null);
@@ -1814,7 +1974,7 @@ async function guardarNuevaClave(){
   if (conTotp && !/^\d{6}$/.test(totp)){ m.textContent = 'Escribe el código de 6 dígitos de tu app autenticadora.'; el('rsTotp').focus(); return; }
   if (!tokenDeLaUrl()){ m.textContent = 'El enlace no es válido o ya venció. Pide uno nuevo desde el login.'; return; }
   if (await tsFalta('tsReset', m)) return;
-  el('rsBtn').disabled = true;
+  const soltar = ocupar(el('rsBtn'));
   try{
     const r = await api('/auth/reset-password','POST',{ token: tokenDeLaUrl(), newPassword: n1,
       totpCode: conTotp ? totp : undefined, turnstileToken: tsToken('tsReset') });
@@ -1830,7 +1990,7 @@ async function guardarNuevaClave(){
       if (conTotp) el('rsTotp').select(); else el('rsTotp').focus();
     }
     m.textContent = e.message;
-  }finally{ el('rsBtn').disabled = false; tsReset('tsReset'); }
+  }finally{ soltar(); tsReset('tsReset'); }
 }
 el('rsBtn').onclick = guardarNuevaClave;
 el('rsNew2').addEventListener('keydown', e => { if(e.key==='Enter') guardarNuevaClave(); });
@@ -1843,6 +2003,7 @@ function showForceChange(){
   (el('fcCur').value ? el('fcNew') : el('fcCur')).focus();
 }
 el('fcBtn').onclick = async () => {
+  if (estaOcupado(el('fcBtn'))) return;
   const m = el('fcMsg'); m.textContent=''; m.className='msg err';
   const cur=el('fcCur').value, n1=el('fcNew').value, n2=el('fcNew2').value;
   if(!cur){ m.textContent='Escribe la contraseña temporal con la que entraste.'; return; }
@@ -1850,7 +2011,7 @@ el('fcBtn').onclick = async () => {
   if(err){ m.textContent = err; return; }
   if(n1!==n2){ m.textContent='Las contraseñas no coinciden.'; return; }
   if(n1===cur){ m.textContent='La nueva tiene que ser distinta de la temporal.'; return; }
-  el('fcBtn').disabled = true;
+  const soltar = ocupar(el('fcBtn'));
   try{
     const r = await api('/me/password','POST',{ currentPassword:cur, newPassword:n1 });
     el('fcCur').value=el('fcNew').value=el('fcNew2').value='';
@@ -1858,7 +2019,7 @@ el('fcBtn').onclick = async () => {
     if (!adoptarSesion(r)){ user.mustChangePassword = false; localStorage.setItem('tp_user', JSON.stringify(user)); }
     irAlPasoPendiente();
   }catch(e){ if (e.status !== 401) m.textContent = e.message; }
-  finally{ el('fcBtn').disabled = false; }
+  finally{ soltar(); }
 };
 el('fcLogout').onclick = e => { e.preventDefault(); logout(); };
 
@@ -1870,8 +2031,9 @@ function mostrarAlta2FA(){
   mostrarSolo('enrollView');
 }
 async function altaEmpezar(){
+  if (estaOcupado(el('enStartBtn'))) return;
   const m = el('enMsg'); m.className='msg err'; m.textContent='';
-  el('enStartBtn').disabled = true;
+  const soltar = ocupar(el('enStartBtn'));
   try{
     const r = await prepararAlta2FA();
     if (!r) return;
@@ -1880,20 +2042,21 @@ async function altaEmpezar(){
     el('enStart').classList.add('hidden'); el('enSecretBox').classList.remove('hidden');
     el('enCode').focus();
   }catch(e){ if (e.status !== 401) m.textContent = e.message; }
-  finally{ el('enStartBtn').disabled = false; }
+  finally{ soltar(); }
 }
 async function altaConfirmar(){
+  if (estaOcupado(el('enBtn'))) return;
   const m = el('enMsg'); m.className='msg err'; m.textContent='';
   const code = el('enCode').value.trim();
   if (!/^\d{6}$/.test(code)){ m.textContent = 'El código son 6 dígitos.'; return; }
-  el('enBtn').disabled = true;
+  const soltar = ocupar(el('enBtn'));
   try{
     const r = await api('/me/2fa/confirm','POST',{ mode:'totp', code });
     adoptarSesion(r);
     irAlPasoPendiente();
     toast('Verificación en dos pasos activada.');
   }catch(e){ if (e.status !== 401) m.textContent = e.message; }
-  finally{ el('enBtn').disabled = false; }
+  finally{ soltar(); }
 }
 el('enStartBtn').onclick = altaEmpezar;
 el('enBtn').onclick = altaConfirmar;
@@ -2049,6 +2212,7 @@ let tfaPendiente = null;   // { mode, replacing } mientras se confirma el secret
 async function cargarEstado2FA(){
   tfaCancelar();
   const et = el('tfaEstado'), m = el('tfaMsg'); m.textContent='';
+  et.textContent = 'cargando…'; et.style.background = ''; et.style.color = '';
   try{
     const s = await api('/me/2fa');
     const activo = s.confirmed && s.mode !== 'none';
@@ -2319,8 +2483,9 @@ function openCatalogFilter(f){ catFilter = f || 'all'; showSection('sec-take'); 
 // ----- Inicio: saludo, «Lo que te toca ahora» y contadores -----
 async function loadDashStats(){
   let cards = '', rows = [];
+  const listo = cargandoEn(el('dashHero'), 'Cargando tus adiestramientos…');
   try{
-    await fetchCatalog();
+    try{ await fetchCatalog(); } finally{ listo(); }
     rows = catRows();
     // Contadores excluyentes por estado (la urgencia decide el orden, no el conteo):
     // un curso en progreso con fecha límite cuenta como «en progreso».
@@ -2467,6 +2632,7 @@ async function initRecord(){
   const yo = { id:user.id, name:user.name || user.email };
   if (!otros) recPeople = [yo];
   else if (!recPeople.length){
+    el('recordList').innerHTML = loadingHtml();   // primero la lista de personas, después el expediente
     try{
       const us = await api('/tenant-users');
       recPeople = (us || []).map(u => ({ id:u.id, name:u.name || u.email }));
@@ -2588,9 +2754,12 @@ async function verCert(i){
   const r = recRows[i]; if (!r) return;
   const w = window.open('about:blank', '_blank');
   try{
-    const res = await fetch('/certificates/'+encodeURIComponent(r.credentialId)+'/pdf', { headers:{ Authorization:'Bearer '+token } });
-    if (!res.ok) throw new Error(res.status === 403 ? 'No tienes permiso para ver este certificado.' : 'No se pudo generar el PDF.');
-    const url = URL.createObjectURL(await res.blob());
+    const blob = await conCarga((async () => {
+      const res = await fetch('/certificates/'+encodeURIComponent(r.credentialId)+'/pdf', { headers:{ Authorization:'Bearer '+token } });
+      if (!res.ok) throw new Error(res.status === 403 ? 'No tienes permiso para ver este certificado.' : 'No se pudo generar el PDF.');
+      return res.blob();
+    })());
+    const url = URL.createObjectURL(blob);
     if (w) w.location.href = url; else window.open(url, '_blank');
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   }catch(e){ if (w) w.close(); toast(e.message,'err'); }
@@ -3083,8 +3252,9 @@ el('createTenantBtn').onclick = async () => {
 const POL2FA = { required:['2FA obligatorio','ok'], optional:['2FA opcional','info'], off:['2FA apagado','gray'] };
 async function loadTenants(){
   cargarOpcionesTenant();
+  const listo = cargandoEn(el('tenantList'), 'Cargando compañías…');
   try{
-    adminTenants = (await api('/admin/tenants')) || [];
+    adminTenants = (await api('/admin/tenants').finally(listo)) || [];
     el('tenantList').innerHTML = adminTenants.length ? adminTenants.map(t => {
       const pol = POL2FA[t.twoFactorPolicy] || POL2FA.optional;
       const activa = t.status === 'active';
@@ -3270,8 +3440,9 @@ function filaUsuario(u, o){
 }
 async function loadUsers(){
   const f = el('userFilter').value;
+  const listo = cargandoEn(el('usersList'), 'Cargando usuarios…');
   try{
-    const us = (await api('/admin/users' + (f ? ('?tenantId=' + encodeURIComponent(f)) : ''))) || [];
+    const us = (await api('/admin/users' + (f ? ('?tenantId=' + encodeURIComponent(f)) : '')).finally(listo)) || [];
     us.forEach(u => usuariosVistos[u.id] = u);
     el('usersList').innerHTML = us.length ? us.map(u => filaUsuario(u, { plataforma:true, filtro:f })).join('') : `<div class="empty">No hay usuarios.</div>`;
   }catch(e){ if (e.status !== 401) el('usersList').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
@@ -3382,9 +3553,9 @@ async function loadCompanySecurity(){
 }
 async function loadCompanyUsers(){
   const box = el('caUsers');
-  if (!box.children.length) box.innerHTML = loadingHtml();
+  const listo = cargandoEn(box, 'Cargando usuarios…');
   try{
-    const us = (await api('/admin/users?tenantId=' + encodeURIComponent(user.tenantId))) || [];
+    const us = (await api('/admin/users?tenantId=' + encodeURIComponent(user.tenantId)).finally(listo)) || [];
     us.forEach(u => usuariosVistos[u.id] = u);
     box.innerHTML = us.length ? us.map(u => filaUsuario(u, { plataforma:false })).join('') : `<div class="empty">Aún no hay usuarios.</div>`;
   }catch(e){ if (e.status !== 401) box.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
@@ -3425,7 +3596,18 @@ function stateBox(icon, tone, title, text){
   const bg = tone === 'err' ? 'background:var(--err-bg);color:var(--err)' : tone === 'gray' ? 'background:var(--gray-bg);color:var(--gray)' : '';
   return `<div class="allgood"><div class="ic" style="${bg}">${ic(icon,24)}</div><div><h3>${esc(title)}</h3><p>${esc(text)}</p></div></div>`;
 }
-function loadingHtml(txt){ return `<div class="empty">${esc(txt || 'Cargando…')}</div>`; }
+function loadingHtml(txt){ return `<div class="empty" role="status">${esc(txt || 'Cargando…')}</div>`; }
+// Marcador «Cargando…» en una lista mientras llega lo suyo: al momento si está vacía; si
+// tiene datos de antes, a los 150 ms (una respuesta rápida no parpadea y una lenta no deja
+// ver datos viejos como si fueran los de ahora). Devuelve la función que lo cancela: se
+// llama antes de pintar lo que llegó. alMostrar: lo que haya que limpiar a la vez.
+function cargandoEn(nodo, txt, alMostrar){
+  if (!nodo) return () => {};
+  const poner = () => { nodo.innerHTML = loadingHtml(txt); if (alMostrar) alMostrar(); };
+  if (!nodo.children.length && !nodo.textContent.trim()){ poner(); return () => {}; }
+  const t = setTimeout(poner, 150);
+  return () => clearTimeout(t);
+}
 function swRow(key, on, title, hint, onclick){
   return `<div class="swrow"><div class="t"><b>${esc(title)}</b>${hint ? `<span>${esc(hint)}</span>` : ''}</div>
     <button type="button" class="sw ${on?'on':''}" role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(title)}" data-k="${key}" onclick="${onclick}"></button></div>`;
@@ -3557,8 +3739,9 @@ async function newTraining(){
   }catch(e){ toast(e.message,'err'); }
 }
 async function loadTrainings(){
+  const listo = cargandoEn(el('trGrid'), 'Cargando los cursos…');
   try{
-    const [trs] = await Promise.all([api('/trainings'), loadCategories()]);
+    const [trs] = await Promise.all([api('/trainings'), loadCategories()]).finally(listo);
     trCache = Array.isArray(trs) ? trs : [];
   }catch(e){
     el('trFilters').innerHTML = '';
@@ -4873,7 +5056,7 @@ function insertCallout(kind){
 
 async function uploadFile(f){
   const fd = new FormData(); fd.append('file', f);
-  const res = await fetch('/media',{ method:'POST', headers:{'Authorization':'Bearer '+token}, body:fd });
+  const res = await conCarga(fetch('/media',{ method:'POST', headers:{'Authorization':'Bearer '+token}, body:fd }));
   if(!res.ok){
     // El servidor explica el motivo ({ error } o un texto); si el límite lo aplicó el
     // servidor web antes de la app (413 sin cuerpo JSON), se dice igual que es muy grande.
@@ -5394,13 +5577,15 @@ function setLabel(sid){ const s = curSets.find(x => x.id === sid); return s ? s.
 async function loadSets(){
   curTraining = el('setTraining').value || null;
   if (!curTraining){ el('setsArea').innerHTML = ''; return; }
+  const listo = cargandoEn(el('setsArea'), 'Cargando los sets…');
   try{
     const d = await api('/trainings/'+curTraining+'/sets');
     curPublished = d.published; curItems = d.items; curSets = d.sets;
     grpSets[curTraining] = curSets;
     curAssign = await api('/trainings/'+curTraining+'/assignments');
+    listo();
     renderSets();
-  }catch(e){ amsg(e.message); }
+  }catch(e){ listo(); amsg(e.message); }
 }
 function itemShort(it){
   let p = {}; try{ p = JSON.parse(it.payloadJson); }catch{}
@@ -5519,8 +5704,9 @@ const CAT_FILTERS = [
   { key:'ok',   label:'Aprobados' }
 ];
 async function loadCatalog(){
+  const listo = cargandoEn(el('catalogGrid'), 'Cargando tus adiestramientos…', () => { el('repasoRow').innerHTML = ''; });
   try{
-    await fetchCatalog();
+    try{ await fetchCatalog(); } finally{ listo(); }
     paintTakeBadge();
   }catch(e){
     el('catFilters').innerHTML = '';
@@ -5652,14 +5838,15 @@ async function requestCancel(id){
 }
 el('refreshPendBtn').onclick = loadPending;
 async function loadPending(){
+  const listo = cargandoEn(el('pendingList'));
   try{
-    const rows = await api('/cancellations/pending');
+    const rows = await api('/cancellations/pending').finally(listo);
     el('pendingList').innerHTML = rows.length ? rows.map(p=>`
       <div class="item">${esc(p.learnerName||'(learner)')} — ${esc(p.title)}
         <div class="hint" style="margin:2px 0">Motivo: “${esc(p.cancelRequestComment||'')}”</div>
         <span class="sp"><button class="btn sm" onclick="approveCancel('${esc(p.id)}')">Aprobar cancelación</button></span></div>`).join('')
       : `<div class="empty">No hay solicitudes pendientes.</div>`;
-  }catch(e){}
+  }catch(e){ if (e.status !== 401) el('pendingList').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
 }
 async function approveCancel(id){
   const c = await askModal('Aprobar cancelación', 'El intento queda cancelado y el empleado podrá empezarlo de nuevo.',
@@ -5673,8 +5860,9 @@ async function approveCancel(id){
 // ===== Evaluación de respuestas abiertas =====
 el('refreshGradeBtn').onclick = loadGrading;
 async function loadGrading(){
+  const listo = cargandoEn(el('gradingList'));
   try{
-    const rows = await api('/grading/pending');
+    const rows = await api('/grading/pending').finally(listo);
     const safe = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
     el('gradingList').innerHTML = rows.length ? rows.map(g=>{
       let q='', txt='';
@@ -5690,7 +5878,7 @@ async function loadGrading(){
           <button class="btn sm" onclick="gradeOpen(this,'${g.attemptId}','${g.itemId}')">Calificar</button>
         </div></div>`;
     }).join('') : `<div class="empty">No hay respuestas por evaluar.</div>`;
-  }catch(e){}
+  }catch(e){ if (e.status !== 401) el('gradingList').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
 }
 async function gradeOpen(btn, attemptId, itemId){
   const box = btn.closest('.item');
