@@ -187,8 +187,10 @@ public static class CertificateService
             trainingTitle = c.TrainingTitle,
             scorePercent = c.ScorePercent,
             passPercent = c.PassPercent,
-            issuedAt = c.IssuedAt,
-            expiresAt = c.ExpiresAt,
+            // EF devuelve DateTime Unspecified: se marcan como UTC para que se serialicen con Z
+            // y el navegador muestre la misma fecha local que el PDF (CertificatePdf.Fecha).
+            issuedAt = DateTime.SpecifyKind(c.IssuedAt, DateTimeKind.Utc),
+            expiresAt = c.ExpiresAt is null ? (DateTime?)null : DateTime.SpecifyKind(c.ExpiresAt.Value, DateTimeKind.Utc),
             validity, // permanent | valid | expired
             issuerName = string.IsNullOrWhiteSpace(cfg.IssuerName) ? issuerFallback : cfg.IssuerName,
             signatoryName = cfg.SignatoryName,

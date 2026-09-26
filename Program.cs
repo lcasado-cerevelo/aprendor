@@ -245,11 +245,12 @@ app.Use(async (ctx, next) =>
 
 app.UseDefaultFiles();
 // Las páginas (index.html, player.html, certificate.html) llevan todo el front en línea: sin
-// Cache-Control el navegador las guardaba por heurística (horas o días según su
-// Last-Modified) y, tras publicar, seguía corriendo la versión anterior contra la API nueva
-// (así una pantalla vieja de «Validar correo» no avanzaba y el segundo clic daba 400, y el
-// reproductor viejo no mostraba la pantalla de entrada del curso).
+// Cache-Control el navegador las puede guardar por heurística (horas o días según su
+// Last-Modified) y, tras publicar, seguir corriendo la versión anterior contra la API nueva.
 // no-cache: se pueden guardar, pero se revalidan en cada carga (ETag, 304 si no cambió).
+// Es higiene de despliegue, no la causa del «Validar correo» que no avanzaba y daba 400 en el
+// segundo clic ni de la pantalla de entrada del curso que no salía: eso era el front del
+// 24 sep, que seguía publicado en el servidor (ver «Comprobar la publicación» en README.md).
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>

@@ -81,7 +81,15 @@
 <script>
 const qs = new URLSearchParams(location.search);
 const token = localStorage.getItem('tp_token');
-const fmt = iso => iso ? new Date(iso).toLocaleDateString('es', {day:'2-digit',month:'long',year:'numeric'}) : '';
+// Las fechas son UTC. Si la cadena no trae zona (API anterior), se le añade Z: new Date la
+// leería como hora local y, entre las 20:00 y la medianoche de Puerto Rico, mostraría el día
+// siguiente, distinto del PDF del correo (CertificatePdf.Fecha).
+const fmt = iso => {
+  if(!iso) return '';
+  const s = String(iso);
+  const d = new Date(/T/.test(s) && !/(Z|[+-]\d{2}:?\d{2})$/i.test(s) ? s + 'Z' : s);
+  return isNaN(d) ? '' : d.toLocaleDateString('es', {day:'2-digit',month:'long',year:'numeric'});
+};
 const esc = s => (s??'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // Logo y firma: solo imágenes embebidas png/jpeg/webp/gif (la misma regla del servidor).
 const IMG_OK = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/;

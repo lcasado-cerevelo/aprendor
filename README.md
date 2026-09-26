@@ -442,3 +442,23 @@ Solo cambia `wwwroot/index.html`; usa los endpoints de S1–S3 tal cual.
   png/jpeg/webp/gif) y valida el color de acento. `index.html` escapa Cancelaciones y el editor de
   ítems (nombre de archivo, opciones y pareo, vista previa del logo y la firma). Los selectores de foto
   de lámina, logo y firma solo aceptan PNG, JPG, GIF o WebP (lo que el servidor conserva) y avisan si no.
+
+## Comprobar la publicación (IIS)
+
+Publica **completo**: la carpeta de `dotnet publish -c Release` (binarios, `wwwroot/` y `web.config`)
+reemplaza la del sitio, no solo algunos archivos. Detén el sitio o el grupo de aplicaciones antes de
+copiar (o usa `app_offline.htm`) para que IIS suelte la DLL, arráncalo después y corre
+`dotnet TrainingPlatform.dll migrate` si hay migraciones. Luego comprueba desde fuera, en PowerShell:
+
+```powershell
+$u = 'https://aprendor.advancelogisticspr.com'
+curl.exe -sI "$u/"            # Cache-Control: no-cache, sin Server ni X-Powered-By
+curl.exe -s -o NUL -w "%{http_code}`n" "$u/auth/config"   # 200 (404 = sigue el build anterior)
+curl.exe -sI "$u/favicon.svg" # 200
+```
+
+Si `/auth/config` da 404 o las respuestas aún llevan `X-Powered-By: ASP.NET`, el servidor sigue
+corriendo un build anterior: la pantalla «Validar correo» no avanza (y el segundo clic da 400), el
+reproductor no muestra la pantalla de entrada del curso y el favicon no sale. Vuelve a publicar y
+recicla el grupo de aplicaciones. Las páginas ya salen con `Cache-Control: no-cache`, así que tras
+publicar basta con recargar; con el build anterior hay que forzarlo una vez (Ctrl+F5).

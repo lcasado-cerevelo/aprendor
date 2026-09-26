@@ -82,8 +82,12 @@
   .pstage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;transform:translate(var(--px,0px),var(--py,0px)) scale(var(--pk,1));overflow:hidden;background:var(--pbg);}
   .player{position:absolute;inset:0;}
   /* Transiciones cortas (~320 ms). Al terminar se quitan las clases: la lámina queda sin
-     transform y la saliente se retira siempre (transitionend con respaldo por tiempo). */
-  .slide{position:absolute;inset:0;transition:transform .32s cubic-bezier(.2,.7,.2,1),opacity .28s ease;}
+     transform y la saliente se retira siempre (transitionend con respaldo por tiempo).
+     isolation:isolate: cada lámina encierra sus z-index (el título del panel en split lleva
+     z-index:2). Sin esto la saliente, que ya no tiene transform, no crea contexto de
+     apilamiento y su título se pintaba ENCIMA de la entrante durante la transición (la
+     sombra o el título doble). Así el orden lo decide el DOM: la que va después, encima. */
+  .slide{position:absolute;inset:0;isolation:isolate;transition:transform .32s cubic-bezier(.2,.7,.2,1),opacity .28s ease;}
   .slide.from-right{transform:translateX(100%);box-shadow:-16px 0 32px rgba(0,0,0,.35);}
   .slide.from-right.in{transform:translateX(0);}
   .slide.to-right{transform:translateX(100%);box-shadow:-16px 0 32px rgba(0,0,0,.35);}
