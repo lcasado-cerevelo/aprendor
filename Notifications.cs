@@ -1185,17 +1185,22 @@ public class WeeklyDigestService : BackgroundService
 // ============================================================================
 
 // Una persona y un curso en el panel o el resumen de cumplimiento.
-//   Bucket:   overdue (vencido: expired u overdue) | due-soon (por vencer) | not-started
+//   Bucket:   overdue (vencido: expired u overdue) | due-soon (por vencer) | not-started |
+//             current (al día: aprobado y vigente, lejos de vencer o sin vencimiento)
 //   DateKind: expires (caducidad de una aprobación) | due (fecha límite del plan) | null
 //   Days:     en overdue, los días que lleva vencido; en los demás, los que faltan.
+//   ApprovedAt: última aprobación (si la hay). CertificateSerial: folio del último
+//   certificado vigente o, si ninguno lo está, del último emitido (para abrirlo desde
+//   las listas); CertificateExpired indica ese segundo caso.
 public record ComplianceRow(Guid UserId, string Name, string Email, List<Guid> GroupIds, List<string> Groups,
-    Guid TrainingId, string Title, string Status, string Bucket, DateTime? Date, string? DateKind, int? Days);
+    Guid TrainingId, string Title, string Status, string Bucket, DateTime? Date, string? DateKind, int? Days,
+    DateTime? ApprovedAt = null, string? CertificateSerial = null, bool CertificateExpired = false);
 
 public static class ComplianceState
 {
-    // En qué lista cae un pendiente; null = no cuenta (aprobado y lejos de vencer,
-    // esperando calificación o cancelación). Las listas no se pisan: un curso vencido
-    // no sale también como por vencer, ni uno por vencer como sin comenzar.
+    // En qué lista cae un pendiente; null = no cuenta (en curso o reprobado sin fecha
+    // cerca, esperando calificación o cancelación). Las listas no se pisan: un curso vencido
+    // no sale también como por vencer, ni uno por vencer como sin comenzar o al día.
     public static (string bucket, DateTime? fecha, string? tipo)? Clasificar(PendingItem p, DateTime ahora, int dueSoonDays)
     {
         if (p.Status == "expired") return ("overdue", p.ExpiresAt, "expires");
@@ -1208,13 +1213,19 @@ public static class ComplianceState
             return ("due-soon", fecha, tipo);
 
         if (p.Status == "not-started") return ("not-started", p.DueAt, p.DueAt is not null ? "due" : null);
+        // Al día: aprobado y vigente fuera de la ventana de «por vencer» (renewal sigue
+        // vigente: solo se reabrió para renovar antes de tiempo).
+        if (p.Status is "current" or "done" or "renewal")
+            return ("current", p.ExpiresAt, p.ExpiresAt is not null ? "expires" : null);
         return null;
     }
 
     // Estado de cada miembro de la compañía en cada curso que le toca (mismo resolver
-    // que ve el empleado, con sus grupos y su fecha de ingreso).
+    // que ve el empleado, con sus grupos y su fecha de ingreso). conCertificados: añade a
+    // cada fila la fecha de la última aprobación y el folio del último certificado (panel);
+    // el resumen por correo no lo necesita y se ahorra esas consultas.
     public static async Task<List<ComplianceRow>> ResolverAsync(CatalogDbContext catalog, TenantDbContext db,
-        Guid tenantId, int dueSoonDays)
+        Guid tenantId, int dueSoonDays, bool conCertificados = false)
     {
         var usuarios = await CompanyUsers.OfAsync(catalog, tenantId);
         var ingresos = await CatalogLogic.FechasIngresoAsync(catalog, tenantId);
@@ -1222,6 +1233,33 @@ public static class ComplianceState
             .Select(m => new { m.UserId, m.UserGroupId }).ToListAsync();
         var nombres = await db.UserGroups.AsNoTracking().ToDictionaryAsync(g => g.Id, g => g.Name);
         var ahora = DateTime.UtcNow;
+
+        // Última aprobación por persona y curso (la misma que usa el resolver: el intento
+        // aprobado más reciente) y certificados emitidos, del más nuevo al más viejo.
+        var aprobaciones = new Dictionary<(Guid, Guid), DateTime>();
+        var certificados = new Dictionary<(Guid, Guid), List<(string Serial, DateTime? Expira)>>();
+        if (conCertificados)
+        {
+            var aprobados = await (from a in db.Attempts.AsNoTracking()
+                                   where a.Passed && a.CompletedAt != null && a.UserId != null
+                                   join v in db.TrainingVersions.AsNoTracking() on a.TrainingVersionId equals v.Id
+                                   select new { UserId = a.UserId!.Value, v.TrainingId, Fecha = a.CompletedAt!.Value })
+                                  .ToListAsync();
+            foreach (var a in aprobados)
+                if (!aprobaciones.TryGetValue((a.UserId, a.TrainingId), out var f) || a.Fecha > f)
+                    aprobaciones[(a.UserId, a.TrainingId)] = a.Fecha;
+
+            var emitidos = await db.Certificates.AsNoTracking().Where(c => c.UserId != null)
+                .OrderByDescending(c => c.IssuedAt)
+                .Select(c => new { UserId = c.UserId!.Value, c.TrainingId, c.Serial, c.ExpiresAt })
+                .ToListAsync();
+            foreach (var c in emitidos)
+            {
+                if (!certificados.TryGetValue((c.UserId, c.TrainingId), out var l))
+                    certificados[(c.UserId, c.TrainingId)] = l = new();
+                l.Add((c.Serial, c.ExpiresAt));
+            }
+        }
 
         var filas = new List<ComplianceRow>();
         foreach (var u in usuarios.OrderBy(x => x.Name))
@@ -1242,8 +1280,17 @@ public static class ComplianceState
                 int? dias = c.fecha is DateTime f
                     ? (c.bucket == "overdue" ? (ahora.Date - f.Date).Days : (f.Date - ahora.Date).Days)
                     : null;
+                DateTime? aprobado = aprobaciones.TryGetValue((u.Id, p.TrainingId), out var fa) ? fa : null;
+                string? folio = null; var caducado = false;
+                if (certificados.TryGetValue((u.Id, p.TrainingId), out var certs))
+                {
+                    var vigente = certs.FirstOrDefault(x => x.Expira is null || x.Expira > ahora);
+                    if (vigente.Serial is not null) folio = vigente.Serial;
+                    else { folio = certs[0].Serial; caducado = true; }
+                }
                 filas.Add(new ComplianceRow(u.Id, u.Name, u.Email, grupos, nombresGrupos,
-                    p.TrainingId, p.Title, p.Status, c.bucket, c.fecha, c.tipo, dias));
+                    p.TrainingId, p.Title, p.Status, c.bucket, c.fecha, c.tipo, dias,
+                    aprobado, folio, caducado));
             }
         }
         return filas;
@@ -1253,7 +1300,8 @@ public static class ComplianceState
     {
         userId = r.UserId, name = r.Name, email = r.Email, groupIds = r.GroupIds, groups = r.Groups,
         trainingId = r.TrainingId, title = r.Title, status = r.Status, bucket = r.Bucket,
-        date = r.Date, dateKind = r.DateKind, days = r.Days
+        date = r.Date, dateKind = r.DateKind, days = r.Days,
+        approvedAt = r.ApprovedAt, certificateSerial = r.CertificateSerial, certificateExpired = r.CertificateExpired
     };
 }
 
@@ -1471,7 +1519,8 @@ public static class ComplianceEndpoints
 
     public static void MapCompliance(this WebApplication app)
     {
-        // ---- Panel: vencidos, por vencer y sin comenzar, con nombre, grupo, curso, fecha y días ----
+        // ---- Panel: vencidos, por vencer, sin comenzar y al día, con nombre, grupo, curso, fecha y días ----
+        // (y en cada fila la última aprobación y el folio del último certificado, si lo hay)
         // Filtros opcionales: ?trainingId=…&groupId=…
         app.MapGet("/compliance/summary", async (Guid? trainingId, Guid? groupId, ITenantContext tc,
             IServiceProvider sp, CatalogDbContext catalog) =>
@@ -1482,7 +1531,8 @@ public static class ComplianceEndpoints
             var tenant = await catalog.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tc.TenantId);
             var comp = ComplianceConfig.Parse(tenant?.ComplianceConfigJson);
 
-            var filas = await ComplianceState.ResolverAsync(catalog, db, tc.TenantId.Value, comp.DueSoonDays);
+            var filas = await ComplianceState.ResolverAsync(catalog, db, tc.TenantId.Value, comp.DueSoonDays,
+                conCertificados: true);
             if (trainingId is Guid tid) filas = filas.Where(f => f.TrainingId == tid).ToList();
             if (groupId is Guid gid) filas = filas.Where(f => f.GroupIds.Contains(gid)).ToList();
 
@@ -1490,15 +1540,18 @@ public static class ComplianceEndpoints
             var porVencer = filas.Where(f => f.Bucket == "due-soon").OrderBy(f => f.Date).ThenBy(f => f.Name).ToList();
             var sinComenzar = filas.Where(f => f.Bucket == "not-started")
                 .OrderBy(f => f.Date ?? DateTime.MaxValue).ThenBy(f => f.Name).ToList();
+            // Al día: aprobado y vigente (fecha = vigente hasta; null = sin vencimiento).
+            var alDia = filas.Where(f => f.Bucket == "current").OrderBy(f => f.Name).ThenBy(f => f.Title).ToList();
 
             return Results.Ok(new
             {
                 generatedAt = DateTime.UtcNow,
                 dueSoonDays = comp.DueSoonDays,
-                counts = new { overdue = vencidos.Count, dueSoon = porVencer.Count, notStarted = sinComenzar.Count },
+                counts = new { overdue = vencidos.Count, dueSoon = porVencer.Count, notStarted = sinComenzar.Count, current = alDia.Count },
                 overdue = vencidos.Select(ComplianceState.ToJson),
                 dueSoon = porVencer.Select(ComplianceState.ToJson),
-                notStarted = sinComenzar.Select(ComplianceState.ToJson)
+                notStarted = sinComenzar.Select(ComplianceState.ToJson),
+                current = alDia.Select(ComplianceState.ToJson)
             });
         }).RequireAuthorization();
 

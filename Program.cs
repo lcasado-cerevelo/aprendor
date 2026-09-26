@@ -754,11 +754,16 @@ app.MapPost("/me/2fa/setup", async (TwoFactorSetupRequest? req, ITenantContext t
 
     user.PendingTotpSecret = Totp.NuevoSecreto();   // aún no queda activo: falta confirmar
     await catalog.SaveChangesAsync();
+    // uri y otpauthUri son el mismo URI (uri se mantiene por compatibilidad); qrDataUri es
+    // su código QR en SVG, lo que la pantalla muestra primero para escanearlo.
+    var otpauth = Totp.UriDeConfiguracion("Aprendor", user.Email, user.PendingTotpSecret);
     return Results.Ok(new
     {
         mode = "totp",
         secret = user.PendingTotpSecret,
-        uri = Totp.UriDeConfiguracion("Aprendor", user.Email, user.PendingTotpSecret),
+        uri = otpauth,
+        otpauthUri = otpauth,
+        qrDataUri = Totp.QrDataUri(otpauth),
         replacing = confirmado
     });
 }).RequireAuthorization(PoliticasAcceso.Sesion);
