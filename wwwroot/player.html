@@ -43,6 +43,25 @@
   a{color:var(--brand);}
   .hintbox{background:#fef9c3;border:1px solid #fde68a;color:#854d0e;border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px;}
   .hidden{display:none !important;}
+  /* Botones de acción de una pantalla de resultado o de resumen: siempre centrados. */
+  .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:18px;}
+
+  /* ---- Indicador de carga: barra fina arriba mientras el reproductor espera al servidor,
+     aviso centrado en la carga inicial y botón ocupado (deshabilitado, con giro) ---- */
+  #busyBar{position:fixed;left:0;right:0;top:0;height:3px;z-index:60;overflow:hidden;pointer-events:none;opacity:0;transition:opacity .15s;}
+  #busyBar.on{opacity:1;}
+  #busyBar::before{content:"";position:absolute;top:0;bottom:0;left:-40%;width:40%;background:var(--pacc,#2563eb);animation:busySlide 1.1s ease-in-out infinite;}
+  body:not(.pres) #busyBar::before{background:var(--brand);}
+  @keyframes busySlide{0%{left:-40%;}100%{left:100%;}}
+  .spin{display:inline-block;width:1em;height:1em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-.15em;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:240px;color:var(--muted);font-size:15px;text-align:center;}
+  .loading .spin{width:30px;height:30px;border-width:3px;color:var(--brand);}
+  .is-busy{pointer-events:none;opacity:.75;cursor:progress !important;}
+  .is-busy .spin{margin-right:8px;}
+  #busyToast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);z-index:61;display:none;align-items:center;gap:10px;background:#0f172a;color:#fff;padding:10px 16px;border-radius:10px;font:600 14px system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.3);}
+  #busyToast.on{display:flex;}
+  @media (prefers-reduced-motion:reduce){ #busyBar::before{animation-duration:2.4s;} .spin{animation-duration:1.4s;} }
 
   /* ===================== Modo presentación (PlayerConfig.presentation) =====================
      Cada página se dibuja en un escenario fijo de 1280×720 escalado a la ventana. Los
@@ -54,15 +73,24 @@
   body.pres>header,body.pres>.progress,body.pres>main,body.pres>.nav{display:none !important;}
   #presRoot{display:none;}
   body.pres #presRoot{display:block;position:fixed;inset:0;background:var(--pbg);}
-  .pstage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform:translate(-50%,-50%) scale(var(--pk,1));overflow:hidden;background:var(--pbg);}
+  /* El escenario se coloca en píxeles enteros (--px/--py, ver presFit): con left:50% y
+     translate(-50%) una ventana de ancho impar dejaba la lámina en medio píxel y el texto
+     se veía borroso. */
+  .pstage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;transform:translate(var(--px,0px),var(--py,0px)) scale(var(--pk,1));overflow:hidden;background:var(--pbg);}
   .player{position:absolute;inset:0;}
-  .slide{position:absolute;inset:0;transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .35s ease;}
-  .slide.from-right{transform:translateX(100%);box-shadow:-24px 0 48px rgba(0,0,0,.45);}
+  /* Transiciones cortas (~320 ms). Al terminar se quitan las clases: la lámina queda sin
+     transform y la saliente se retira siempre (transitionend con respaldo por tiempo). */
+  .slide{position:absolute;inset:0;transition:transform .32s cubic-bezier(.2,.7,.2,1),opacity .28s ease;}
+  .slide.from-right{transform:translateX(100%);box-shadow:-16px 0 32px rgba(0,0,0,.35);}
   .slide.from-right.in{transform:translateX(0);}
-  .slide.to-right{transform:translateX(100%);box-shadow:-24px 0 48px rgba(0,0,0,.45);}
+  .slide.to-right{transform:translateX(100%);box-shadow:-16px 0 32px rgba(0,0,0,.35);}
   .slide.fade-in{opacity:0;} .slide.fade-in.in{opacity:1;}
   .slide.fade-out{opacity:0;}
-  @media (prefers-reduced-motion:reduce){ .slide{transition:none !important;} }
+  /* Misma lámina de fondo (mismo layout, variante y título del panel o del encabezado): el
+     marco queda fijo y solo entra el contenido, sin arrastrar una copia del título. */
+  .slide.keep .sl-body{animation:slBodyIn .3s cubic-bezier(.2,.7,.2,1) both;}
+  @keyframes slBodyIn{from{opacity:0;transform:translateX(calc(var(--dx,1) * 28px));}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){ .slide{transition:none !important;} .slide.keep .sl-body{animation:none !important;} }
 
   /* --- lámina: base --- */
   .sl{position:absolute;inset:0;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:#fff;background:var(--pbg);line-height:1.25;}
@@ -118,7 +146,8 @@
   .sl-split{background:#fff;color:#111;}
   .sl-split .panel{position:absolute;left:0;top:0;width:494px;height:720px;background:#1f1f1f;overflow:hidden;}
   .sl-split .panel::before{content:"";position:absolute;inset:0;background:#2e2e2e;clip-path:polygon(18% 0,100% 0,100% 100%,69% 100%);}
-  .sl-split .ptitle{position:absolute;left:98px;width:340px;top:50%;transform:translateY(-50%);margin:0;font-size:34px;font-weight:700;text-transform:uppercase;color:#fff;line-height:1.15;z-index:2;}
+  /* centrado vertical con flex (no translateY(-50%), que deja medio píxel y texto borroso) */
+  .sl-split .ptitle{position:absolute;left:98px;width:340px;top:0;bottom:0;display:flex;align-items:center;margin:0;font-size:34px;font-weight:700;text-transform:uppercase;color:#fff;line-height:1.15;z-index:2;}
   .sl-split .sl-body{left:575px;right:80px;top:50px;bottom:36px;font-size:24px;display:flex;flex-direction:column;}
   .sl-split .sl-fit{margin:auto 0;}   /* centrado vertical seguro: si desborda, queda arriba */
   .sl-split .sl-body p{margin-bottom:10px;} .sl-split .sl-body li{margin-bottom:8px;}
@@ -156,10 +185,15 @@
   .sl-sum .sumrow{display:flex;gap:10px;border-bottom:1px solid #333;font-size:19px;padding:8px 2px;} .sl-sum .sumrow .st{margin-left:auto;}
   .sl .res{font-size:30px;font-weight:700;text-align:center;padding:12px;margin-top:14px;border-radius:12px;}
   .sl .res.pass{background:transparent;color:#4ade80;} .sl .res.fail{background:transparent;color:#f87171;}
-  .sl .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px;}
+  .sl .actions{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:24px;}
+  .sl-sum .actions{margin-top:14px;}   /* el resumen va justo de alto: que el aviso y los botones quepan */
   .sl .tiempo{color:#bbb !important;font-size:18px !important;text-align:center;}
   .sl .center{margin:20px 0 0;padding:0;color:#bbb;}
-  .sl .center .btn{margin:0 6px;}
+  /* Lámina de resultado: todo centrado, con márgenes iguales a los dos lados. */
+  .sl-final .sl-kicker{left:90px;right:90px;text-align:center;}
+  .sl-final .sl-rule{left:90px;right:90px;}
+  .sl-final .sl-body{left:90px;right:90px;display:flex;flex-direction:column;}
+  .sl-final .sl-fit{margin:auto 0;text-align:center;}
   .sl .hintbox{background:rgba(254,249,195,.12);border-color:#a16207;color:#fde68a;font-size:16px;}
   .sl .btn,.pbtn{padding:13px 30px;border:0;border-radius:10px;background:var(--pacc);color:#fff;font:700 17px system-ui,sans-serif;cursor:pointer;text-decoration:none;display:inline-block;}
   .sl .btn.ghost,.pbtn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);}
@@ -191,12 +225,15 @@
   .pres-start .ps-stat span{display:block;margin-top:4px;font:600 12px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#bdbdbd;}
   .pres-start.intro .pbtn{font-size:19px;padding:15px 46px;}
   .pres-start .ps-hint{margin-top:12px;font:13px system-ui,sans-serif;color:#9a9a9a;letter-spacing:.02em;}
-  .pres-toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:10px;font:600 14px system-ui,sans-serif;z-index:25;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;}
+  .pres-toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:10px;font:600 14px system-ui,sans-serif;z-index:25;opacity:0;transition:opacity .25s;pointer-events:none;max-width:min(90vw,640px);text-align:center;}
   .pres-toast.show{opacity:1;}
   /*PRES-CSS-END*/
 </style>
 </head>
 <body>
+<!-- Indicador de carga (ver setBusy): barra arriba y aviso abajo mientras se espera al servidor. -->
+<div id="busyBar" role="progressbar" aria-hidden="true"></div>
+<div id="busyToast" role="status" aria-live="polite"><span class="spin"></span><span id="busyText"></span></div>
 <header>
   <div>
     <span class="t" id="title">Adiestramiento</span>
@@ -205,7 +242,7 @@
   <span class="p" id="progressText"></span>
 </header>
 <div class="progress"><div id="progressBar" style="width:0%"></div></div>
-<main><div class="stage"><div class="screen" id="screen"></div></div></main>
+<main><div class="stage"><div class="screen" id="screen"><div class="loading"><span class="spin"></span>Cargando adiestramiento…</div></div></div></main>
 <div class="nav" id="nav" style="display:none">
   <button class="btn ghost" id="prevBtn">◂ Anterior</button>
   <button class="btn" id="nextBtn" style="margin-left:auto">Siguiente ▸</button>
@@ -252,9 +289,39 @@ async function api(path, method='GET', body=null){
   if (token) headers['Authorization'] = 'Bearer ' + token;
   const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : null });
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  try{ data = text ? JSON.parse(text) : null; }catch{ data = text; }   // un error en texto plano también se muestra
   if (!res.ok) throw new Error((data && (typeof data === 'string' ? data : (data.error || data.title))) || ('Error ' + res.status));
   return data;
+}
+
+// ---- Indicador de carga ----
+// setBusy(true, 'Guardando…') enciende la barra de arriba y, con texto, el aviso de abajo;
+// es un contador, así que dos esperas a la vez no se apagan una a la otra. btnBusy() pone
+// un botón en estado ocupado (deshabilitado, con giro y texto) y devuelve cómo restaurarlo.
+let busyN = 0;
+function setBusy(on, text){
+  busyN = Math.max(0, busyN + (on ? 1 : -1));
+  el('busyBar').classList.toggle('on', busyN>0);
+  document.body.style.cursor = busyN>0 ? 'progress' : '';
+  if(on && text) el('busyText').textContent = text;
+  el('busyToast').classList.toggle('on', busyN>0 && !!el('busyText').textContent);
+  if(busyN===0) el('busyText').textContent = '';
+}
+async function whileBusy(text, fn){ setBusy(true, text); try{ return await fn(); } finally{ setBusy(false); } }
+function btnBusy(b, text){
+  if(!b) return ()=>{};
+  const html = b.innerHTML, dis = b.disabled;
+  b.classList.add('is-busy'); b.setAttribute('aria-busy','true');
+  if(b.tagName==='BUTTON') b.disabled = true;
+  b.innerHTML = `<span class="spin"></span>${esc(text)}`;
+  return ()=>{ b.classList.remove('is-busy'); b.removeAttribute('aria-busy'); b.innerHTML = html; if(b.tagName==='BUTTON') b.disabled = dis; };
+}
+function loadingHtml(text){ return `<div class="loading"><span class="spin"></span>${esc(text||'Cargando…')}</div>`; }
+// Aviso de error sin bloquear: en modo presentación, el aviso flotante; si no, alert.
+function notifyError(e){
+  const msg = (e && e.message) || String(e || 'Error');
+  if(PRES) presToast(msg, 4000); else alert(msg);
 }
 // Todo texto del autor o del servidor que se pinta con innerHTML pasa por esc(). El HTML
 // de los bloques de texto (b.html, bodyHtml, description) ya llega saneado del servidor.
@@ -293,7 +360,7 @@ function infoBody(p){
   return h;
 }
 function renderInfo(p){
-  if(p.layout==='intro') return introClassicHtml(p);
+  if(isIntroLayout(p)) return introClassicHtml(p);
   let h = p.title ? `<h2>${esc(p.title)}</h2>` : '';
   // Foto de lámina (cover / photo-left): en modo clásico se muestra como una imagen más.
   if(safePhoto(p.photo)) h += `<img src="${esc(safePhoto(p.photo))}" alt="" />`;
@@ -319,9 +386,12 @@ function noteCfg(cfg){
   const v = cfg && (cfg.passPercent ?? cfg.PassPercent);
   if(typeof v==='number' && isFinite(v)) passPercent = v;
 }
+// Tolerante con mayúsculas y espacios en el layout ('Intro', ' intro'): el contenido llega
+// de seeds, del editor y de PowerShell, y un layout mal escrito no debe volverlo lámina.
+function isIntroLayout(p){ return !!p && typeof p.layout==='string' && p.layout.trim().toLowerCase()==='intro'; }
 function introPayload(it){
   if(!it || it.type!=='Info') return null;
-  try{ const p=JSON.parse(it.payloadJson); return (p && p.layout==='intro') ? p : null; }catch{ return null; }
+  try{ const p=JSON.parse(it.payloadJson); return isIntroLayout(p) ? p : null; }catch{ return null; }
 }
 function introDescHtml(d){
   d = d || '';
@@ -371,8 +441,11 @@ function isAnswered(it){
   if(it.type==='OpenResponse'){ return !!(ans.text && ans.text.trim()); }
   return true;
 }
-function guard(){ if(!token){ el('screen').innerHTML=`<div class="center">Inicia sesión primero en <a href="/">la página principal</a>.</div>`; return false; } return true; }
-function showError(e){ el('screen').innerHTML=`<div class="center">${esc(e && e.message || e)}</div>`; }
+function guard(){ if(!token){ showMsg(`Inicia sesión primero en <a href="/">la página principal</a>.`); return false; } return true; }
+// Mensaje a pantalla completa (error o aviso antes de empezar). Si ya se encendió el modo
+// presentación, se vuelve a la vista clásica: si no, el mensaje quedaría oculto.
+function showMsg(html){ document.body.classList.remove('pres'); el('screen').innerHTML=`<div class="center">${html}</div>`; }
+function showError(e){ showMsg(esc(e && e.message || e)); }
 
 // ---------- Tiempo activo (latidos) ----------
 function fmtTime(s){
@@ -409,12 +482,13 @@ function stopHeartbeat(){ if(hbTimer){ clearInterval(hbTimer); hbTimer=null; } }
 // ---------- TAKE ----------
 async function startTake(){
   if(!guard()) return;
-  if(!versionId){ el('screen').innerHTML=`<div class="center">Falta el adiestramiento.</div>`; return; }
+  if(!versionId){ showMsg(`Falta el adiestramiento.`); return; }
   el('title').textContent = title;
+  el('screen').innerHTML = loadingHtml('Cargando adiestramiento…');
   try{
     const s = await api('/versions/'+versionId+'/attempts'+(setId?('?setId='+encodeURIComponent(setId)):''),'POST');
     if(s.pendingCancellation){
-      el('screen').innerHTML=`<div class="center">Tienes una <b>cancelación pendiente de aprobación</b> para este curso. No puedes continuar hasta que un revisor la apruebe.</div>`;
+      showMsg(`Tienes una <b>cancelación pendiente de aprobación</b> para este curso. No puedes continuar hasta que un revisor la apruebe.`);
       return;
     }
     const useSet = s.setId || setId;
@@ -428,7 +502,7 @@ async function startTake(){
       presActivate(cfg);
     }catch{ allowBack = true; immediateFeedback = false; }
     el('prevBtn').classList.toggle('hidden', !allowBack);
-    if(!items.length){ el('screen').innerHTML=`<div class="center">Este adiestramiento no tiene contenido.</div>`; return; }
+    if(!items.length){ showMsg(`Este adiestramiento no tiene contenido.`); return; }
     const answers = {}, revealed = {};
     (s.responses||[]).forEach(r=>{
       try{ const a=JSON.parse(r.answerJson);
@@ -469,14 +543,18 @@ function pendingRequired(){ return T.items.filter(it=>isRequiredQ(it)&&!isAnswer
 function canFinish(){ if(T.preview) return true; return pendingRequired()===0; }
 
 // ---- Páginas: ítems consecutivos marcados "samePage" comparten una sola pantalla ----
+// La pantalla de entrada (intro) va siempre sola en su página: ni se une a la anterior ni
+// deja que la siguiente se le una, para que el modo presentación pueda sacarla entera.
 function buildPages(items){
   const pages=[]; let curMod='';
   for(const it of items){
     let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
     if(it.type==='ModuleHeader') curMod = p.title||'';
+    const intro = it.type==='Info' && isIntroLayout(p);
     const sp = !!p.samePage;
-    if(sp && it.type!=='ModuleHeader' && pages.length>0) pages[pages.length-1].items.push(it);
-    else pages.push({ items:[it], module:curMod });
+    const last = pages[pages.length-1];
+    if(sp && !intro && it.type!=='ModuleHeader' && last && !last.intro) last.items.push(it);
+    else pages.push({ items:[it], module:curMod, intro });
   }
   return pages;
 }
@@ -550,7 +628,7 @@ function summaryRows(){
   return T.items.map(it=>{
     let p={}; try{ p=JSON.parse(it.payloadJson); }catch{}
     if(it.type==='ModuleHeader') return `<div class="sumrow">📂 Módulo: ${esc(p.title)}</div>`;
-    if(it.type==='Info' && p.layout==='intro') return '';   // la pantalla de entrada no es contenido
+    if(it.type==='Info' && isIntroLayout(p)) return '';   // la pantalla de entrada no es contenido
     if(it.type==='Info') return `<div class="sumrow">📄 ${esc(p.title||'Contenido')}</div>`;
     const answered = !T.review && isAnswered(it);
     const mk = T.review ? '' : `<span class="st">${answered?'✓ contestada':'✗ sin contestar'}</span>`;
@@ -564,7 +642,7 @@ function summaryFoot(){
     const pct=T.totalPts?Math.round(T.score*100/T.totalPts):100;
     return `<div class="res ${T.passed?'pass':'fail'}">${T.passed?'✅ Aprobado':'❌ No aprobado'} — ${T.score} pts (${pct}%)</div>
       <div style="color:#64748b;font-size:13px;margin-top:8px;text-align:center">⏱️ Tiempo en el curso: ${fmtTime(T.activeSeconds)}</div>
-      <div class="center"><button class="btn ghost" onclick="window.close()">Cerrar pestaña</button></div>`;
+      <div class="actions"><button class="btn ghost" onclick="window.close()">Cerrar pestaña</button></div>`;
   }
   if(T.preview) return `<div class="hintbox">Vista previa — así verá el learner el curso. No se registra ningún intento.</div>`;
   if(pendingRequired()>0) return `<div class="hintbox">Te faltan preguntas obligatorias por contestar. Usa “Anterior” para volver y completarlas; el botón Finalizar se activará cuando todas estén contestadas.</div>`;
@@ -604,13 +682,34 @@ async function persistCurrent(){
 // preguntas calificables (todas menos OpenResponse) hay que "revelar" el veredicto
 // antes de dejar avanzar: se contesta, se muestra ✅/❌ por pregunta (nunca cuál era
 // la opción correcta) y la página queda bloqueada — un segundo clic sí avanza.
-async function goPrev(){ if(!T.review) await persistCurrent(); if(T.idx>0){ T.idx--; renderStep(); } }
+// Guardar las respuestas de la página va al servidor: mientras tanto se ve la barra de
+// carga y el aviso «Guardando respuesta…», y los botones de navegación quedan ocupados
+// (sin doble clic). Si falla, se avisa y se queda en la misma página.
+let saving = false;
+function pageHasQuestions(){ return !!(T.pages && T.idx<T.pages.length && T.pages[T.idx].items.some(isQuestion)); }
+async function saveCurrent(){
+  if(T.review) return true;
+  if(T.preview || !pageHasQuestions()){ await persistCurrent(); return true; }
+  saving = true;
+  const navBtns = ['prevBtn','nextBtn','presPrev','presNext'].map(el);
+  const prev = navBtns.map(b=>b.disabled);
+  navBtns.forEach(b=>{ b.disabled = true; b.classList.add('is-busy'); });
+  setBusy(true, 'Guardando respuesta…');
+  try{ await persistCurrent(); return true; }
+  catch(e){ notifyError(e); return false; }
+  finally{
+    setBusy(false); saving = false;
+    navBtns.forEach((b,i)=>{ b.classList.remove('is-busy'); b.disabled = prev[i]; });
+  }
+}
+async function goPrev(){ if(saving) return; if(!await saveCurrent()) return; if(T.idx>0){ T.idx--; renderStep(); } }
 async function goNext(){
+  if(saving) return;
   if(!T.review){
     const page = (T.pages && T.idx<T.pages.length) ? T.pages[T.idx].items : [];
     const checkable = page.filter(it=>isQuestion(it) && it.type!=='OpenResponse');
     const needsCheck = immediateFeedback && checkable.length>0 && !T.revealedPages[T.idx];
-    await persistCurrent();
+    if(!await saveCurrent()) return;
     if(needsCheck){ T.revealedPages[T.idx]=true; renderStep(); return; }
   }
   if(T.idx<T.pages.length){ T.idx++; renderStep(); }
@@ -619,30 +718,48 @@ el('prevBtn').onclick = goPrev;
 el('nextBtn').onclick = goNext;
 // Pantalla final (resultado): en modo presentación va como lámina; si no, al panel de siempre.
 function showFinal(html){
-  if(PRES){ presShow(`<div class="sl sl-dark"><h1 class="sl-kicker">${esc(panelTitle())}</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit">${html}</div></div></div>`, 1); presChrome(true); }
+  if(PRES){ presShow(`<div class="sl sl-dark sl-final"><h1 class="sl-kicker">${esc(panelTitle())}</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit">${html}</div></div></div>`, 1); presChrome(true); }
   else el('screen').innerHTML=html;
 }
+// «Descargar certificado» abre certificate.html en otra pestaña (que muestra su propio
+// «Cargando certificado…»); aquí el botón queda ocupado un momento para que se note el clic.
+function certClick(a){
+  if(a.classList.contains('is-busy')) return false;
+  const restore = btnBusy(a, 'Abriendo certificado…');
+  setTimeout(restore, 2500);
+  return true;
+}
+let finishing = false;
 el('finishBtn').onclick = async () => {
   if(T.preview){ window.close(); return; }
-  if(!canFinish()) return;
+  if(!canFinish() || finishing || saving) return;
+  finishing = true;
+  // Los dos botones «Finalizar» (barra clásica y lámina de resumen) quedan ocupados.
+  const restores = [btnBusy(el('finishBtn'), 'Finalizando…'), btnBusy(el('presFinishBtn'), 'Finalizando…')];
+  setBusy(true, 'Calificando y guardando tu resultado…');
   stopHeartbeat();
   try{
     const r=await api('/attempts/'+T.attemptId+'/complete','POST');
     try{ localStorage.removeItem('tp_pos_'+T.attemptId); }catch{}
-    const tiempo = `<div class="tiempo" style="color:#64748b;font-size:13px;margin-top:8px">⏱️ Tiempo en el curso: ${fmtTime(r.activeSeconds)}</div>`;
+    const tiempo = `<div class="tiempo" style="color:#64748b;font-size:13px;margin-top:8px;text-align:center">⏱️ Tiempo en el curso: ${fmtTime(r.activeSeconds)}</div>`;
+    const cerrar = `<button class="btn ghost" onclick="window.close()">Cerrar pestaña</button>`;
     if(r.pendingGrading || r.status==='pending-grading'){
       showFinal(`<div class="res" style="background:#fef9c3;color:#854d0e">📝 Respuestas enviadas<br>Tienes preguntas abiertas pendientes de evaluación del moderador. Tu resultado final aparecerá cuando las califiquen.</div>${tiempo}
-        <div class="center"><button class="btn ghost" onclick="window.close()">Cerrar pestaña</button></div>`);
+        <div class="actions">${cerrar}</div>`);
     } else {
       const pct=r.total?Math.round(r.score*100/r.total):100;
       const cert = (r.passed && r.certificateSerial)
-        ? `<a class="btn" style="text-decoration:none" href="/certificate.html?attempt=${T.attemptId}" target="_blank" rel="noopener">📜 Descargar certificado</a>`
+        ? `<a class="btn" style="text-decoration:none" href="/certificate.html?attempt=${T.attemptId}" target="_blank" rel="noopener" onclick="return certClick(this)">📜 Descargar certificado</a>`
         : '';
       showFinal(`<div class="res ${r.passed?'pass':'fail'}">${r.passed?'✅ Aprobado':'❌ No aprobado'}<br>${r.score} / ${r.total} puntos (${pct}%)</div>${tiempo}
-        <div class="center" style="gap:10px;display:flex;justify-content:center;flex-wrap:wrap">${cert}<button class="btn ghost" onclick="window.close()">Cerrar pestaña</button></div>`);
+        <div class="actions">${cert}${cerrar}</div>`);
     }
     el('nav').style.display='none'; el('progressBar').style.width='100%';
-  }catch(e){ alert(e.message); }
+  }catch(e){
+    restores.forEach(f=>f());
+    startHeartbeat();
+    notifyError(e);
+  }finally{ finishing = false; setBusy(false); }
 };
 
 // ---------- REVIEW (read-only) ----------
@@ -716,11 +833,11 @@ function itemReviewHtml(it){
 // ---------- PREVIEW (author, no attempt) ----------
 async function startPreview(){
   if(!guard()) return;
-  if(!previewId){ el('screen').innerHTML=`<div class="center">Falta la versión.</div>`; return; }
+  if(!previewId){ showMsg(`Falta la versión.`); return; }
   el('title').textContent = title + ' · vista previa';
   try{
     const items = await api('/versions/'+previewId+'/preview');
-    if(!items.length){ el('screen').innerHTML=`<div class="center">Este adiestramiento no tiene contenido todavía.</div>`; return; }
+    if(!items.length){ showMsg(`Este adiestramiento no tiene contenido todavía.`); return; }
     try{ const cfg = await api('/versions/'+previewId+'/config'); noteCfg(cfg); presActivate(cfg); }catch{}
     const pages = buildPages(items), intro = presTakeIntro(pages);
     T = { items, pages, idx:0, answers:{}, revealed:{}, revealedPages:{}, review:false, preview:true, intro };
@@ -736,7 +853,7 @@ async function startRepaso(){
   el('title').textContent = title + ' · repaso';
   try{
     const items = await api('/versions/'+repasoId+'/take'+(setId?('?setId='+encodeURIComponent(setId)):''));
-    if(!items.length){ el('screen').innerHTML=`<div class="center">Este adiestramiento no tiene contenido.</div>`; return; }
+    if(!items.length){ showMsg(`Este adiestramiento no tiene contenido.`); return; }
     try{ const cfg = await api('/versions/'+repasoId+'/config'); noteCfg(cfg); presActivate(cfg); }catch{}
     const pages = buildPages(items), intro = presTakeIntro(pages);
     T = { items, pages, idx:0, answers:{}, revealed:{}, revealedPages:{}, review:false, preview:true, repaso:true, intro };
@@ -773,17 +890,30 @@ function presActivate(cfg){
   el('presNext').onclick = ()=>presNav(goNext);
   presWake();
 }
-function presFit(){ el('presStage').style.setProperty('--pk', Math.min(innerWidth/1280, innerHeight/720)); }
+// Escala a la ventana y centra en píxeles enteros (ver .pstage).
+function presFit(){
+  const st = el('presStage'), k = Math.min(innerWidth/1280, innerHeight/720);
+  st.style.setProperty('--pk', k);
+  st.style.setProperty('--px', Math.round((innerWidth - 1280*k)/2)+'px');
+  st.style.setProperty('--py', Math.round((innerHeight - 720*k)/2)+'px');
+}
 function panelTitle(){ return ((PRES && PRES.theme.panelTitle) || '').trim() || title.toUpperCase(); }
 
-// El ítem 'intro' (si es la primera página) sale de las páginas: la portada queda como
-// lámina 1 y el contador «n / N» no lo cuenta. Devuelve su payload, o null. Sin modo
-// presentación no se toca nada: el intro se ve como primera página (introClassicHtml).
+// El ítem 'intro' sale de las páginas: la portada queda como lámina 1 y el contador
+// «n / N» no lo cuenta. Devuelve su payload, o null. Lo normal es que sea el primer ítem,
+// pero se busca en todas las páginas (buildPages lo deja siempre solo en la suya): así un
+// ítem sobrante delante o un intro repetido no lo convierten en una lámina casi vacía. Si
+// hubiera más de uno, se usa el primero y se quitan todos. Sin modo presentación no se
+// toca nada: el intro se ve como una página más (introClassicHtml).
 function presTakeIntro(pages){
-  if(!PRES || !pages.length || pages[0].items.length!==1) return null;
-  const p = introPayload(pages[0].items[0]);
-  if(p) pages.shift();
-  return p;
+  if(!PRES || !pages.length) return null;
+  let found = null;
+  for(let i=pages.length-1; i>=0; i--){
+    const pg = pages[i];
+    const p = (pg.intro || pg.items.length===1) ? introPayload(pg.items[0]) : null;
+    if(p){ found = p; pages.splice(i,1); }
+  }
+  return found;
 }
 // Lámina donde retomar un intento en progreso (solo cursos con pantalla de entrada): la
 // última guardada en este navegador o, si las respuestas del servidor van más adelante
@@ -857,9 +987,9 @@ function presWake(){
 document.addEventListener('mousemove', ()=>{ if(PRES) presWake(); });
 
 let toastTimer=null;
-function presToast(msg){
+function presToast(msg, ms){
   const t=el('presToast'); t.textContent=msg; t.classList.add('show');
-  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'), 1800);
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'), ms||1800);
 }
 
 // Enter/Espacio solo avanzan si la(s) pregunta(s) de la lámina ya tienen respuesta
@@ -910,8 +1040,8 @@ function presInfoSlide(p){
   const layout = p.layout || 'dark';
   const body = infoBody(p);
   const tt = p.title ? `<h2>${esc(p.title)}</h2>` : '';
-  // Un 'intro' fuera de la primera posición (seed.mjs no lo deja pasar) se ve como lámina oscura.
-  if(layout==='intro')
+  // presTakeIntro saca el intro de las páginas; esto queda solo como red de seguridad.
+  if(isIntroLayout(p))
     return slideWrap('sl-dark', `<h1 class="sl-kicker">${esc(panelTitle())}</h1><div class="sl-rule"></div>`, (p.title?`<h3>${esc(p.title)}</h3>`:'')+introDescHtml(p.description));
   if(layout==='cover')
     return slideWrap('sl-cover', `<img class="cover-photo" src="${esc(safePhoto(p.photo))}" alt="" /><div class="cover-band"><h1>${esc(p.title)}</h1></div>`, body);
@@ -951,36 +1081,90 @@ function presSummaryHtml(){
   let actions='';
   if(!T.review){
     const label = T.repaso ? 'Cerrar' : (T.preview ? 'Cerrar (vista previa)' : 'Finalizar');
-    actions = `<div class="actions"><button class="pbtn" onclick="el('finishBtn').click()" ${canFinish()?'':'disabled'}>${label}</button>` +
-              (el('prevBtn').classList.contains('hidden') ? '' : `<button class="pbtn ghost" onclick="presNav(goPrev)">Volver</button>`) + `</div>`;
+    // «Volver» a la izquierda y la acción principal a la derecha, el par centrado.
+    actions = `<div class="actions">` +
+              (el('prevBtn').classList.contains('hidden') ? '' : `<button class="pbtn ghost" onclick="presNav(goPrev)">Volver</button>`) +
+              `<button class="pbtn" id="presFinishBtn" onclick="el('finishBtn').click()" ${canFinish()?'':'disabled'}>${label}</button></div>`;
   }
   return slideWrap('sl-dark sl-sum', `<h1 class="sl-kicker">Resumen del adiestramiento</h1><div class="sl-rule"></div>`,
     `<p>${answeredCount()} de ${questionCount()} preguntas contestadas.</p><div class="sumgrid">${rows}</div>${summaryFoot()}${actions}`);
 }
 
+// Marco de una lámina: lo que queda igual entre dos láminas seguidas del mismo tipo. Para
+// split es el layout, la variante y el título del panel; para la oscura de contenido, el
+// encabezado (kicker). Preguntas, módulos, portadas y fotos no comparten marco ('').
+function presFrameKey(s){
+  const sl = s.firstElementChild;
+  if(!sl || !sl.classList.contains('sl')) return '';
+  if(sl.classList.contains('sl-split')){
+    const t = sl.querySelector('.ptitle');
+    return 'split|' + sl.className + '|' + (t ? t.textContent : '');
+  }
+  if(sl.classList.contains('sl-dark') && !sl.classList.contains('sl-q') && !sl.classList.contains('sl-mod') &&
+     !sl.classList.contains('sl-sum') && !sl.classList.contains('sl-final')){
+    const k = sl.querySelector(':scope > .sl-kicker');
+    return 'dark|' + sl.className + '|' + (k ? k.textContent : '');
+  }
+  return '';
+}
+
 // Mete la lámina nueva en el escenario con la transición configurada. dir>0 avanza,
 // dir<0 retrocede, 0 = misma página (p. ej. al revelar el veredicto): sin animación.
+// Si la nueva comparte marco con la anterior (presFrameKey), el marco no se mueve: la
+// nueva la cubre al instante y solo entra su contenido. Una transición a medias se
+// termina en seco antes de empezar la siguiente, y la lámina saliente se retira siempre
+// (transitionend/animationend, con respaldo por tiempo).
+let presTx = null;               // transición en curso: { finish }
 function presShow(html, dir){
   const layer = el('presLayer');
+  if(presTx) presTx.finish();
   [...layer.children].forEach(c=>{ if(c!==presCur) layer.removeChild(c); });   // restos de una transición a medias
   const old = presCur;
   const s = document.createElement('div'); s.className='slide'; s.innerHTML=html;
   presCur = s;
-  const mode = (!old || !dir || !motionOk) ? 'none' : PRES.transition;
+  const key = presFrameKey(s);
+  const same = !!(old && key && key===old.dataset.frame);
+  s.dataset.frame = key;
+  let mode = (!old || !dir || !motionOk || PRES.transition==='none') ? 'none' : (same ? 'keep' : PRES.transition);
   const drop = ()=>{ if(old && old.parentNode===layer) layer.removeChild(old); };
   const next2 = fn => requestAnimationFrame(()=>requestAnimationFrame(fn));
-  if(mode==='cover' && dir>0){
+
+  // Cierre común: una sola vez, venga del evento o del respaldo por tiempo.
+  const run = (target, evName, ms, done) => {
+    let over = false, timer = 0;
+    const onEnd = e => { if(e.target===target) finish(); };
+    const finish = () => {
+      if(over) return; over = true;
+      clearTimeout(timer); target.removeEventListener(evName, onEnd);
+      done();
+      if(presTx===tx) presTx = null;
+    };
+    const tx = { finish };
+    target.addEventListener(evName, onEnd);
+    timer = setTimeout(finish, ms);
+    presTx = tx;
+  };
+
+  if(mode==='keep'){
+    s.classList.add('keep'); s.style.setProperty('--dx', dir>0 ? 1 : -1);
+    layer.appendChild(s); drop();                     // mismo marco: la anterior queda tapada al instante
+    const body = s.querySelector('.sl-body');
+    if(body) run(body, 'animationend', 450, ()=>s.classList.remove('keep'));
+    else s.classList.remove('keep');
+  } else if(mode==='cover' && dir>0){
+    // (los requestAnimationFrame pueden llegar después del respaldo si la pestaña está
+    // oculta: solo actúan si la transición sigue viva)
     s.classList.add('from-right'); layer.appendChild(s);
-    next2(()=>s.classList.add('in'));
-    setTimeout(()=>{ drop(); s.classList.remove('from-right','in'); }, 480);
+    next2(()=>{ if(s.classList.contains('from-right')) s.classList.add('in'); });
+    run(s, 'transitionend', 500, ()=>{ drop(); s.classList.remove('from-right','in'); });
   } else if(mode==='cover'){
     layer.insertBefore(s, old);
-    next2(()=>old.classList.add('to-right'));
-    setTimeout(drop, 480);
+    next2(()=>{ if(old.parentNode) old.classList.add('to-right'); });
+    run(old, 'transitionend', 500, drop);
   } else if(mode==='fade'){
     s.classList.add('fade-in'); layer.appendChild(s);
-    next2(()=>{ s.classList.add('in'); old.classList.add('fade-out'); });
-    setTimeout(()=>{ drop(); s.classList.remove('fade-in','in'); }, 400);
+    next2(()=>{ if(s.classList.contains('fade-in')){ s.classList.add('in'); old.classList.add('fade-out'); } });
+    run(s, 'transitionend', 450, ()=>{ drop(); s.classList.remove('fade-in','in'); });
   } else {
     layer.innerHTML=''; layer.appendChild(s);
   }
@@ -1004,16 +1188,17 @@ function presFitOverflow(s){
 }
 
 // ---------- boot ----------
+// La carga inicial enciende la barra de carga (la pantalla ya dice «Cargando adiestramiento…»).
 if(repasoId){
-  startRepaso();
+  whileBusy(null, startRepaso);
 } else if(reviewId){
   el('prevBtn').onclick = () => { if(T.idx>0){ T.idx--; renderStepReview(); } };
   el('nextBtn').onclick = () => { if(T.idx<T.pages.length){ T.idx++; renderStepReview(); } };
-  startReview();
+  whileBusy(null, startReview);
 } else if(previewId){
-  startPreview();
+  whileBusy(null, startPreview);
 } else {
-  startTake();
+  whileBusy(null, startTake);
 }
 </script>
 </body>

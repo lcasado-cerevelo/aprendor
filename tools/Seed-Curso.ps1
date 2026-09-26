@@ -151,7 +151,32 @@ function Enviar-PlayerConfig($trainingId) {
     Write-Output "Opciones del reproductor enviadas (modo presentacion: $($pc.presentation.enabled))."
 }
 
+# Antes de publicar se relee el borrador: tiene que tener exactamente los items de
+# course.json, en el mismo orden, y la pantalla de entrada (si la hay) de primera. Si
+# quedo un item de mas (p. ej. uno agregado en la app mientras corria el script) o el
+# orden no coincide, NO se publica: el reproductor mostraria el intro como una lamina.
+function Verificar-Borrador($trainingId) {
+    $d = Invoke-Api -Path "/trainings/$trainingId/draft"
+    $got = @($d.items)
+    $errores = @()
+    if ($got.Count -ne $items.Count) { $errores += "el borrador tiene $($got.Count) items y course.json $($items.Count)" }
+    $n = [Math]::Min($got.Count, $items.Count)
+    for ($i = 0; $i -lt $n; $i++) {
+        if ($got[$i].type -ne $items[$i].type) { $errores += "item $($i + 1): se esperaba $($items[$i].type) y hay $($got[$i].type)"; break }
+    }
+    if ($conIntro) {
+        $primero = if ($got.Count) { try { $got[0].payloadJson | ConvertFrom-Json } catch { $null } } else { $null }
+        if (-not $primero -or $primero.layout -ne 'intro') { $errores += 'la pantalla de entrada (layout intro) no quedo como primer item' }
+    }
+    if ($errores.Count) {
+        Write-Error ("El borrador no quedo igual que course.json: " + ($errores -join '; ') + '. No se publico; revisa el curso en la app y vuelve a correr el script.')
+        exit 1
+    }
+    Write-Output "Borrador verificado: $($got.Count) items en el orden de course.json$(if ($conIntro) { ', pantalla de entrada primero' })."
+}
+
 function Publicar-SiCorresponde($trainingId) {
+    Verificar-Borrador $trainingId
     if ($Publish) {
         $v = Invoke-Api -Path "/trainings/$trainingId/publish" -Method 'POST'
         Write-Output "Publicado: version $($v.versionNumber)."

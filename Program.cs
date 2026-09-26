@@ -247,7 +247,8 @@ app.UseDefaultFiles();
 // Las páginas (index.html, player.html, certificate.html) llevan todo el front en línea: sin
 // Cache-Control el navegador las guardaba por heurística (horas o días según su
 // Last-Modified) y, tras publicar, seguía corriendo la versión anterior contra la API nueva
-// (así una pantalla vieja de «Validar correo» no avanzaba y el segundo clic daba 400).
+// (así una pantalla vieja de «Validar correo» no avanzaba y el segundo clic daba 400, y el
+// reproductor viejo no mostraba la pantalla de entrada del curso).
 // no-cache: se pueden guardar, pero se revalidan en cada carga (ETag, 304 si no cambió).
 app.UseStaticFiles(new StaticFileOptions
 {

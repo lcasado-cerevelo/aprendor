@@ -19,15 +19,24 @@
   body.pres>header,body.pres>.progress,body.pres>main,body.pres>.nav{display:none !important;}
   #presRoot{display:none;}
   body.pres #presRoot{display:block;position:fixed;inset:0;background:var(--pbg);}
-  .pstage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform:translate(-50%,-50%) scale(var(--pk,1));overflow:hidden;background:var(--pbg);}
+  /* El escenario se coloca en píxeles enteros (--px/--py, ver presFit): con left:50% y
+     translate(-50%) una ventana de ancho impar dejaba la lámina en medio píxel y el texto
+     se veía borroso. */
+  .pstage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;transform:translate(var(--px,0px),var(--py,0px)) scale(var(--pk,1));overflow:hidden;background:var(--pbg);}
   .player{position:absolute;inset:0;}
-  .slide{position:absolute;inset:0;transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .35s ease;}
-  .slide.from-right{transform:translateX(100%);box-shadow:-24px 0 48px rgba(0,0,0,.45);}
+  /* Transiciones cortas (~320 ms). Al terminar se quitan las clases: la lámina queda sin
+     transform y la saliente se retira siempre (transitionend con respaldo por tiempo). */
+  .slide{position:absolute;inset:0;transition:transform .32s cubic-bezier(.2,.7,.2,1),opacity .28s ease;}
+  .slide.from-right{transform:translateX(100%);box-shadow:-16px 0 32px rgba(0,0,0,.35);}
   .slide.from-right.in{transform:translateX(0);}
-  .slide.to-right{transform:translateX(100%);box-shadow:-24px 0 48px rgba(0,0,0,.45);}
+  .slide.to-right{transform:translateX(100%);box-shadow:-16px 0 32px rgba(0,0,0,.35);}
   .slide.fade-in{opacity:0;} .slide.fade-in.in{opacity:1;}
   .slide.fade-out{opacity:0;}
-  @media (prefers-reduced-motion:reduce){ .slide{transition:none !important;} }
+  /* Misma lámina de fondo (mismo layout, variante y título del panel o del encabezado): el
+     marco queda fijo y solo entra el contenido, sin arrastrar una copia del título. */
+  .slide.keep .sl-body{animation:slBodyIn .3s cubic-bezier(.2,.7,.2,1) both;}
+  @keyframes slBodyIn{from{opacity:0;transform:translateX(calc(var(--dx,1) * 28px));}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){ .slide{transition:none !important;} .slide.keep .sl-body{animation:none !important;} }
 
   /* --- lámina: base --- */
   .sl{position:absolute;inset:0;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:#fff;background:var(--pbg);line-height:1.25;}
@@ -83,7 +92,8 @@
   .sl-split{background:#fff;color:#111;}
   .sl-split .panel{position:absolute;left:0;top:0;width:494px;height:720px;background:#1f1f1f;overflow:hidden;}
   .sl-split .panel::before{content:"";position:absolute;inset:0;background:#2e2e2e;clip-path:polygon(18% 0,100% 0,100% 100%,69% 100%);}
-  .sl-split .ptitle{position:absolute;left:98px;width:340px;top:50%;transform:translateY(-50%);margin:0;font-size:34px;font-weight:700;text-transform:uppercase;color:#fff;line-height:1.15;z-index:2;}
+  /* centrado vertical con flex (no translateY(-50%), que deja medio píxel y texto borroso) */
+  .sl-split .ptitle{position:absolute;left:98px;width:340px;top:0;bottom:0;display:flex;align-items:center;margin:0;font-size:34px;font-weight:700;text-transform:uppercase;color:#fff;line-height:1.15;z-index:2;}
   .sl-split .sl-body{left:575px;right:80px;top:50px;bottom:36px;font-size:24px;display:flex;flex-direction:column;}
   .sl-split .sl-fit{margin:auto 0;}   /* centrado vertical seguro: si desborda, queda arriba */
   .sl-split .sl-body p{margin-bottom:10px;} .sl-split .sl-body li{margin-bottom:8px;}
@@ -121,10 +131,14 @@
   .sl-sum .sumrow{display:flex;gap:10px;border-bottom:1px solid #333;font-size:19px;padding:8px 2px;} .sl-sum .sumrow .st{margin-left:auto;}
   .sl .res{font-size:30px;font-weight:700;text-align:center;padding:12px;margin-top:14px;border-radius:12px;}
   .sl .res.pass{background:transparent;color:#4ade80;} .sl .res.fail{background:transparent;color:#f87171;}
-  .sl .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px;}
+  .sl .actions{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:24px;}
   .sl .tiempo{color:#bbb !important;font-size:18px !important;text-align:center;}
   .sl .center{margin:20px 0 0;padding:0;color:#bbb;}
-  .sl .center .btn{margin:0 6px;}
+  /* Lámina de resultado: todo centrado, con márgenes iguales a los dos lados. */
+  .sl-final .sl-kicker{left:90px;right:90px;text-align:center;}
+  .sl-final .sl-rule{left:90px;right:90px;}
+  .sl-final .sl-body{left:90px;right:90px;display:flex;flex-direction:column;}
+  .sl-final .sl-fit{margin:auto 0;text-align:center;}
   .sl .hintbox{background:rgba(254,249,195,.12);border-color:#a16207;color:#fde68a;font-size:16px;}
   .sl .btn,.pbtn{padding:13px 30px;border:0;border-radius:10px;background:var(--pacc);color:#fff;font:700 17px system-ui,sans-serif;cursor:pointer;text-decoration:none;display:inline-block;}
   .sl .btn.ghost,.pbtn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);}
@@ -156,7 +170,7 @@
   .pres-start .ps-stat span{display:block;margin-top:4px;font:600 12px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#bdbdbd;}
   .pres-start.intro .pbtn{font-size:19px;padding:15px 46px;}
   .pres-start .ps-hint{margin-top:12px;font:13px system-ui,sans-serif;color:#9a9a9a;letter-spacing:.02em;}
-  .pres-toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:10px;font:600 14px system-ui,sans-serif;z-index:25;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;}
+  .pres-toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:10px;font:600 14px system-ui,sans-serif;z-index:25;opacity:0;transition:opacity .25s;pointer-events:none;max-width:min(90vw,640px);text-align:center;}
   .pres-toast.show{opacity:1;}
   
   /* La vista previa escala cada escenario al ancho de su marco, no a la ventana */
