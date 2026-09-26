@@ -244,7 +244,19 @@ app.Use(async (ctx, next) =>
 });
 
 app.UseDefaultFiles();
-app.UseStaticFiles();
+// Las páginas (index.html, player.html, certificate.html) llevan todo el front en línea: sin
+// Cache-Control el navegador las guardaba por heurística (horas o días según su
+// Last-Modified) y, tras publicar, seguía corriendo la versión anterior contra la API nueva
+// (así una pantalla vieja de «Validar correo» no avanzaba y el segundo clic daba 400).
+// no-cache: se pueden guardar, pero se revalidan en cada carga (ETag, 304 si no cambió).
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        if (ctx.File.Name.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+            ctx.Context.Response.Headers.CacheControl = "no-cache";
+    }
+});
 
 // Lo que pasa de aquí no es un archivo estático: respuestas de la API, que llevan datos
 // personales y no deben quedar en cachés intermedias ni del navegador.
@@ -593,21 +605,44 @@ app.MapPost("/me/email/send-code", async (ITenantContext tc, ClaimsPrincipal pri
     return Results.Ok(new { verified = false, challengeId = reto.Id, email = user.Email });
 }).RequireAuthorization(PoliticasAcceso.Sesion);
 
-app.MapPost("/me/email/verify", async (TwoFactorVerifyRequest req, ITenantContext tc, ClaimsPrincipal principal,
+// Un segundo envío del mismo código (doble clic, Enter y clic, o una pantalla vieja que no
+// avanzó) no da error: si el reto ya se canjeó porque el correo quedó validado, se responde
+// igual que al primero, con la sesión al día.
+app.MapPost("/me/email/verify", async (EmailVerifyRequest? req, ITenantContext tc, ClaimsPrincipal principal,
     CatalogDbContext catalog, JwtTokenService jwt, IEmailSender email, ILoggerFactory logs) =>
 {
     var user = await catalog.Users.FindAsync(tc.UserId);
     if (user is null) return Results.NotFound();
     if (user.EmailVerifiedAt is null)
     {
-        var r = await DosFactores.ConsumirAsync(catalog, req.ChallengeId, req.Code, "verify-email", email,
+        if (req?.ChallengeId is not Guid reto)
+            return Results.BadRequest("No hay un código vigente en esta pantalla. Pulsa «Reenviar código» y escribe el nuevo.");
+        var r = await DosFactores.ConsumirAsync(catalog, reto, req.Code, "verify-email", email,
             logs.CreateLogger("DosFactores"), dueño: user.Id);
-        if (r.Espera is TimeSpan espera) return Demasiados.Resultado(espera, r.Error);
-        if (!r.Ok) return Results.BadRequest(r.Error ?? "El código no es válido.");
-
-        user.EmailVerifiedAt = DateTime.UtcNow;
-        catalog.AuditLogs.Add(new CatalogAuditLog { Action = "email-verified", Detail = user.Email, UserId = user.Id });
-        await catalog.SaveChangesAsync();
+        if (!r.Ok)
+        {
+            // Otra petición con el mismo código pudo validarlo mientras tanto: se mira la
+            // base, no la copia leída al empezar. Si el reto de este usuario ya aparece
+            // canjeado, la otra acertó el código aunque aún no haya guardado la fecha.
+            var validado = await catalog.Users.AsNoTracking().Where(u => u.Id == user.Id)
+                .Select(u => u.EmailVerifiedAt).FirstOrDefaultAsync();
+            var hace = DateTime.UtcNow.AddMinutes(-DosFactores.VigenciaMinutos);
+            var canjeado = validado is null && await catalog.TwoFactorChallenges.AsNoTracking().AnyAsync(c =>
+                c.Id == reto && c.UserId == user.Id && c.Purpose == "verify-email" && c.UsedAt != null && c.UsedAt > hace);
+            if (validado is null && !canjeado)
+            {
+                if (r.Espera is TimeSpan espera) return Demasiados.Resultado(espera, r.Error);
+                return Results.BadRequest(r.Error ?? "El código no es válido.");
+            }
+            user.EmailVerifiedAt = validado ?? DateTime.UtcNow;
+            if (validado is null) await catalog.SaveChangesAsync();
+        }
+        else
+        {
+            user.EmailVerifiedAt = DateTime.UtcNow;
+            catalog.AuditLogs.Add(new CatalogAuditLog { Action = "email-verified", Detail = user.Email, UserId = user.Id });
+            await catalog.SaveChangesAsync();
+        }
     }
     // Con el correo ya validado no se comprueba ningún código: el token nuevo solo pone el
     // alcance al día y vence cuando vencía el actual (RenovarAsync no alarga sin prueba).
@@ -2153,6 +2188,10 @@ record ForgotPasswordRequest(string? Email, string? TurnstileToken = null);
 record ResetWithTokenRequest(string? Token, string? NewPassword, string? TotpCode = null, string? TurnstileToken = null);
 record RecoverStartRequest(Guid ChallengeId, string? TurnstileToken = null);
 record TwoFactorVerifyRequest(Guid ChallengeId, string? Code);
+// /me/email/verify: el reto puede faltar (la página se recargó y el envío del código
+// respondió 429, por ejemplo). Si el correo ya está validado no hace falta; si no, el
+// error dice qué hacer en vez de un 400 vacío del enlace del modelo.
+record EmailVerifyRequest(Guid? ChallengeId, string? Code);
 record ResendRequest(Guid ChallengeId);
 record TwoFactorSetupRequest(string? Mode, string? CurrentPassword = null, string? Code = null,
     Guid? EmailChallengeId = null, string? EmailCode = null);
