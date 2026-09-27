@@ -8,14 +8,18 @@
 // estas situaciones en el lugar de trabajo, supervisado por PR-OSHA) y la Ley
 // Núm. 83-2019 (licencia especial de hasta 15 días para el empleado afectado).
 //
-// 4 módulos. El último cierra con las 6 preguntas de evaluación (10 puntos c/u).
+// 17 láminas en el orden del deck (1 portada; 2-3 instrucciones y objetivo; 4-10
+// contenido; 11 «Sesión de preguntas»; 12-17 las 6 preguntas de 10 puntos) más una
+// lámina final de recursos adicionales. Antes de la portada va la pantalla de entrada
+// (intro()), que no cuenta como lámina. Se toma en modo presentación
+// (PlayerConfig.presentation), con el mismo estilo que Hostigamiento Sexual.
 // El umbral de aprobación de la versión es 70% (TrainingVersion.PassPercent).
 // ============================================================================
 
 import m0 from './m0-apertura.mjs';
 import m1 from './m1-que-es-violencia-domestica.mjs';
 import m2 from './m2-protocolo-en-el-empleo.mjs';
-import m3 from './m3-cierre-y-evaluacion.mjs';
+import m3 from './m3-evaluacion.mjs';
 
 export default {
   training: {
@@ -38,6 +42,16 @@ export default {
       showScore: true,
       showValidity: true,
       accentColor: '#9f1239',
+    },
+    // Modo presentación: fondo negro, panel diagonal con el título en mayúsculas y acento
+    // violeta (el color de la lucha contra la violencia doméstica).
+    playerConfig: {
+      allowBack: true,
+      presentation: {
+        enabled: true,
+        theme: { bg: '#0d0d0d', accent: '#c084fc', panel: true, panelTitle: 'VIOLENCIA DOMÉSTICA EN EL EMPLEO' },
+        transition: 'cover',
+      },
     },
   },
 

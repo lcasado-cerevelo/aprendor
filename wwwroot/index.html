@@ -1260,6 +1260,9 @@ const ICONS = {
   lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
   doc:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h6"/>',
   truck:'<path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+  home:'<path d="M3 11l9-7 9 7"/><path d="M5 9.5V20h14V9.5"/><path d="M12 18s-3-1.8-3-4a1.5 1.5 0 0 1 3-1 1.5 1.5 0 0 1 3 1c0 2.2-3 4-3 4z"/>',
+  medical:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M12 11v6M9 14h6"/>',
+  cpu:'<rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 10h4v4h-4z"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/>',
   layers:'<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
   sliders:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
   check:'<path d="M5 12l5 5 9-10"/>',
@@ -2759,14 +2762,21 @@ function catRows(){ return catItems.map((c, i) => ({ c, i, k: catInfo(c) })); }
 // fijo por categoría (o por título si no tiene) con un ícono según el tema.
 const GRADS = ['g1','g2','g3','g4','g5'];
 function hashStr(s){ let h = 0; for (const ch of String(s||'')) h = (h * 31 + ch.charCodeAt(0)) | 0; return Math.abs(h); }
+// Un ícono por tema, sin repetir entre los cursos del catálogo. Se decide solo por el
+// título: la categoría («Cumplimiento», «Adiestramiento») es común a varios cursos y haría
+// que compartieran ícono. Lo que no coincide con ningún tema toma uno de la reserva según
+// el título, para que dos cursos sin tema no salgan siempre iguales.
+const ICON_POOL = ['book','layers','doc','heart'];
 function courseIcon(t){
   t = (t || '').toLowerCase();
-  if (/hipaa|privacidad|datos personales|informaci[oó]n/.test(t)) return 'lock';
-  if (/hostigamiento|cumplimiento|(^|\s)[ée]tica|(^|\s)ley /.test(t)) return 'shield';
-  if (/acoso|equipo|convivencia|diversidad|servicio/.test(t)) return 'users';
-  if (/violencia|salud|bienestar|primeros auxilios/.test(t)) return 'heart';
-  if (/almac[eé]n|montacargas|log[ií]stica|transporte|osha|seguridad/.test(t)) return 'truck';
-  return 'book';
+  if (/hostigamiento/.test(t)) return 'shield';
+  if (/acoso|convivencia|diversidad|equipo/.test(t)) return 'users';
+  if (/violencia/.test(t)) return 'home';
+  if (/hipaa|salud|primeros auxilios/.test(t)) return 'medical';
+  if (/inteligencia artificial|(^|[^a-záéíóúñ])ia([^a-záéíóúñ]|$)/.test(t)) return 'cpu';
+  if (/seguridad de la informaci[oó]n|ciberseguridad|privacidad|datos personales|contrase[ñn]a|phishing/.test(t)) return 'lock';
+  if (/almac[eé]n|montacargas|log[ií]stica|transporte|osha/.test(t)) return 'truck';
+  return ICON_POOL[hashStr(t) % ICON_POOL.length];
 }
 function courseLook(c){
   const m = catMeta[c.trainingId] || {};
@@ -2774,7 +2784,7 @@ function courseLook(c){
   const cover = (typeof m.cover === 'string' && /^(https?:\/\/|\/|data:image\/)/i.test(m.cover)) ? m.cover : null;
   return { category, description: m.description || '', cover,
            grad: GRADS[hashStr(m.category || c.title) % GRADS.length],
-           icon: courseIcon(c.title + ' ' + (m.category || '')) };
+           icon: courseIcon(c.title) };
 }
 function coverHtml(look, size, extra){
   const bg = look.cover ? ` style="background-image:${esc('url("' + look.cover.replace(/["\\\r\n]/g, '') + '")')}"` : '';
@@ -4455,7 +4465,7 @@ function trLook(t){
   const cat = (t.categoryId && catNames[t.categoryId]) || null;
   const cover = coverCache[t.id] || null;
   return { category: cat || 'Adiestramiento', cover, grad: GRADS[hashStr(cat || t.title) % GRADS.length],
-           icon: courseIcon(t.title + ' ' + (cat || '')) };
+           icon: courseIcon(t.title) };
 }
 function trCard(t){
   const look = trLook(t), st = trStatus(t), s = trStats[t.id], rib = TR_PILL[st];

@@ -5,8 +5,11 @@
 // (content/hipaa-advance-logistics, retirado). Transcripción nativa del deck
 // "Adiestramiento Plataforma - Ley HIPAA.pptx".
 //
-// 5 módulos. Cada uno abre con un ModuleHeader (salvo la apertura) y el
-// último cierra con las 6 preguntas de evaluación (10 puntos cada una).
+// 18 láminas en el orden del deck (1 portada; 2-3 instrucciones y objetivo; 4-12
+// contenido; 13-18 las 6 preguntas de 10 puntos) más una lámina final de recursos
+// adicionales. Antes de la portada va la pantalla de entrada (intro()), que no cuenta
+// como lámina. Se toma en modo presentación (PlayerConfig.presentation), con el mismo
+// estilo que Hostigamiento Sexual.
 // El umbral de aprobación de la versión es 70% (TrainingVersion.PassPercent).
 // ============================================================================
 
@@ -37,6 +40,16 @@ export default {
       showScore: true,
       showValidity: true,
       accentColor: '#1d4ed8',
+    },
+    // Modo presentación: fondo negro, panel diagonal con el título en mayúsculas y acento
+    // verde azulado (tono de salud).
+    playerConfig: {
+      allowBack: true,
+      presentation: {
+        enabled: true,
+        theme: { bg: '#0d0d0d', accent: '#2dd4bf', panel: true, panelTitle: 'CUMPLIMIENTO CON LA LEY HIPAA' },
+        transition: 'cover',
+      },
     },
   },
 

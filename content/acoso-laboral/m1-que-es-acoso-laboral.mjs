@@ -1,33 +1,54 @@
-import { info, T, S, img, fig, quote, chips } from '../_shared/authoring.mjs';
+// Láminas 4-8 del deck: definición, la Ley 90-2020, conductas, lo que no es acoso y la
+// reiteración. Las láminas 5, 6 y 8 no tienen encabezado propio en el deck: van sin título.
+import { slide, T, bullets } from '../_shared/authoring.mjs';
 
 export default [
-  info('¿Qué es el acoso laboral?',
-    T(`${img('https://images.unsplash.com/photo-1758518731706-be5d5230e5a5?fm=jpg&q=60&w=1200&auto=format&fit=crop',
-        'Compañeros de trabajo conversando de forma respetuosa en la oficina',
-        'Foto: Vitaly Gariev / Unsplash')}
-       ${quote('Conducta malintencionada, no deseada, repetitiva y abusiva que atenta contra la reputación y la vida privada o familiar, y crea un entorno de trabajo intimidante, humillante, hostil u ofensivo.', '#4338ca')}`)),
+  // Lámina 4
+  slide({ layout: 'split', title: '¿Qué es el acoso laboral?' },
+    T(`<p>Es aquella conducta malintencionada, no deseada, <u>repetitiva</u> y abusiva que:</p>
+       ${bullets([
+         'Atenta contra la reputación y la vida privada o familiar.',
+         'Crea un entorno de trabajo intimidante, humillante, hostil u ofensivo.',
+       ])}`)),
 
-  info('La Ley Núm. 90-2020',
-    T(`${fig(import.meta.url, './img/exclusion.jpg',
-        'Un grupo de fichas del mismo color y una ficha distinta apartada del grupo',
-        'Foto: Markus Spiske / Unsplash')}
-       <p>La Ley Núm. 90-2020 establece una política pública para prohibir y prevenir el acoso laboral en
-       Puerto Rico. La Ley reconoce que el acoso laboral puede ocurrir:</p>
-       ${chips(['Entre supervisor y empleado', 'Entre empleados del mismo nivel', 'Aun con acosador en posición inferior'], '#4338ca')}
-       <div style="${S.call}">El acoso laboral no depende necesariamente de una relación jerárquica.</div>`)),
+  // Lámina 5
+  slide({ layout: 'split', title: '' },
+    T(bullets([
+      'La Ley Núm. 90-2020 establece una política pública para prohibir y prevenir el acoso laboral en Puerto Rico.',
+      ['La Ley reconoce que el acoso laboral puede ocurrir:', [
+        'Entre supervisor y empleado',
+        'Entre empleados del mismo nivel',
+        'Incluso cuando existe una relación donde la persona acosadora ocupa una posición inferior',
+      ]],
+      'El acoso laboral no depende necesariamente de una relación jerárquica',
+    ]))),
 
-  info('Conductas que pueden constituir acoso laboral',
-    T(`${fig(import.meta.url, './img/senalando.jpg',
-        'Varias manos señalando con el dedo hacia una misma persona',
-        'Foto: Maulana Ahmad / Unsplash')}
-       <ul>
-         <li>Expresiones injuriosas, difamatorias o lesivas</li>
-         <li>Palabras soeces dirigidas hacia una persona</li>
-         <li>Comentarios hostiles o humillantes sobre su desempeño profesional</li>
-         <li>Amenazas injustificadas de despido</li>
-         <li>Descalificación humillante de sus opiniones o propuestas de trabajo</li>
-         <li>Burlas o comentarios humillantes sobre su apariencia</li>
-         <li>Exponer públicamente asuntos relacionados con la intimidad personal o familiar</li>
-       </ul>
-       <p style="${S.muted}">La Ley establece que esta lista no es exclusiva.</p>`)),
+  // Lámina 6
+  slide({ layout: 'split', title: '' },
+    T(`<p>Algunas conductas que pueden constituir acoso laboral incluyen:</p>
+       ${bullets([
+         'Expresiones injuriosas, difamatorias o lesivas.',
+         'Palabras soeces dirigidas hacia una persona.',
+         'Comentarios hostiles o humillantes sobre su desempeño profesional.',
+         'Amenazas injustificadas de despido.',
+         'Descalificación humillante de sus opiniones o propuestas de trabajo.',
+         'Burlas o comentarios humillantes sobre su apariencia.',
+         'Exponer públicamente asuntos relacionados con la intimidad personal o familiar.',
+       ])}
+       <p>La Ley establece que esta lista <b>no es exclusiva</b>.</p>`)),
+
+  // Lámina 7 — en el deck el «no» va subrayado; el título de la lámina es texto plano.
+  slide({ layout: 'split', title: 'Qué no se considera acoso' },
+    T(bullets([
+      'Actos destinados a ejercer la potestad disciplinaria que legalmente corresponde a los supervisores sobre sus subalternos.',
+      'Exigir que el empleado cumpla con sus responsabilidades.',
+      'Promulgación de reglamentos y políticas con el fin de maximizar la eficiencia del negocio.',
+    ]))),
+
+  // Lámina 8
+  slide({ layout: 'split', title: '' },
+    T(bullets([
+      'Uno de los elementos importantes del concepto de acoso laboral bajo la Ley 90-2020 es que se trata de conductas reiteradas, frecuentes y persistentes.',
+      'Una situación aislada puede ser inapropiada y requerir atención, pero no toda conducta inapropiada constituye automáticamente acoso laboral.',
+    ]))),
 ];

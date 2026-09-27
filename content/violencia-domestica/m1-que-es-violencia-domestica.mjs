@@ -1,42 +1,38 @@
-import { info, T, S, fig, quote, chips } from '../_shared/authoring.mjs';
+// Láminas 4-6 del deck: qué es, quién puede ser víctima y sus formas. La lámina 5 no tiene
+// encabezado propio en el deck: va sin título.
+import { slide, T, bullets } from '../_shared/authoring.mjs';
 
 export default [
-  info('¿Qué es violencia doméstica?',
-    T(`${fig(import.meta.url, './img/apoyo.jpg',
-        'Una persona apoya la mano sobre el hombro de una compañera preocupada',
-        'Foto de referencia')}
-       ${quote('Un patrón de comportamiento utilizado para ejercer poder y control sobre otra persona dentro de una relación de pareja.', '#9f1239')}
+  // Lámina 4
+  slide({ layout: 'split', title: '¿Qué es Violencia Doméstica?' },
+    T(`<p>La violencia doméstica es un patrón de comportamiento utilizado para ejercer poder y control sobre otra
+       persona dentro de una relación de pareja.</p>
        <p>Puede incluir:</p>
-       ${chips([
-         'Violencia física', 'Violencia emocional o psicológica', 'Amenazas e intimidación', 'Abuso económico',
-         'Acecho o vigilancia', 'Violencia sexual', 'Control excesivo',
-       ], '#9f1239')}`)),
+       ${bullets([
+         'Violencia física',
+         'Violencia emocional o psicológica',
+         'Amenazas e intimidación',
+         'Abuso económico',
+         'Acecho o vigilancia',
+         'Violencia sexual',
+         'Control excesivo de las actividades y relaciones de la persona',
+       ])}`)),
 
-  info('¿Quién puede ser víctima?',
-    T(`${fig(import.meta.url, './img/sola.jpg',
-        'Una persona sentada sola en una escalinata, cabizbaja',
-        'Foto: Zhivko Minkov / Unsplash')}
-       <p>La víctima de violencia doméstica proviene de eventos violentos entre cónyuges, excónyuges, noviazgos
-       o relación consensual íntima.</p>
-       <div style="${S.call}"><b>No tiene género.</b> Cualquier persona, independientemente de su género, puede
-       ser víctima de violencia doméstica.</div>`)),
+  // Lámina 5
+  slide({ layout: 'split', title: '' },
+    T(bullets([
+      'La víctima de violencia doméstica proviene de eventos violentos entre cónyuges, excónyuges, noviazgos o relación consensual íntima',
+      'No tiene género',
+    ]))),
 
-  info('Formas de violencia doméstica',
-    T(`<div style="${S.grid}">
-         <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:12px 14px">
-           <b>Física</b><br><span style="font-size:14px;color:#475569">Golpes, empujones, mordidas u otras agresiones.</span>
-         </div>
-         <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:12px 14px">
-           <b>Emocional o psicológica</b><br><span style="font-size:14px;color:#475569">Humillaciones, insultos, persecución, amenazas o manipulación.</span>
-         </div>
-         <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:12px 14px">
-           <b>Económica</b><br><span style="font-size:14px;color:#475569">Control del dinero en cuentas bancarias o recursos económicos.</span>
-         </div>
-         <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:12px 14px">
-           <b>Sexual</b><br><span style="font-size:14px;color:#475569">Cualquier acto sexual impuesto o no consentido.</span>
-         </div>
-         <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:12px 14px">
-           <b>Control</b><br><span style="font-size:14px;color:#475569">Revisar teléfonos, controlar redes sociales, rastrear ubicación o enviar mensajes amenazantes.</span>
-         </div>
-       </div>`)),
+  // Lámina 6
+  slide({ layout: 'split', title: 'Formas de Violencia Doméstica' },
+    T(`<p>La violencia doméstica se puede manifestar de diferentes formas:</p>
+       ${bullets([
+         ['<b>Física</b>', ['Golpes, empujones, mordidas u otras agresiones.']],
+         ['<b>Emocional o psicológica</b>', ['Humillaciones, insultos, persecución, amenazas o manipulación.']],
+         ['<b>Económica</b>', ['Control del dinero en cuentas bancarias o recursos económicos de la persona.']],
+         ['<b>Sexual</b>', ['Cualquier acto sexual impuesto o no consentido.']],
+         ['<b>Control</b>', ['Revisar teléfonos, controlar redes sociales, rastrear ubicación o enviar mensajes amenazantes.']],
+       ])}`)),
 ];

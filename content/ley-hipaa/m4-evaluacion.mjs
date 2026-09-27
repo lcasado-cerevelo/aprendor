@@ -1,8 +1,8 @@
-import { mod, mc } from '../_shared/authoring.mjs';
+// Láminas 13-18 del deck: las 6 preguntas de evaluación (10 puntos c/u), y una lámina
+// final de recursos adicionales (fuera del deck).
+import { slide, T, mc, bullets, heading } from '../_shared/authoring.mjs';
 
 export default [
-  mod('Evaluación', 'Selecciona la respuesta correcta de acuerdo con el contenido presentado.'),
-
   mc('¿Cuál de las siguientes opciones describe mejor la información protegida de salud (PHI)?',
     [
       'Información personal relacionada únicamente con seguros médicos',
@@ -39,7 +39,7 @@ export default [
     [
       'Compartir la contraseña con un compañero de confianza',
       'Tomar fotografías de órdenes médicas con el teléfono personal',
-      'Dejar una computadora desbloqueada mientras se está en el periodo de almuerzo',
+      'Dejar una computadora desbloqueada mientras se está durante el periodo de almuerzo',
       'Reportar inmediatamente una situación de exposición de información protegida',
     ], 'd'),
 
@@ -50,4 +50,15 @@ export default [
       'No, porque no se deben utilizar teléfonos personales para tomar o compartir información protegida fuera de los métodos autorizados por la empresa',
       'Sí, si no aparece el nombre completo del paciente',
     ], 'c'),
+
+  // Lámina final — recursos adicionales (video como enlace, no incrustado).
+  slide({ layout: 'dark', title: 'Recursos adicionales' },
+    T(`${heading('Recursos adicionales')}
+       <p>Material complementario, opcional, para profundizar en el tema:</p>
+       ${bullets([
+         '<a href="https://www.hhs.gov/hipaa/for-professionals/training/index.html" target="_blank" rel="noopener">HHS — Guías y adiestramiento sobre HIPAA</a> (en inglés)',
+         '<a href="https://www.youtube.com/shorts/2hYefuexVCA" target="_blank" rel="noopener">¿Qué es la Ley HIPAA? Protección de la privacidad en la salud</a> — video',
+       ])}
+       <p><b>Recuerde:</b> la información de salud se maneja solo cuando es necesario para el trabajo. Ante una
+       posible exposición, no la oculte: repórtela de inmediato a la Administradora o a su supervisor.</p>`)),
 ];
