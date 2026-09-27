@@ -886,6 +886,21 @@ public static class RedesConfianza
             .Select(t => t.SecurityConfigJson).ToListAsync();
         return jsons.Count == relevantes.Count && jsons.All(j => En(SecurityConfig.Parse(j).Redes(), ip));
     }
+
+    // ¿Hay alguna red desde la que no se le pediría el código? Las de la instancia, o las de
+    // TODAS sus compañías relevantes (como en ParaUsuarioAsync). Solo para el texto del
+    // alta: «al entrar desde fuera de la oficina» en vez de «cada vez que entres».
+    public static async Task<bool> HayParaUsuarioAsync(CatalogDbContext c, AppUser u)
+    {
+        if (_instancia.Count > 0) return true;
+        var compañias = await Compañias.DeUsuarioAsync(c, u);
+        var relevantes = compañias.Where(x => x.Politica2FA != "off").Select(x => x.TenantId).ToList();
+        if (relevantes.Count == 0) relevantes = compañias.Select(x => x.TenantId).ToList();
+        if (relevantes.Count == 0) return false;
+        var jsons = await c.Tenants.AsNoTracking().Where(t => relevantes.Contains(t.Id))
+            .Select(t => t.SecurityConfigJson).ToListAsync();
+        return jsons.Count == relevantes.Count && jsons.All(j => SecurityConfig.Parse(j).Redes().Count > 0);
+    }
 }
 
 // Cloudflare Turnstile: se valida en el servidor ANTES de buscar el usuario en
