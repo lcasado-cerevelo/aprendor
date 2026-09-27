@@ -2842,6 +2842,9 @@ function coverHtml(look, size, extra){
 // Datos que /catalog no trae (categoría, descripción, portada). /trainings y /categories
 // están abiertos a cualquier usuario de la compañía; si fallan, las tarjetas se ven igual
 // con el degradado y la categoría genérica.
+// Foto de la tarjeta: la lámina de portada del curso, servida por GET /media/portada/{id}
+// (lleva el token: es un background-image). /trainings dice con hasCover si la tiene.
+function portadaUrl(id){ return '/media/portada/' + encodeURIComponent(id) + '?access_token=' + encodeURIComponent(token); }
 async function loadCatMeta(){
   const [trs, cats] = await Promise.allSettled([api('/trainings'), api('/categories')]);
   const nombres = {};
@@ -2850,6 +2853,7 @@ async function loadCatMeta(){
   if (trs.status === 'fulfilled' && Array.isArray(trs.value)) trs.value.forEach(t => {
     let cover = null;
     try { const p = JSON.parse(t.playerConfigJson || '{}'); cover = (p.presentation && p.presentation.cover) || null; } catch {}
+    if (!cover && t.hasCover) cover = portadaUrl(t.id);
     meta[t.id] = { category: t.categoryId ? (nombres[t.categoryId] || null) : null, description: t.description || '', cover };
   });
   catMeta = meta;
@@ -4534,7 +4538,8 @@ function renderTrainings(){
 }
 function trLook(t){
   const cat = (t.categoryId && catNames[t.categoryId]) || null;
-  const cover = coverCache[t.id] || null;
+  // La de la ficha abierta (ya cargada) o la que sirve el servidor.
+  const cover = coverCache[t.id] || (t.hasCover ? portadaUrl(t.id) : null);
   return { category: cat || 'Adiestramiento', cover, grad: GRADS[hashStr(cat || t.title) % GRADS.length],
            icon: courseIcon(t.title) };
 }
@@ -4779,6 +4784,7 @@ function pendingChanges(){
 function coverItem(){ return activeDraft().find(i => i.type === 'Info' && pj(i.payloadJson).layout === 'cover') || null; }
 function coverUrlOf(it){
   const ph = it ? pj(it.payloadJson).photo : null;
+  if (typeof ph === 'string' && /^\/media\/[0-9a-f-]{36}$/i.test(ph)) return slPhoto(ph);   // foto subida: con token
   return (typeof ph === 'string' && /^(data:image\/|https:\/\/)/i.test(ph)) ? ph : null;
 }
 function renderFichaHead(){

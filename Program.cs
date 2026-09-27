@@ -1774,8 +1774,18 @@ app.MapGet("/trainings", async (ITenantContext tc, IServiceProvider sp) =>
 {
     if (tc.TenantId is null) return Results.BadRequest("No tenant context for this user.");
     var db = sp.GetRequiredService<TenantDbContext>();
+    // hasCover: el curso tiene foto de portada (GET /media/portada/{id}, ver Portadas.cs).
+    var conPortada = await TrainingPlatform.Portadas.ConPortadaAsync(db, ContenidoAcceso.PuedeCrear(tc.Role));
     if (ContenidoAcceso.PuedeCrear(tc.Role))
-        return Results.Ok(await db.Trainings.OrderByDescending(t => t.CreatedAt).ToListAsync());
+    {
+        var todos = await db.Trainings.OrderByDescending(t => t.CreatedAt).ToListAsync();
+        return Results.Ok(todos.Select(t =>
+        {
+            var n = System.Text.Json.JsonSerializer.SerializeToNode(t, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!.AsObject();
+            n["hasCover"] = conPortada.Contains(t.Id);
+            return n;
+        }));
+    }
 
     var publicados = await db.Trainings
         .Where(t => t.Status != "archived"
@@ -1786,7 +1796,8 @@ app.MapGet("/trainings", async (ITenantContext tc, IServiceProvider sp) =>
     return Results.Ok(publicados.Select(t => new
     {
         t.Id, t.Title, t.Description, t.CategoryId, t.Status,
-        playerConfigJson = ContenidoAcceso.SoloPortada(t.PlayerConfigJson)
+        playerConfigJson = ContenidoAcceso.SoloPortada(t.PlayerConfigJson),
+        hasCover = conPortada.Contains(t.Id)
     }));
 }).RequireAuthorization();
 
@@ -1811,6 +1822,7 @@ app.MapPost("/trainings", async (CreateTrainingRequest req, ITenantContext tc, I
 
 app.MapPhase2();
 app.MapNarracion();
+app.MapPortadas();
 app.MapCertificates();
 app.MapCompliance();
 app.MapRetakes();

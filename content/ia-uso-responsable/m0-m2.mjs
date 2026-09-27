@@ -4,7 +4,7 @@
 // M2 (11 → 4): cinco láminas de «qué información» van en tarjetas; clientes y salud en una
 // lámina con la ley de aquí; de los «casos reales» solo Samsung (2023) es verificable: los
 // demás pasan a ejemplos, sin multa ni investigación.
-import { slide, intro, T, mod, bullets } from '../_shared/authoring.mjs';
+import { slide, intro, T, mod, bullets, photo } from '../_shared/authoring.mjs';
 import * as Q from './preguntas.mjs';
 
 const caso = texto => slide({ layout: 'callout', kicker: 'Caso práctico' }, T(`<p>${texto}</p>`));
@@ -20,8 +20,11 @@ export const m0 = [
     minutes: 25,
   }),
 
-  slide({ layout: 'band', title: 'Inteligencia Artificial: Uso Seguro, Ético y Responsable', kicker: 'Adiestramiento' },
-    T(`<p>Fundamentos de la IA, riesgos de compartir información, errores de la IA, propiedad intelectual, decisiones y uso responsable en el trabajo.</p>`)),
+  // Portada: foto de Steve Johnson en Unsplash (licencia de Unsplash: uso comercial sin
+  // atribución), reducida a 1600 px. También es la foto de la tarjeta del curso y, atenuada,
+  // el fondo de la pantalla de entrada.
+  slide({ layout: 'cover', title: 'Inteligencia Artificial: Uso Seguro, Ético y Responsable',
+          photo: photo(import.meta.url, './img/portada.jpg') }),
 
   slide({ layout: 'cards', title: 'Objetivos de aprendizaje', kicker: 'Al terminar este curso podrás' },
     T(`<ul>

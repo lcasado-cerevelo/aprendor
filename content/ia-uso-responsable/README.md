@@ -21,6 +21,7 @@ https://claude.ai/artifact/Lq5gRVGuks3KSVYgdk7amP.
   2023), demandas por imágenes (contra las empresas de IA, p. ej. Getty Images contra
   Stability AI), Amazon (Reuters, 2018). Sale la lámina de código generado (dato GPL inexacto).
 - **Modo presentación en tema claro** (blanco y verde). Voz: `es-PR-KarinaNeural`.
+- Portada: `img/portada.jpg`, foto de Steve Johnson en Unsplash (licencia de Unsplash, uso comercial sin atribución), reducida a 1600 px.
 
 ## Uso
 
