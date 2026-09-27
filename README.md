@@ -200,7 +200,7 @@ las altas devuelven una clave temporal), `APRENDOR_AllowedHosts` (dominio públi
 | `Security:RedirectHttps` | `false` | Redirige http a https (308) salvo lo que entra por `localhost`. Encenderlo con IIS publicado directo a internet; apagado detrás de un túnel. |
 | `Security:HttpsPort` | `443` | Puerto https al que redirige `Security:RedirectHttps`. |
 | `Email:LogoUrl` | vacío | URL https fija del logo de los correos. Vacío en producción (se usa `App:BaseUrl` + `/img/logo-email.png`); en desarrollo apunta al logo publicado, porque Gmail no muestra el logo incrustado. |
-| `Email:FromName` | `Aprendor / Advance Logistics` | Nombre del remitente de todos los correos. Si falta en la configuración del servidor, sale igual «Aprendor / Advance Logistics» (`Remitente.PorDefecto`). |
+| `Email:SenderName` | `Aprendor / Advance Logistics` | Nombre del remitente («De:») de todos los correos. Si falta, sale igual «Aprendor / Advance Logistics» (`Remitente.PorDefecto`). La clave vieja `Email:FromName` se ignora. |
 | `Security:ForwardedForHeader` | vacío (`X-Forwarded-For`) | `CF-Connecting-IP` con Cloudflare. De aquí sale la IP real para los límites, la auditoría y las redes de confianza. |
 | `Security:TrustedNetworks` | `[]` | Redes de confianza de la instancia (CIDR o IP sola). Desde ellas no se pide el doble factor ni Turnstile. Loopback no cuenta salvo que se liste. |
 | `Security:MaxRequestBytes` / `Security:AuthoringMaxRequestBytes` | 1 MB / 8 MB | Tamaño máximo del cuerpo en general y en el contenido del autor. |

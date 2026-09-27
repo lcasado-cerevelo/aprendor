@@ -16,16 +16,16 @@ namespace TrainingPlatform.Notifications;
 // ---- Envío de correo (SMTP, sin dependencias externas) ----
 public record EmailAttachment(string FileName, byte[] Content, string ContentType);
 
-// Nombre del remitente de TODOS los correos (los dos IEmailSender pasan por aquí).
-// Email:FromName si está configurado; si no, «Aprendor / Advance Logistics». El valor por
-// defecto va en el código porque el servidor de producción usa su propio appsettings.json,
-// que la publicación no reemplaza.
+// Nombre del remitente (el «De:») de TODOS los correos: los dos IEmailSender pasan por aquí.
+// Email:SenderName si está configurado; si no, «Aprendor / Advance Logistics». La clave vieja
+// Email:FromName se IGNORA a propósito: el appsettings.json propio del servidor de producción
+// (que la publicación no reemplaza) todavía trae «Training Platform» en ella.
 public static class Remitente
 {
     public const string PorDefecto = "Aprendor / Advance Logistics";
 
     public static string Nombre(IConfiguration cfg)
-        => string.IsNullOrWhiteSpace(cfg["Email:FromName"]) ? PorDefecto : cfg["Email:FromName"]!.Trim();
+        => string.IsNullOrWhiteSpace(cfg["Email:SenderName"]) ? PorDefecto : cfg["Email:SenderName"]!.Trim();
 }
 
 public interface IEmailSender
