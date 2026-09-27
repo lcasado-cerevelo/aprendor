@@ -93,6 +93,11 @@ public static class Narracion
                 Add(str("question"));
                 break;
         }
+        // Una frase igual a la anterior no se repite: las láminas con el título también como
+        // subtítulo en el cuerpo (dark con heading(), p. ej. «Objetivo») se ven una sola vez
+        // en pantalla y así se oyen una sola vez.
+        static string Norm(string s) => Espacios.Replace(s, " ").Trim().TrimEnd('.', ':', ';', '!', '?', '…').Trim().ToLowerInvariant();
+        frases = frases.Where((f, i) => i == 0 || Norm(f) != Norm(frases[i - 1])).ToList();
         var texto = string.Join(" ", frases.Select(Punto));
         return texto.Length > MaxCaracteres ? texto[..MaxCaracteres] : texto;
     }
