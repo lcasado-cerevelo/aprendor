@@ -488,14 +488,17 @@ public static class Phase2Endpoints
             {
                 var title = await (from v in db.TrainingVersions where v.Id == attempt.TrainingVersionId
                                    join t in db.Trainings on v.TrainingId equals t.Id select t.Title).FirstOrDefaultAsync();
-                await CompletionAlert.SendAsync(catalog, email, tc.TenantId, attempt.LearnerName, title, score, total);
                 var cert = await CertificateService.EnsureIssuedAsync(db, attempt);
                 certificateSerial = cert?.Serial;
                 // «Pedir que lo repita»: cumple la solicitud abierta y reemplaza el certificado anterior.
                 await RetakeService.CumplirAsync(db, attempt, cert);
-                // El certificado en PDF va al learner y a quien esté configurado para archivarlo.
-                if (cert is not null)
+                // El certificado va al learner y, en copia, a los oficiales de cumplimiento (y a
+                // quien esté configurado para archivarlo). Si el curso no emite certificado, los
+                // oficiales reciben en su lugar el aviso «Curso completado». Autores y admins no.
+                if (cert is not null && CertificateConfig.Parse(cert.ConfigSnapshotJson).Enabled)
                     await CertificateEndpoints.MailAsync(catalog, email, cert, tc.TenantId, cfg["App:BaseUrl"]);
+                else
+                    await CompletionAlert.SendAsync(catalog, email, tc.TenantId, attempt.LearnerName, title, score, total);
             }
             return Results.Ok(new { attempt.Score, total, attempt.Passed, status = "completed", activeSeconds = attempt.ActiveSeconds, certificateSerial });
         }).RequireAuthorization();
@@ -895,7 +898,7 @@ public static class Phase2Endpoints
             return Results.Ok(rows);
         }).RequireAuthorization();
 
-        app.MapPost("/attempts/{attemptId:guid}/grade", async (Guid attemptId, GradeRequest req, ClaimsPrincipal principal, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog, IEmailSender email) =>
+        app.MapPost("/attempts/{attemptId:guid}/grade", async (Guid attemptId, GradeRequest req, ClaimsPrincipal principal, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog, IEmailSender email, IConfiguration cfg) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
             if (!CanAuthor(tc.Role)) return Results.Forbid();
@@ -937,9 +940,14 @@ public static class Phase2Endpoints
                     {
                         var title = await (from v in db.TrainingVersions where v.Id == attempt.TrainingVersionId
                                            join t in db.Trainings on v.TrainingId equals t.Id select t.Title).FirstOrDefaultAsync();
-                        await CompletionAlert.SendAsync(catalog, email, tc.TenantId, attempt.LearnerName, title, score, total);
                         var cert = await CertificateService.EnsureIssuedAsync(db, attempt);
                         await RetakeService.CumplirAsync(db, attempt, cert);
+                        // Igual que al aprobar sin preguntas abiertas: certificado al learner y en
+                        // copia a los oficiales; sin certificado, el aviso a los oficiales.
+                        if (cert is not null && CertificateConfig.Parse(cert.ConfigSnapshotJson).Enabled)
+                            await CertificateEndpoints.MailAsync(catalog, email, cert, tc.TenantId, cfg["App:BaseUrl"]);
+                        else
+                            await CompletionAlert.SendAsync(catalog, email, tc.TenantId, attempt.LearnerName, title, score, total);
                     }
                 }
             }

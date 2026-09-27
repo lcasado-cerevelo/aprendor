@@ -963,15 +963,18 @@ public static class EmailTemplates
     }
 }
 
-// ---- Alerta a autores/moderadores cuando alguien aprueba un curso ----
+// ---- Aviso al oficial de cumplimiento cuando alguien aprueba un curso ----
+// Solo a los oficiales de cumplimiento de la compañía (no a autores ni admins: el
+// seguimiento de quién completó es de cumplimiento). Y solo si el curso no emite
+// certificado: cuando lo emite, el oficial ya recibe la copia del certificado, que dice
+// quién aprobó y qué curso.
 public static class CompletionAlert
 {
     public static async Task SendAsync(CatalogDbContext catalog, IEmailSender email,
         Guid? tenantId, string? learnerName, string? trainingTitle, int score, int total)
     {
         if (tenantId is null) return;
-        var recipients = (await CompanyUsers.OfAsync(catalog, tenantId.Value))
-            .Where(u => u.Role is "Author" or "Admin")
+        var recipients = (await ComplianceOfficers.OfAsync(catalog, tenantId.Value))
             .Select(u => new { u.Email, u.Name }).ToList();
         var html = EmailTemplates.Completion(learnerName ?? "", trainingTitle ?? "", score, total);
         foreach (var r in recipients)
