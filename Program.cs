@@ -657,13 +657,16 @@ app.MapPost("/me/email/verify", async (EmailVerifyRequest? req, ITenantContext t
 // ---------- Alta, cambio y baja del segundo factor (usuario autenticado) ----------
 // emailCodeRequired: la primera alta del autenticador desde fuera de las redes de
 // confianza pide antes un código por correo (POST /me/2fa/setup/send-code).
+// trustedNetworks: hay redes de confianza que le valen (la antesala del alta dice entonces
+// «al entrar desde fuera de la oficina» en vez de «cada vez que entres»).
 app.MapGet("/me/2fa", async (ITenantContext tc, HttpContext http, CatalogDbContext catalog) =>
 {
     var user = await catalog.Users.FindAsync(tc.UserId);
     if (user is null) return Results.NotFound();
     return Results.Ok(new { mode = user.TwoFactorMode, confirmed = user.TwoFactorConfirmedAt is not null,
                             pending = user.PendingTotpSecret is not null,
-                            emailCodeRequired = await PruebaCorreo.HaceFaltaAsync(catalog, user, ClientIp.Of(http)) });
+                            emailCodeRequired = await PruebaCorreo.HaceFaltaAsync(catalog, user, ClientIp.Of(http)),
+                            trustedNetworks = await RedesConfianza.HayParaUsuarioAsync(catalog, user) });
 }).RequireAuthorization(PoliticasAcceso.Sesion);
 
 // Código por correo para la primera alta del autenticador desde fuera de las redes de

@@ -148,22 +148,37 @@
   /* ===== Acceso: Turnstile, clave del autenticador y avisos ===== */
   .ts-slot{margin-top:16px;display:flex;justify-content:center;} .ts-slot:empty{display:none;}
   .secret{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;font:600 15px ui-monospace,Consolas,monospace;letter-spacing:2px;word-break:break-all;user-select:all;}
-  /* Alta del autenticador: el QR manda; la clave escrita queda detrás de un enlace */
-  .tfa-qr{display:flex;justify-content:center;margin:14px 0 8px;}
-  .tfa-qr img{width:220px;height:220px;max-width:100%;background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);padding:6px;image-rendering:pixelated;}
+  /* Alta del autenticador: antesala (solo la obligatoria) y pasos «Paso N de M»
+     (correo si hace falta, QR con la clave visible, código). Botones centrados. */
+  .login-card.tfa-card{max-width:440px;} .tfa-card .msg:empty,.tfa-st~.msg:empty{display:none;}
+  .tfa-intro{text-align:center;}
+  .tfa-escudo{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;margin:16px auto 4px;background:var(--brand-soft);color:var(--brand);}
+  .tfa-intro h2{margin:10px 0 8px;font-size:19px;line-height:1.3;}
+  .tfa-intro .sub{margin:0 0 6px;font-size:14px;}
+  .tfa-necesitas{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;margin:14px 0 0;text-align:left;}
+  .tfa-necesitas>b{display:block;font:700 13px var(--display);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+  .tfa-num{list-style:none;margin:0;padding:0;}
+  .tfa-num li{display:flex;gap:11px;align-items:flex-start;padding:6px 0;font-size:14px;color:var(--ink);}
+  .tfa-num .n{width:24px;height:24px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font:700 12.5px var(--display);flex:0 0 auto;}
+  .tfa-num li span.t{display:block;font-weight:600;} .tfa-num li small{display:block;color:var(--muted);font-size:12.5px;margin-top:1px;}
+  .tfa-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;}
+  .tfa-btns .btn{min-width:130px;}
+  .tfa-prog{margin:14px 0 12px;}
+  .tfa-prog .txt{display:block;text-align:center;font:700 12.5px var(--display);color:var(--muted);letter-spacing:.03em;margin-bottom:6px;}
+  .tfa-prog .bar{height:6px;border-radius:999px;background:var(--line);overflow:hidden;}
+  .tfa-prog .bar i{display:block;height:100%;width:0;background:var(--brand);border-radius:999px;transition:width .25s;}
+  .tfa-st{text-align:center;}
+  .tfa-st h3{margin:0 0 6px;font-size:17px;}
+  .tfa-st .sub{margin:0 0 8px;font-size:14px;}
+  .tfa-qr{display:flex;justify-content:center;margin:12px 0 8px;}
+  .tfa-qr img{width:240px;height:240px;max-width:100%;background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);padding:6px;image-rendering:pixelated;}
   .tfa-paso{text-align:center;margin:0 0 10px;font-size:14px;color:var(--ink);}
-  .tfa-manual{margin:0 0 6px;text-align:center;}
-  .tfa-manual>summary{display:inline;cursor:pointer;color:var(--brand);font-size:13.5px;list-style:none;}
-  .tfa-manual>summary::-webkit-details-marker{display:none;}
-  .tfa-manual>summary:hover{text-decoration:underline;}
-  .tfa-manual[open]>summary{color:var(--muted);}
-  .tfa-manual .inner{text-align:left;margin-top:10px;}
-  .tfa-manual .code-row{display:flex;gap:8px;align-items:stretch;} .tfa-manual .code-row .secret{flex:1;min-width:0;}
-  .tfa-manual .sub{margin:8px 0 0;font-size:13px;}
-  .tfa-aviso{display:flex;gap:12px;align-items:flex-start;background:var(--brand-soft);border-radius:var(--r-sm);padding:12px 14px;margin:14px 0 4px;text-align:left;}
-  .tfa-aviso .ic{color:var(--brand);flex:0 0 auto;margin-top:1px;} .tfa-aviso b{display:block;font-size:14.5px;color:var(--ink);}
-  .tfa-aviso p{margin:3px 0 0;font-size:13.5px;color:var(--ink);}
-  .tfa-pasos{margin:12px 0 4px;padding-left:22px;font-size:13.5px;color:var(--ink);text-align:left;} .tfa-pasos li{margin:4px 0;}
+  .tfa-clave{border-top:1px solid var(--line);margin-top:12px;padding-top:12px;}
+  .tfa-clave>p{margin:0 0 8px;font-size:13.5px;color:var(--ink);}
+  .tfa-clave .code-row{display:flex;gap:8px;align-items:stretch;justify-content:center;}
+  .tfa-clave .secret{flex:1;min-width:0;text-align:center;word-break:normal;overflow-wrap:anywhere;letter-spacing:1px;word-spacing:4px;}
+  .tfa-clave .sub{margin:8px 0 0;font-size:12.5px;}
+  .field.tfa-codigo{letter-spacing:10px;text-align:center;font:700 26px ui-monospace,Consolas,monospace;max-width:260px;margin:10px auto 0;display:block;padding:12px 12px 12px 22px;}
   .login-card h2{margin:14px 0 4px;font-size:19px;}
   .login-card .linkrow{margin:12px 0 0;text-align:center;font-size:14px;}
   .login-card .linkrow a{color:var(--brand);text-decoration:none;} .login-card .linkrow a.gray{color:var(--muted);} .login-card .linkrow a:not(.hidden) ~ a{margin-left:12px;}
@@ -607,7 +622,7 @@
 
 <!-- Alta obligatoria del doble factor (token restringido enroll-2fa) -->
 <div id="enrollView" class="login-wrap hidden">
-  <div class="login-card">
+  <div class="login-card tfa-card">
     <div class="brand">
       <svg class="logo" width="34" height="34" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs><linearGradient id="apLogo9" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
@@ -617,42 +632,29 @@
       </svg>
       Aprendor
     </div>
-    <!-- Antesala: por qué sale esta pantalla (no es un cambio de contraseña) -->
-    <div class="tfa-aviso" role="note">
-      <span class="ic" id="enAvisoIc"></span>
-      <div><b><span id="enCompania">Tu compañía</span> activó la verificación en dos pasos</b>
-        <p>Por eso te mostramos esta pantalla antes de entrar. No tienes que cambiar tu contraseña: sigue siendo la misma.</p></div>
+    <!-- Antesala: quién la exige, qué cambia y qué hace falta (no es un cambio de contraseña) -->
+    <div id="enIntro" class="tfa-intro">
+      <div class="tfa-escudo" id="enEscudo" aria-hidden="true"></div>
+      <h2><span id="enCompania">Tu compañía</span> protege tu cuenta con verificación en dos pasos</h2>
+      <p class="sub">Además de tu contraseña, te pediremos un código de 6 dígitos de tu teléfono <span id="enCuando">cada vez que entres</span>.</p>
+      <p class="sub">Es obligatorio y toma unos 2 minutos. Tu contraseña no cambia.</p>
+      <div class="tfa-necesitas">
+        <b>Qué necesitas</b>
+        <ol class="tfa-num">
+          <li><span class="n">1</span><div><span class="t">Instala Google Authenticator o Microsoft Authenticator</span><small>Gratis en la tienda de apps de tu teléfono.</small></div></li>
+          <li><span class="n">2</span><div><span class="t">Escanea el código QR</span><small>Te lo mostramos en el siguiente paso.</small></div></li>
+          <li><span class="n">3</span><div><span class="t">Escribe el código de 6 dígitos</span><small>El que muestra la app, para confirmar.</small></div></li>
+        </ol>
+      </div>
+      <div class="tfa-btns">
+        <button class="btn" id="enStartBtn">Configurar ahora</button>
+        <button class="btn ghost" id="enLogoutBtn">Cerrar sesión</button>
+      </div>
     </div>
-    <h2>Vincula una app de códigos a tu cuenta</h2>
-    <p class="sub" style="margin-bottom:0">Desde ahora, al entrar te pediremos tu contraseña y un código de 6 dígitos de una app en tu teléfono. Se configura una sola vez y toma unos 2 minutos.</p>
-    <div id="enStart">
-      <ol class="tfa-pasos">
-        <li>Instala en tu teléfono una app autenticadora: Google Authenticator, Microsoft Authenticator, Authy o 1Password.</li>
-        <li>Escanea con ella el código QR que te mostraremos.</li>
-        <li>Escribe aquí el código de 6 dígitos que aparece en la app.</li>
-      </ol>
-      <button class="btn full" id="enStartBtn">Empezar</button>
-    </div>
-    <div id="enSecretBox" class="hidden">
-      <div class="tfa-qr"><img id="enQr" alt="Código QR para agregar tu cuenta de Aprendor a la app autenticadora" /></div>
-      <p class="tfa-paso">En la app, toca <b>Agregar cuenta</b> y elige <b>Escanear código QR</b>.</p>
-      <details class="tfa-manual" id="enManual">
-        <summary>¿No puedes escanearlo? Escribe la clave a mano</summary>
-        <div class="inner">
-          <p class="sub" style="margin:0 0 6px">En la app, elige «Introducir una clave de configuración» y escribe esta clave:</p>
-          <div class="code-row"><div class="secret" id="enSecret"></div>
-            <button type="button" class="btn sm ghost" onclick="copiarClave2FA('enSecret', this)">Copiar</button></div>
-          <p class="sub">Cuenta: <b id="enCuenta"></b> · Emisor: <b>Aprendor</b> · Tipo: basada en tiempo</p>
-          <p class="sub">¿Estás en el mismo teléfono? <a href="#" id="enUri" style="color:#4f46e5">Ábrelo directo en la app</a></p>
-        </div>
-      </details>
-      <label>Código de 6 dígitos que muestra la app</label>
-      <input id="enCode" class="field" type="text" inputmode="numeric" autocomplete="one-time-code"
-             maxlength="6" placeholder="000000" style="letter-spacing:6px;text-align:center;font-size:20px" />
-      <button class="btn full" id="enBtn">Confirmar y entrar</button>
-    </div>
-    <p class="msg" id="enMsg"></p>
-    <p class="linkrow"><a href="#" id="enLogout" class="gray">Salir</a></p>
+    <!-- Pasos del alta (los pinta pasos2FAHtml('en')) -->
+    <div id="enPasos"></div>
+    <p class="msg" id="enMsg" style="text-align:center"></p>
+    <p class="linkrow hidden" id="enSalirRow"><a href="#" id="enLogout" class="gray">Cerrar sesión</a></p>
   </div>
 </div>
 
@@ -2087,104 +2089,259 @@ el('fcBtn').onclick = async () => {
 };
 el('fcLogout').onclick = e => { e.preventDefault(); logout(); };
 
-// ----- Alta obligatoria del doble factor (token restringido enroll-2fa) -----
-function mostrarAlta2FA(){
-  el('enStart').classList.remove('hidden'); el('enSecretBox').classList.add('hidden');
-  el('enCode').value = ''; el('enMsg').textContent = '';
-  el('enCuenta').textContent = user ? user.email : '';
-  // Antesala: quién la exige, para que no parezca un cambio de contraseña.
-  const suya = user && (user.companies || []).find(c => c.tenantId === user.tenantId);
-  el('enCompania').textContent = (suya && suya.nombre) || 'Tu compañía';
-  el('enAvisoIc').innerHTML = ic('shield', 22);
-  mostrarSolo('enrollView');
+// ----- Alta del doble factor: antesala y pasos -----
+// El alta OBLIGATORIA (token restringido enroll-2fa) empieza con una antesala: qué compañía
+// la exige, qué cambia y qué hace falta. Después, igual que el alta voluntaria y «Cambiar
+// de app» desde el perfil (sin antesala), vienen los pasos con la barra «Paso N de M»:
+//  - Confirma tu correo: solo en la primera alta desde fuera de las redes de confianza
+//    (bloque S3); el servidor responde requiresEmailCode si hace falta y no se previó.
+//  - Escanea el código QR: QR grande y la clave VISIBLE en grupos de 4, con «Copiar».
+//  - Escribe el código de la app: confirma y activa.
+let estado2FA = null;       // último GET /me/2fa: { emailCodeRequired, trustedNetworks, ... }
+let retoCorreo2FA = null;   // { id, correo, at }: el código ya enviado (el servidor pide 60 s entre envíos)
+const Pasos2FA = {};        // estado de los pasos por prefijo: 'en' (alta obligatoria) y 'tfa' (perfil)
+const ST_PASO2FA = { correo:'Correo', qr:'Qr', codigo:'Codigo' };
+
+function pasos2FAHtml(p){
+  return `
+  <div class="tfa-prog"><span class="txt" id="${p}PasoTxt" aria-live="polite"></span><div class="bar"><i id="${p}PasoBar"></i></div></div>
+  <div class="tfa-st hidden" id="${p}StCorreo">
+    <h3>Confirma tu correo</h3>
+    <p class="sub">Para confirmar que eres tú, te enviamos un código de 6 dígitos a <b id="${p}Correo"></b>.</p>
+    <input id="${p}CorreoCode" class="field tfa-codigo" type="text" inputmode="numeric" autocomplete="one-time-code"
+           maxlength="6" placeholder="000000" aria-label="Código de 6 dígitos del correo" />
+    <p class="sub" style="margin-top:12px">¿No llega? Revisa el correo no deseado o <a href="#" id="${p}Reenviar" style="color:var(--brand)">reenvía el código</a>.</p>
+    <div class="tfa-btns"><button class="btn" id="${p}CorreoBtn">Continuar</button><button class="btn ghost" id="${p}CorreoAtras">Atrás</button></div>
+  </div>
+  <div class="tfa-st hidden" id="${p}StQr">
+    <h3>Escanea el código QR</h3>
+    <p class="sub hidden" id="${p}Reemplazo">La app actual sigue valiendo hasta que confirmes la nueva.</p>
+    <div class="tfa-qr"><img id="${p}Qr" alt="Código QR para agregar tu cuenta de Aprendor a la app autenticadora" /></div>
+    <p class="tfa-paso">En la app, toca <b>Agregar cuenta</b> y elige <b>Escanear código QR</b>.</p>
+    <div class="tfa-clave">
+      <p>¿Prefieres escribirla? Usa esta clave</p>
+      <div class="code-row"><div class="secret" id="${p}Secret"></div>
+        <button type="button" class="btn sm ghost" id="${p}Copiar">Copiar</button></div>
+      <p class="sub">En la app, elige «Introducir una clave de configuración». Cuenta: <b id="${p}Cuenta"></b> · Emisor: <b>Aprendor</b> · Basada en tiempo</p>
+      <p class="sub">¿Estás en el mismo teléfono? <a href="#" id="${p}Uri" style="color:var(--brand)">Ábrelo directo en la app</a></p>
+    </div>
+    <div class="tfa-btns"><button class="btn" id="${p}QrSig">Siguiente</button><button class="btn ghost" id="${p}QrAtras">Atrás</button></div>
+  </div>
+  <div class="tfa-st hidden" id="${p}StCodigo">
+    <h3>Escribe el código de la app</h3>
+    <p class="sub">Escribe el código de 6 dígitos que muestra la app para Aprendor.</p>
+    <input id="${p}Code" class="field tfa-codigo" type="text" inputmode="numeric" autocomplete="one-time-code"
+           maxlength="6" placeholder="000000" aria-label="Código de 6 dígitos de la app" />
+    <div class="tfa-btns"><button class="btn" id="${p}Btn">Confirmar y activar</button><button class="btn ghost" id="${p}CodeAtras">Atrás</button></div>
+  </div>
+  <p class="msg" id="${p}PMsg" style="text-align:center"></p>`;
 }
-// Pinta el QR (data URI SVG que genera el servidor), la clave escrita y el enlace otpauth.
-// Sin QR (respuesta antigua), la clave a mano queda abierta.
-function pintarQr2FA(pre, r){
-  const img = el(pre + 'Qr'), man = el(pre + 'Manual');
+
+// Pinta los pasos en su contenedor la primera vez (el del perfil va después del script) y
+// engancha los botones.
+function montarPasos2FA(p){
+  const cont = el(p + 'Pasos');
+  if (cont.dataset.listo) return;
+  cont.innerHTML = pasos2FAHtml(p); cont.dataset.listo = '1';
+  const w = () => Pasos2FA[p];
+  el(p + 'CorreoBtn').onclick = () => w() && correoContinuar2FA(w());
+  el(p + 'Reenviar').onclick = e => { e.preventDefault(); if (w()) correoReenviar2FA(w(), e.currentTarget); };
+  el(p + 'CorreoAtras').onclick = () => w() && w().o.salir();
+  el(p + 'QrSig').onclick = () => w() && irPaso2FA(w(), 'codigo');
+  el(p + 'QrAtras').onclick = () => w() && w().o.salir();
+  el(p + 'Copiar').onclick = e => copiarClave2FA(p, e.currentTarget);
+  el(p + 'Btn').onclick = () => w() && confirmar2FA(w());
+  el(p + 'CodeAtras').onclick = () => w() && irPaso2FA(w(), 'qr');
+  el(p + 'CorreoCode').addEventListener('keydown', e => { if (e.key === 'Enter') el(p + 'CorreoBtn').click(); });
+  el(p + 'Code').addEventListener('keydown', e => { if (e.key === 'Enter') el(p + 'Btn').click(); });
+}
+
+// Empieza los pasos. o: { conCorreo (hace falta el código del correo), extra ({ currentPassword,
+// code } para cambiar de app), msg (id donde van los errores mientras no se ve ningún paso),
+// atras (texto del botón que sale de los pasos), alMostrar() (al pintar el primer paso),
+// salir(), listo(respuesta de /me/2fa/confirm) }. btn: el botón que queda ocupado.
+async function iniciarPasos2FA(p, o, btn){
+  montarPasos2FA(p);
+  const w = Pasos2FA[p] = { p, o, pasos: o.conCorreo ? ['correo','qr','codigo'] : ['qr','codigo'],
+                            r:null, reto:null, correo:(user && user.email) || '', visible:false };
+  el(p + 'CorreoAtras').textContent = el(p + 'QrAtras').textContent = o.atras || 'Atrás';
+  const soltar = ocupar(btn);
+  try{
+    if (o.conCorreo) await pedirCorreo2FA(w); else await pedirQr2FA(w);
+  }catch(e){ if (e.status !== 401 && Pasos2FA[p] === w) error2FA(w, e.message); }
+  finally{ soltar(); }
+}
+function cerrarPasos2FA(p){
+  delete Pasos2FA[p];
+  const cont = el(p + 'Pasos');
+  if (!cont) return;
+  cont.classList.add('hidden');
+  if (!cont.dataset.listo) return;
+  Object.values(ST_PASO2FA).forEach(k => el(p + 'St' + k).classList.add('hidden'));
+  el(p + 'Qr').removeAttribute('src');   // el QR lleva la clave: no se deja en la página
+  el(p + 'Secret').textContent = ''; el(p + 'Secret').dataset.clave = '';
+  el(p + 'Uri').href = '#';
+  el(p + 'Code').value = ''; el(p + 'CorreoCode').value = ''; el(p + 'PMsg').textContent = '';
+}
+function error2FA(w, texto, ok){
+  const m = w.visible ? el(w.p + 'PMsg') : el(w.o.msg);
+  if (!m) return;
+  m.className = 'msg ' + (ok ? 'ok' : 'err'); m.textContent = texto || '';
+}
+function irPaso2FA(w, paso){
+  const p = w.p, i = w.pasos.indexOf(paso), n = w.pasos.length;
+  Object.entries(ST_PASO2FA).forEach(([k, id]) => el(p + 'St' + id).classList.toggle('hidden', k !== paso));
+  el(p + 'PasoTxt').textContent = `Paso ${i + 1} de ${n}`;
+  el(p + 'PasoBar').style.width = Math.round((i + 1) / n * 100) + '%';
+  el(p + 'PMsg').textContent = '';
+  el(p + 'Pasos').classList.remove('hidden');
+  if (!w.visible){
+    w.visible = true;
+    if (el(w.o.msg)) el(w.o.msg).textContent = '';
+    if (w.o.alMostrar) w.o.alMostrar();
+  }
+  const foco = paso === 'correo' ? el(p + 'CorreoCode') : paso === 'codigo' ? el(p + 'Code') : el(p + 'QrSig');
+  foco.focus();
+  if (paso !== 'qr') foco.select();
+}
+
+// Paso del correo: manda el código (o reusa el que se mandó hace poco, si volvió atrás).
+// Si el servidor dice que ya no hace falta, sigue directo al QR.
+async function pedirCorreo2FA(w, reenviar){
+  const reciente = retoCorreo2FA && Date.now() - retoCorreo2FA.at < 5 * 60 * 1000;
+  if (!reenviar && reciente){ w.reto = retoCorreo2FA.id; w.correo = retoCorreo2FA.correo; }
+  else {
+    const s = await api('/me/2fa/setup/send-code','POST');
+    if (!s.required){
+      w.pasos = ['qr','codigo'];
+      if (estado2FA) estado2FA.emailCodeRequired = false;
+      return pedirQr2FA(w);
+    }
+    retoCorreo2FA = { id:s.challengeId, correo:s.email || w.correo, at:Date.now() };
+    w.reto = retoCorreo2FA.id; w.correo = retoCorreo2FA.correo;
+  }
+  el(w.p + 'Correo').textContent = w.correo;
+  if (!reenviar){ el(w.p + 'CorreoCode').value = ''; irPaso2FA(w, 'correo'); }
+}
+async function correoReenviar2FA(w, a){
+  if (estaOcupado(a)) return;
+  const soltar = ocupar(a);
+  try{
+    await pedirCorreo2FA(w, true);
+    if (Pasos2FA[w.p] === w && !el(w.p + 'StCorreo').classList.contains('hidden')) error2FA(w, 'Te reenviamos el código.', true);
+  }catch(e){ if (e.status !== 401) error2FA(w, e.message); }
+  finally{ soltar(); }
+}
+async function correoContinuar2FA(w){
+  const b = el(w.p + 'CorreoBtn');
+  if (estaOcupado(b)) return;
+  const code = el(w.p + 'CorreoCode').value.trim();
+  if (!/^\d{6}$/.test(code)){ error2FA(w, 'El código son 6 dígitos.'); el(w.p + 'CorreoCode').focus(); return; }
+  const soltar = ocupar(b);
+  try{ await pedirQr2FA(w, { emailChallengeId: w.reto, emailCode: code }); }
+  catch(e){ if (e.status !== 401){ error2FA(w, e.message); el(w.p + 'CorreoCode').select(); } }
+  finally{ soltar(); }
+}
+
+// Paso del QR: pide al servidor el secreto nuevo (queda pendiente hasta confirmarlo).
+async function pedirQr2FA(w, correo){
+  const cuerpo = Object.assign({ mode:'totp' }, w.o.extra || {}, correo || {});
+  let r;
+  try{ r = await api('/me/2fa/setup','POST', cuerpo); }
+  catch(e){
+    // Hacía falta el código del correo y no se había previsto: ese paso va primero.
+    if (e.data && e.data.requiresEmailCode && !correo){ w.pasos = ['correo','qr','codigo']; return pedirCorreo2FA(w); }
+    throw e;
+  }
+  if (Pasos2FA[w.p] !== w) return;   // salió de los pasos mientras esperaba
+  if (correo){ retoCorreo2FA = null; if (estado2FA) estado2FA.emailCodeRequired = false; }
+  w.r = r;
+  pintarQr2FA(w.p, r);
+  el(w.p + 'Code').value = '';
+  irPaso2FA(w, 'qr');
+}
+// Pinta el QR (data URI SVG que genera el servidor), la clave visible en grupos de 4 y el
+// enlace otpauth. Sin QR (respuesta antigua) queda solo la clave.
+function pintarQr2FA(p, r){
+  const img = el(p + 'Qr');
   img.src = r.qrDataUri || '';
   img.parentElement.classList.toggle('hidden', !r.qrDataUri);
-  el(pre + 'Secret').textContent = r.secret;
-  el(pre + 'Uri').href = r.otpauthUri || r.uri || '#';
-  man.open = !r.qrDataUri;
+  const clave = String(r.secret || '').replace(/\s+/g, '');
+  el(p + 'Secret').dataset.clave = clave;
+  el(p + 'Secret').textContent = (clave.match(/.{1,4}/g) || []).join(' ');
+  el(p + 'Uri').href = r.otpauthUri || r.uri || '#';
+  el(p + 'Cuenta').textContent = user ? user.email : '';
+  el(p + 'Reemplazo').classList.toggle('hidden', !r.replacing);
 }
-async function copiarClave2FA(id, btn){
-  const ok = await copiarTexto(el(id).textContent.trim());
+async function copiarClave2FA(p, btn){
+  const ok = await copiarTexto(el(p + 'Secret').dataset.clave || el(p + 'Secret').textContent.replace(/\s+/g, ''));
   toast(ok ? 'Clave copiada.' : 'No se pudo copiar: selecciónala y cópiala a mano.', ok ? 'ok' : 'err');
   if (ok && btn){ btn.textContent = 'Copiada'; setTimeout(() => { btn.textContent = 'Copiar'; }, 1800); }
 }
-async function altaEmpezar(){
-  if (estaOcupado(el('enStartBtn'))) return;
-  const m = el('enMsg'); m.className='msg err'; m.textContent='';
-  const soltar = ocupar(el('enStartBtn'));
-  try{
-    const r = await prepararAlta2FA();
-    if (!r) return;
-    pintarQr2FA('en', r);
-    el('enStart').classList.add('hidden'); el('enSecretBox').classList.remove('hidden');
-    el('enCode').focus();
-  }catch(e){ if (e.status !== 401) m.textContent = e.message; }
-  finally{ soltar(); }
-}
-async function altaConfirmar(){
-  if (estaOcupado(el('enBtn'))) return;
-  const m = el('enMsg'); m.className='msg err'; m.textContent='';
-  const code = el('enCode').value.trim();
-  if (!/^\d{6}$/.test(code)){ m.textContent = 'El código son 6 dígitos.'; return; }
-  const soltar = ocupar(el('enBtn'));
+// Paso del código: confirma el secreto pendiente con un código real de la app.
+async function confirmar2FA(w){
+  const b = el(w.p + 'Btn');
+  if (estaOcupado(b)) return;
+  const code = el(w.p + 'Code').value.trim();
+  if (!/^\d{6}$/.test(code)){ error2FA(w, 'El código son 6 dígitos.'); el(w.p + 'Code').focus(); return; }
+  const soltar = ocupar(b);
   try{
     const r = await api('/me/2fa/confirm','POST',{ mode:'totp', code });
-    adoptarSesion(r);
-    irAlPasoPendiente();
-    toast('Verificación en dos pasos activada.');
-  }catch(e){ if (e.status !== 401) m.textContent = e.message; }
+    await w.o.listo(r);
+  }catch(e){ if (e.status !== 401){ error2FA(w, e.message); el(w.p + 'Code').select(); } }
   finally{ soltar(); }
 }
-el('enStartBtn').onclick = altaEmpezar;
-el('enBtn').onclick = altaConfirmar;
-el('enCode').addEventListener('keydown', e => { if(e.key==='Enter') altaConfirmar(); });
-el('enLogout').onclick = e => { e.preventDefault(); logout(); };
 
-// Pide al servidor el secreto nuevo de la app autenticadora (queda pendiente hasta
-// confirmarlo). La primera alta desde fuera de las redes de confianza exige antes el
-// código que se manda al correo: se pide en un diálogo, con «Reenviar código», y se
-// reintenta. extra: { currentPassword, code } para cambiar una app ya confirmada.
-// Devuelve { secret, uri, replacing } o null si la persona cancela.
-async function prepararAlta2FA(extra){
-  const base = Object.assign({ mode:'totp' }, extra || {});
-  let cuerpo = base, reto = null, correo = user ? user.email : '', aviso = '', vueltas = 0;
-  for (;;){
-    if (++vueltas > 8) throw new Error('No se pudo preparar el alta. Intenta de nuevo en unos minutos.');
-    try{ return await api('/me/2fa/setup','POST', cuerpo); }
-    catch(e){
-      if (!(e.data && e.data.requiresEmailCode)) throw e;
-      if (reto) aviso = e.message;   // el código que escribió no sirvió
-      else {
-        const s = await api('/me/2fa/setup/send-code','POST');
-        if (!s.required){ cuerpo = base; continue; }
-        reto = s.challengeId; correo = s.email || correo;
-      }
-    }
-    for (;;){
-      const d = await dialog({
-        title: 'Confirma que eres tú', icon: 'mail',
-        text: `Antes de registrar la app autenticadora, escribe el código de 6 dígitos que te enviamos a ${correo}.` + (aviso ? '\n\n' + aviso : ''),
-        fields: [{ name:'code', label:'Código del correo', placeholder:'000000', width:'180px' }],
-        actions: [{ label:'Cancelar', value:null, kind:'ghost' }, { label:'Reenviar código', value:'resend', kind:'ghost' }, { label:'Continuar', value:'ok' }],
-        validate: (v, a) => a === 'ok' && !/^\d{6}$/.test(String(v.code || '').trim()) ? 'El código son 6 dígitos.' : null
-      });
-      if (!d) return null;
-      if (d.action === 'resend'){
-        try{ const s = await api('/me/2fa/setup/send-code','POST'); if (s.challengeId) reto = s.challengeId; aviso = 'Te reenviamos el código.'; }
-        catch(err){ aviso = err.message; }
-        continue;
-      }
-      cuerpo = Object.assign({}, base, { emailChallengeId: reto, emailCode: String(d.values.code).trim() });
-      aviso = '';
-      break;
-    }
-  }
+// ----- Alta obligatoria (token restringido enroll-2fa): antesala y pasos -----
+// La compañía que la exige: la activa; si la activa no la exige y otra sí, esa.
+function compañiaQueExige2FA(){
+  const cs = (user && user.companies) || [];
+  const activa = user && cs.find(c => c.tenantId === user.tenantId);
+  const exigen = cs.filter(c => c.politica2FA === 'required');
+  const c = activa && (!exigen.length || exigen.includes(activa)) ? activa : (exigen[0] || activa);
+  return (c && c.nombre) || 'Tu compañía';
 }
+function antesala2FA(){
+  cerrarPasos2FA('en');
+  el('enIntro').classList.remove('hidden');
+  el('enSalirRow').classList.add('hidden');
+  el('enStartBtn').focus();
+}
+async function mostrarAlta2FA(){
+  el('enMsg').textContent = '';
+  el('enEscudo').innerHTML = ic('shield', 30);
+  el('enCompania').textContent = compañiaQueExige2FA();
+  antesala2FA();
+  mostrarSolo('enrollView');
+  // Qué cambia (con redes de confianza, solo fuera de la oficina) y si hará falta el código
+  // del correo antes del QR. Mientras llega, «Configurar ahora» queda ocupado.
+  const soltar = ocupar(el('enStartBtn'));
+  try{
+    estado2FA = await api('/me/2fa');
+    el('enCuando').textContent = estado2FA.trustedNetworks ? 'al entrar desde fuera de la oficina' : 'cada vez que entres';
+  }catch(e){ estado2FA = null; }
+  finally{ soltar(); }
+}
+function altaEmpezar(){
+  if (estaOcupado(el('enStartBtn'))) return;
+  el('enMsg').className = 'msg err'; el('enMsg').textContent = '';
+  iniciarPasos2FA('en', {
+    conCorreo: !!(estado2FA && estado2FA.emailCodeRequired),
+    msg: 'enMsg', atras: 'Atrás',
+    alMostrar: () => { el('enIntro').classList.add('hidden'); el('enSalirRow').classList.remove('hidden'); },
+    salir: antesala2FA,
+    listo: r => {
+      adoptarSesion(r);
+      cerrarPasos2FA('en');
+      irAlPasoPendiente();
+      toast('Verificación en dos pasos activada.');
+    }
+  }, el('enStartBtn'));
+}
+function salirAlta2FA(e){ if (e) e.preventDefault(); cerrarPasos2FA('en'); logout(); }
+el('enStartBtn').onclick = altaEmpezar;
+el('enLogoutBtn').onclick = salirAlta2FA;
+el('enLogout').onclick = salirAlta2FA;
 
 // ----- Cambio de contraseña desde el perfil -----
 function togglePwd(){ el('pwdForm').classList.toggle('hidden'); el('pwdMsg').textContent=''; }
@@ -2289,14 +2446,13 @@ async function cambiarCompania(tenantId){
 function closeProfile(){ el('profileModal').classList.add('hidden'); }
 
 // ===== Verificación en dos pasos (alta y cambio desde el perfil) =====
-let tfaPendiente = null;   // { mode, replacing } mientras se confirma el secreto nuevo
-
+// Mismos pasos que el alta obligatoria (iniciarPasos2FA), sin antesala.
 async function cargarEstado2FA(){
   tfaCancelar();
   const et = el('tfaEstado'), m = el('tfaMsg'); m.textContent='';
   et.textContent = 'cargando…'; et.style.background = ''; et.style.color = '';
   try{
-    const s = await api('/me/2fa');
+    const s = estado2FA = await api('/me/2fa');
     const activo = s.confirmed && s.mode !== 'none';
     et.textContent = activo ? 'activa · app autenticadora' : 'desactivada';
     et.style.background = activo ? '#dcfce7' : '#f1f5f9';
@@ -2314,42 +2470,35 @@ async function cargarEstado2FA(){
   }catch(e){ et.textContent = '—'; }
 }
 function tfaCancelar(){
-  tfaPendiente = null;
-  el('tfaTotpBox').classList.add('hidden');
-  el('tfaConfirmBox').classList.add('hidden');
-  el('tfaReemplazo').classList.add('hidden');
-  el('tfaQr').removeAttribute('src'); el('tfaSecret').textContent = '';   // el QR lleva la clave
-  el('tfaCode').value = '';
+  cerrarPasos2FA('tfa');
+  el('tfaAcciones').classList.remove('hidden');
 }
-function mostrarSecreto2FA(r){
-  tfaPendiente = { mode:'totp', replacing: !!r.replacing };
-  pintarQr2FA('tfa', r);
-  el('tfaCuenta').textContent = user.email;
-  el('tfaReemplazo').classList.toggle('hidden', !r.replacing);
-  el('tfaTotpBox').classList.remove('hidden');
-  el('tfaConfirmBox').classList.remove('hidden');
-  el('tfaCode').focus();
-}
-// Botón ocupado mientras se prepara el QR: deshabilitado y con texto de espera. Devuelve
-// la función que lo deja como estaba.
-function ocupar2FA(btn, texto){
-  if (!btn) return () => {};
-  const antes = btn.textContent;
-  btn.disabled = true; btn.textContent = texto || 'Preparando…'; btn.setAttribute('aria-busy', 'true');
-  return () => { btn.disabled = false; btn.textContent = antes; btn.removeAttribute('aria-busy'); };
+// Opciones de los pasos en el perfil: «Cancelar» vuelve a los botones; al confirmar se
+// recarga el estado (o se sigue al paso pendiente si el token era restringido).
+function pasosPerfil2FA(o){
+  return Object.assign({
+    msg: 'tfaMsg', atras: 'Cancelar', salir: tfaCancelar,
+    alMostrar: () => el('tfaAcciones').classList.add('hidden'),
+    listo: async r => {
+      const cambio = !!(Pasos2FA.tfa && Pasos2FA.tfa.r && Pasos2FA.tfa.r.replacing);
+      adoptarSesion(r);
+      // Si quedaba algo pendiente (alcance restringido), se sigue por ahí.
+      if (alcanceToken() !== 'full'){ tfaCancelar(); closeProfile(); irAlPasoPendiente(); return; }
+      await cargarEstado2FA();
+      el('tfaMsg').className = 'msg ok';
+      el('tfaMsg').textContent = cambio ? 'Cambiaste tu app autenticadora. Cerramos tus otras sesiones.' : 'Verificación en dos pasos activada.';
+    }
+  }, o);
 }
 async function tfaSetup(btn){
+  if (estaOcupado(btn)) return;
   const m = el('tfaMsg'); m.className='msg'; m.textContent='';
-  const listo = ocupar2FA(btn);
-  try{
-    const r = await prepararAlta2FA();
-    if (r) mostrarSecreto2FA(r);
-  }catch(e){ if (e.status !== 401){ m.className='msg err'; m.textContent = e.message; } }
-  finally{ listo(); }
+  await iniciarPasos2FA('tfa', pasosPerfil2FA({ conCorreo: !!(estado2FA && estado2FA.emailCodeRequired) }), btn);
 }
 // Cambiar de app (teléfono nuevo): el servidor pide la contraseña actual y un código de la
 // app de ahora; la actual sigue valiendo hasta confirmar la nueva.
 async function tfaCambiar(btn){
+  if (estaOcupado(btn)) return;
   const m = el('tfaMsg'); m.className='msg'; m.textContent='';
   const d = await dialog({ title:'Cambiar de app autenticadora', icon:'lock', okText:'Continuar',
     text:'Para confirmar que eres tú, escribe tu contraseña actual y el código que muestra ahora tu app autenticadora. Si ya no la tienes, cierra sesión y usa «Perdí mi autenticador» en la pantalla del código.',
@@ -2357,28 +2506,8 @@ async function tfaCambiar(btn){
             { name:'code', label:'Código de la app actual', placeholder:'000000', width:'180px' }],
     validate: v => !v.pwd ? 'Escribe tu contraseña.' : !/^\d{6}$/.test(String(v.code || '').trim()) ? 'El código son 6 dígitos.' : null });
   if (!d) return;
-  const listo = ocupar2FA(btn);
-  try{
-    const r = await prepararAlta2FA({ currentPassword: d.values.pwd, code: String(d.values.code).trim() });
-    if (r) mostrarSecreto2FA(r);
-  }catch(e){ if (e.status !== 401){ m.className='msg err'; m.textContent = e.message; } }
-  finally{ listo(); }
-}
-async function tfaConfirm(){
-  const m = el('tfaMsg'); m.className='msg err'; m.textContent='';
-  if(!tfaPendiente){ m.textContent = 'Primero genera la clave de configuración.'; return; }
-  const code = el('tfaCode').value.trim();
-  if(!/^\d{6}$/.test(code)){ m.textContent = 'El código son 6 dígitos.'; return; }
-  const cambio = tfaPendiente.replacing;
-  try{
-    const r = await api('/me/2fa/confirm','POST',{ mode:'totp', code });
-    adoptarSesion(r);
-    // Si quedaba algo pendiente (alcance restringido), se sigue por ahí.
-    if (alcanceToken() !== 'full'){ closeProfile(); irAlPasoPendiente(); return; }
-    await cargarEstado2FA();
-    el('tfaMsg').className='msg ok';
-    el('tfaMsg').textContent = cambio ? 'Cambiaste tu app autenticadora. Cerramos tus otras sesiones.' : 'Verificación en dos pasos activada.';
-  }catch(e){ if (e.status !== 401) m.textContent = e.message; }
+  await iniciarPasos2FA('tfa', pasosPerfil2FA({ conCorreo:false,
+    extra:{ currentPassword: d.values.pwd, code: String(d.values.code).trim() } }), btn);
 }
 async function tfaDisable(){
   const m = el('tfaMsg'); m.className='msg err'; m.textContent='';
@@ -6437,38 +6566,18 @@ else { if (token) logout(); else mostrarSolo('loginView'); }
         <p class="sub" style="margin:6px 0 4px">Además de la contraseña, al entrar se pide el código de tu app autenticadora.</p>
         <p class="sub" id="tfaPolitica" style="margin:0 0 10px"></p>
 
-        <div id="tfaOff">
-          <button class="btn sm ghost" onclick="tfaSetup(this)">📱 Activar con app autenticadora</button>
+        <div id="tfaAcciones">
+          <div id="tfaOff">
+            <button class="btn sm ghost" onclick="tfaSetup(this)">📱 Activar con app autenticadora</button>
+          </div>
+          <div id="tfaOn" class="hidden">
+            <button class="btn sm ghost" onclick="tfaCambiar(this)">Cambiar de app</button>
+            <button class="btn sm ghost danger" id="tfaDisableBtn" onclick="tfaDisable()">Desactivar</button>
+          </div>
         </div>
 
-        <div id="tfaTotpBox" class="hidden" style="margin-top:12px">
-          <p class="sub hidden" id="tfaReemplazo" style="margin:0 0 4px;text-align:center">La app actual sigue valiendo hasta que confirmes la nueva.</p>
-          <div class="tfa-qr"><img id="tfaQr" alt="Código QR para agregar tu cuenta de Aprendor a la app autenticadora" /></div>
-          <p class="tfa-paso">En la app (Google Authenticator, Microsoft Authenticator, Authy, 1Password…), toca <b>Agregar cuenta</b> y elige <b>Escanear código QR</b>.</p>
-          <details class="tfa-manual" id="tfaManual">
-            <summary>¿No puedes escanearlo? Escribe la clave a mano</summary>
-            <div class="inner">
-              <p class="sub" style="margin:0 0 6px">En la app, elige «Introducir una clave de configuración» y escribe esta clave:</p>
-              <div class="code-row"><div class="secret" id="tfaSecret"></div>
-                <button type="button" class="btn sm ghost" onclick="copiarClave2FA('tfaSecret', this)">Copiar</button></div>
-              <p class="sub">Cuenta: <b id="tfaCuenta"></b> · Emisor: <b>Aprendor</b> · Tipo: basada en tiempo</p>
-              <p class="sub">¿Estás en el mismo teléfono? <a href="#" id="tfaUri" style="color:#4f46e5">Ábrelo directo en la app</a></p>
-            </div>
-          </details>
-        </div>
-
-        <div id="tfaConfirmBox" class="hidden" style="margin-top:12px">
-          <label>Escribe el código para confirmar</label>
-          <input id="tfaCode" class="field" type="text" inputmode="numeric" maxlength="6" placeholder="000000"
-                 style="letter-spacing:5px;text-align:center" />
-          <button class="btn sm" style="margin-top:10px" onclick="tfaConfirm()">Confirmar y activar</button>
-          <button class="btn sm ghost" style="margin-top:10px" onclick="tfaCancelar()">Cancelar</button>
-        </div>
-
-        <div id="tfaOn" class="hidden">
-          <button class="btn sm ghost" onclick="tfaCambiar(this)">Cambiar de app</button>
-          <button class="btn sm ghost danger" id="tfaDisableBtn" onclick="tfaDisable()">Desactivar</button>
-        </div>
+        <!-- Pasos del alta o del cambio de app, sin antesala (los pinta pasos2FAHtml('tfa')) -->
+        <div id="tfaPasos"></div>
         <p class="msg" id="tfaMsg"></p>
       </div>
     </div>
