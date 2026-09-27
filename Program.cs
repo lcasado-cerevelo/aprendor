@@ -1145,7 +1145,8 @@ app.MapGet("/admin/tenants", async (CatalogDbContext catalog) =>
 // Dispara el resumen semanal de inmediato (para probar o forzar un envío).
 // Vista previa de las plantillas de correo, para revisar cómo se ven sin enviar nada.
 // /admin/email-preview?kind=reminder|open|overdue|invite|reset|2fa|locked|2fa-locked|2fa-changed|recover|enroll-code|
-//   2fa-reset|2fa-recovered|admin-reset-notice|admin-2fa-notice|completion|digest|certificate|certificate-officer|compliance
+//   2fa-reset|2fa-recovered|admin-reset-notice|admin-2fa-notice|completion|digest|certificate|certificate-officer|compliance|
+//   retake|retake-void
 app.MapGet("/admin/email-preview", (string? kind) =>
 {
     var k = (kind ?? "reminder").ToLowerInvariant();
@@ -1185,6 +1186,11 @@ app.MapGet("/admin/email-preview", (string? kind) =>
                     new List<ComplianceRow> { new(Guid.NewGuid(), "Luis Pérez", "", new(), new() { "Nuevos ingresos" }, Guid.NewGuid(),
                         "Ética Empresarial y Prevención de Fraude", "not-started", "not-started", DateTime.UtcNow.AddDays(5), "due", 5) },
                     30, "https://aprendor.advancelogisticspr.com"),
+        "retake" or "retake-void" => EmailTemplates.RetakeRequested("María Rivera",
+                    "Cumplimiento HIPAA para transporte y logística", k == "retake-void" ? "void" : "renewal",
+                    DateTime.UtcNow.Date.AddDays(7).AddSeconds(-1),
+                    k == "retake-void" ? "El adiestramiento lo completó otra persona con su cuenta." : null,
+                    "https://aprendor.advancelogisticspr.com").html,
         "digest" => EmailTemplates.Digest("María Rivera",
                     new List<PendingItem> { new(Guid.NewGuid(), "Ética Empresarial y Prevención de Fraude", Guid.NewGuid(), null, "not-started", null) },
                     new List<PendingItem> { new(Guid.NewGuid(), "Seguridad de la Información para Empleados", Guid.NewGuid(), null, "in-progress", null) }),
@@ -1748,6 +1754,7 @@ app.MapPost("/trainings", async (CreateTrainingRequest req, ITenantContext tc, I
 app.MapPhase2();
 app.MapCertificates();
 app.MapCompliance();
+app.MapRetakes();
 
 app.Run();
 

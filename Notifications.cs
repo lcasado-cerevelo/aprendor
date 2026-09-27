@@ -139,8 +139,10 @@ public class BrevoApiEmailSender : IEmailSender
 // current (aprobado y vigente) | done (aprobado, sin caducidad).
 // ExpiresAt = cuándo caduca la aprobación que ya tiene; DueAt = fecha límite para
 // completarlo por primera vez (plan del grupo u onboarding de la compañía).
+// Retake*: solicitud abierta de «Pedir que lo repita» que manda en el estado (modo
+// renewal | void, motivo e id); null si no hay. Con ella, DueAt es la de la solicitud.
 public record PendingItem(Guid TrainingId, string Title, Guid VersionId, Guid? SetId, string Status, DateTime? ExpiresAt,
-    DateTime? DueAt = null);
+    DateTime? DueAt = null, string? RetakeMode = null, string? RetakeReason = null, Guid? RetakeId = null);
 
 // Avisos por curso. Lectura tolerante: si el blob falta o está corrupto, se
 // comporta como el valor por defecto (avisa al abrir, 15 y 5 días antes, y cada
@@ -233,6 +235,13 @@ public static class CatalogLogic
     // Quien ya tenía el curso aprobado y vigente al entrar al grupo no lo vuelve a
     // deber: DueAt queda en null y el estado sigue siendo current/done.
     // Estado `overdue`: not-started / in-progress / failed con DueAt ya pasado.
+    //
+    // «Pedir que lo repita» (RetakeRequest abierta y posterior a la última aprobación
+    // válida; los intentos con VoidedAt nunca cuentan como aprobados):
+    //   renewal -> `renewal` (vigente, por renovar) con DueAt de la solicitud;
+    //   void    -> lo aprobado antes de la solicitud no existe: not-started / failed /
+    //              in-progress según lo que haya hecho después, con DueAt de la solicitud.
+    //   En ambos, pasada la fecha: `overdue`. RetakeMode/RetakeReason lo dicen en el item.
     // ExpiresAt sigue siendo la caducidad de una aprobación (renewal/expired/current).
     //
     // `cohortIds` son los grupos del usuario (se mantienen por compatibilidad con quien
@@ -252,10 +261,19 @@ public static class CatalogLogic
         var latest = published.GroupBy(x => x.trainingId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.VersionNumber).First());
 
+        // Un intento anulado («Pedir que lo repita» en modo void) no cuenta como aprobado.
         var myAttempts = await (from a in db.Attempts
                                 where a.UserId == userId
                                 join v in db.TrainingVersions on a.TrainingVersionId equals v.Id
-                                select new { v.TrainingId, a.Status, a.Passed, a.CompletedAt }).ToListAsync();
+                                select new { v.TrainingId, a.Status, Passed = a.Passed && a.VoidedAt == null, a.CompletedAt,
+                                             Voided = a.VoidedAt != null })
+                               .ToListAsync();
+
+        // Solicitudes abiertas de «Pedir que lo repita» (a lo sumo una por curso).
+        var solicitudes = userId is null ? new List<RetakeRequest>()
+            : await db.RetakeRequests.AsNoTracking()
+                .Where(r => r.UserId == userId && r.FulfilledAt == null && r.CancelledAt == null)
+                .ToListAsync();
 
         var sets = await db.TrainingSets.ToListAsync();
         var assigns = await db.Assignments.ToListAsync();
@@ -296,31 +314,55 @@ public static class CatalogLogic
 
             string status; DateTime? expiresAt = null; DateTime? dueAt = null;
 
+            // Una anulación invalida también lo aprobado antes (p. ej. el certificado que ya
+            // estaba reemplazado): solo cuenta lo aprobado después de la última anulada.
+            var ultimaAnulada = att.Where(x => x.Voided && x.CompletedAt != null).Max(x => x.CompletedAt);
+            var lastPass = att.Where(x => x.Passed && x.CompletedAt != null && (ultimaAnulada == null || x.CompletedAt > ultimaAnulada))
+                              .OrderByDescending(x => x.CompletedAt).FirstOrDefault();
+            // «Pedir que lo repita»: la solicitud abierta manda si es posterior a la última
+            // aprobación válida (si ya aprobó después, la solicitud está de más y no cuenta).
+            var sol = solicitudes.Where(r => r.TrainingId == tId).OrderByDescending(r => r.CreatedAt).FirstOrDefault();
+            if (sol is not null && lastPass is not null && lastPass.CompletedAt >= sol.CreatedAt) sol = null;
+
             if (att.Any(x => x.Status == "in-progress")) status = "in-progress";
             else if (att.Any(x => x.Status == "cancellation-requested")) status = "pending-cancellation";
             else if (att.Any(x => x.Status == "pending-grading")) status = "pending-grading";
+            else if (sol is { Mode: "void" })
+            {
+                // Anulado: lo aprobado antes de la solicitud no existe; cuenta solo lo de después.
+                status = att.Any(x => x.Status == "completed" && !x.Voided && x.CompletedAt >= sol.CreatedAt) ? "failed" : "not-started";
+            }
             else
             {
-                var lastPass = att.Where(x => x.Passed && x.CompletedAt != null)
-                                  .OrderByDescending(x => x.CompletedAt).FirstOrDefault();
                 if (lastPass != null)
                 {
                     var expiry = VigenciaDe(v.ExpiresOn, v.RecurrenceMonths, lastPass.CompletedAt!.Value, now);
-                    if (expiry is null) status = "done";   // una sola vez: aprobado para siempre
+                    if (expiry is null) status = sol is null ? "done" : "renewal";   // una sola vez: aprobado para siempre
                     else
                     {
                         var renewalOpen = expiry.Value.AddDays(-Math.Max(0, v.RenewLeadDays));
                         expiresAt = expiry;
-                        if (now < renewalOpen) status = "current";                 // vigente, aún no toca renovar
-                        else status = now >= expiry.Value ? "expired" : "renewal"; // reabierto / vencido
+                        if (now >= expiry.Value) status = "expired";                     // vencido
+                        else if (sol is not null || now >= renewalOpen) status = "renewal"; // reabierto (o renovación pedida)
+                        else status = "current";                                         // vigente, aún no toca renovar
                     }
                 }
-                else if (att.Any(x => x.Status == "completed")) status = "failed";
+                // Un intento anulado tampoco es un reprobado: es como si no existiera.
+                else if (att.Any(x => x.Status == "completed" && !x.Voided && (ultimaAnulada == null || x.CompletedAt > ultimaAnulada)))
+                    status = "failed";
                 else status = "not-started";
             }
 
+            if (sol is not null)
+            {
+                // Con solicitud abierta, la fecha límite es la suya y nada más (el plazo del
+                // plan pudo haber pasado hace meses). Pasada la fecha: vencido.
+                dueAt = DateTime.SpecifyKind(sol.DueAt, DateTimeKind.Utc);
+                if (sol.Mode == "void") expiresAt = null;
+                if (status is "not-started" or "in-progress" or "failed" or "renewal" && now >= sol.DueAt) status = "overdue";
+            }
             // Fecha límite sólo mientras no lo tenga aprobado (ver regla arriba).
-            if (obligatorio && status is "not-started" or "in-progress" or "failed")
+            else if (obligatorio && status is "not-started" or "in-progress" or "failed")
             {
                 if (limitesPorGrupo.TryGetValue(tId, out var porGrupo)) dueAt = porGrupo;
                 if (v.Audience != "groups" && v.OnboardingDays is int od && fechaIngreso is DateTime ingreso)
@@ -345,7 +387,8 @@ public static class CatalogLogic
                     setId = ga != null ? ga.SetId : (tSets.FirstOrDefault(x => x.IsDefault)?.Id ?? tSets.First().Id);
                 }
             }
-            result.Add(new PendingItem(tId, v.Title, v.versionId, setId, status, expiresAt, dueAt));
+            result.Add(new PendingItem(tId, v.Title, v.versionId, setId, status, expiresAt, dueAt,
+                sol?.Mode, sol?.Reason, sol?.Id));
         }
         return result;
     }
@@ -672,6 +715,42 @@ public static class EmailTemplates
         return Render(body, dias is null ? $"{title} ya está disponible." : $"{title} vence en {dias} días.");
     }
 
+    // «Pedir que lo repita»: aviso inmediato al empleado. modo renewal (renovación
+    // anticipada: su certificado sigue vigente) | void (anulado: debe repetirlo).
+    public static (string asunto, string html) RetakeRequested(string name, string title, string modo,
+        DateTime dueAt, string? reason, string? appUrl)
+    {
+        string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        var fecha = dueAt.ToString("dd/MM/yyyy");
+        var motivo = string.IsNullOrWhiteSpace(reason) ? "" : reason!.Trim();
+        string asunto, titulo, cuerpo, pre;
+        if (modo == "void")
+        {
+            asunto = $"Tu certificado de {title} fue anulado";
+            titulo = "Tu certificado fue anulado";
+            cuerpo = $"Tu certificado de <b>{Enc(title)}</b> fue anulado. Debes repetirlo antes del <b>{fecha}</b>." +
+                     (motivo.Length > 0 ? $" Motivo: {Enc(motivo)}" : "");
+            pre = $"Tu certificado de {title} fue anulado. Debes repetirlo antes del {fecha}.";
+        }
+        else
+        {
+            asunto = $"Te pedimos repetir {title}";
+            titulo = "Te pedimos repetir un adiestramiento";
+            cuerpo = $"Te pedimos repetir <b>{Enc(title)}</b> antes del <b>{fecha}</b>. " +
+                     "Tu certificado actual sigue vigente hasta que lo apruebes de nuevo." +
+                     (motivo.Length > 0 ? $" Motivo: {Enc(motivo)}" : "");
+            pre = $"Te pedimos repetir {title} antes del {fecha}.";
+        }
+        var body =
+            Titulo(titulo) +
+            $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
+            $"<p style=\"margin:0;\">{cuerpo}</p>" +
+            Recuadro($"<span style=\"color:#64748b;\">Fecha límite:</span> " +
+                     $"<b{(modo == "void" ? " style=\"color:#b91c1c;\"" : "")}>{fecha}</b>") +
+            Boton("Tomar el adiestramiento", appUrl ?? "");
+        return (asunto, Render(body, pre));
+    }
+
     // Certificado emitido. Dos versiones: la que recibe el propio empleado y la
     // que recibe quien lo archiva en su expediente (oficial de cumplimiento u otra copia).
     // Con `link` el certificado NO va adjunto: el botón abre el PDF por un enlace que
@@ -777,10 +856,14 @@ public static class EmailTemplates
                 var grupo = f.Groups.Count > 0 ? string.Join(", ", f.Groups) : "—";
                 var fecha = f.Date is DateTime d ? d.ToString("dd/MM/yyyy") : "—";
                 var dias = f.Days is int n ? n.ToString() : "—";
+                var etiqueta = ComplianceState.EtiquetaRetake(f.Retake) is string et
+                    ? $"<br><span style=\"display:inline-block;margin-top:3px;padding:1px 7px;border-radius:999px;font-size:11px;" +
+                      $"background:{(f.Retake == "void" ? "#fee2e2;color:#b91c1c" : "#fef3c7;color:#b45309")};\">{Enc(et)}</span>"
+                    : "";
                 sb.Append("<tr>" +
                           $"<td style=\"padding:8px 10px;border-top:1px solid #e2e8f0;\"><b>{Enc(f.Name)}</b></td>" +
                           $"<td style=\"padding:8px 10px;border-top:1px solid #e2e8f0;\">{Enc(grupo)}</td>" +
-                          $"<td style=\"padding:8px 10px;border-top:1px solid #e2e8f0;\">{Enc(f.Title)}</td>" +
+                          $"<td style=\"padding:8px 10px;border-top:1px solid #e2e8f0;\">{Enc(f.Title)}{etiqueta}</td>" +
                           $"<td style=\"padding:8px 10px;border-top:1px solid #e2e8f0;white-space:nowrap;\">{fecha}</td>" +
                           $"<td style=\"padding:8px 10px;border-top:1px solid #e2e8f0;\" align=\"right\">{dias}</td></tr>");
             }
@@ -971,8 +1054,10 @@ public static class ReminderRunner
 
                     // Vencimiento: un aviso por cada anticipación configurada, la más cercana que aplique.
                     // Sin caducidad de una aprobación previa, cuenta la fecha límite del plan (DueAt).
-                    var esLimite = p.ExpiresAt is null && p.DueAt is not null;
-                    if ((p.ExpiresAt ?? p.DueAt) is DateTime vence && reglas.DaysBefore.Count > 0)
+                    // Con «Pedir que lo repita» abierto manda la fecha límite de la solicitud.
+                    var fechaAviso = FechaDeAviso(p);
+                    var esLimite = EsLimite(p);
+                    if (fechaAviso is DateTime vence && reglas.DaysBefore.Count > 0)
                     {
                         var dias = (vence.Date - hoy.Date).TotalDays;
                         var sello = vence.ToString("yyyyMMdd");
@@ -1003,7 +1088,7 @@ public static class ReminderRunner
                                 ? $"Adiestramiento disponible: {p.Title}"
                                 : $"Te quedan {tipo[3..]} días: {p.Title}";
                             await email.SendAsync(u.Email, u.Name, asunto,
-                                EmailTemplates.CourseReminder(u.Name, p.Title, tipo, p.ExpiresAt ?? p.DueAt, appUrl, esLimite));
+                                EmailTemplates.CourseReminder(u.Name, p.Title, tipo, fechaAviso, appUrl, esLimite));
                             enviados++;
                         }
                         catch { /* el registro ya quedó; no se reintenta para no spamear */ }
@@ -1026,6 +1111,14 @@ public static class ReminderRunner
         }
         return enviados;
     }
+
+    // Fecha que usan los avisos «te quedan N días»: la caducidad de la aprobación o, si no
+    // hay, la fecha límite; con una solicitud de «Pedir que lo repita» abierta, la de ella.
+    public static DateTime? FechaDeAviso(PendingItem p)
+        => p.RetakeMode is not null && p.DueAt is not null ? p.DueAt : (p.ExpiresAt ?? p.DueAt);
+
+    public static bool EsLimite(PendingItem p)
+        => p.DueAt is not null && (p.RetakeMode is not null || p.ExpiresAt is null);
 }
 
 // ---- Aviso al empleado con un curso vencido ----
@@ -1192,19 +1285,29 @@ public class WeeklyDigestService : BackgroundService
 //   ApprovedAt: última aprobación (si la hay). CertificateSerial: folio del último
 //   certificado vigente o, si ninguno lo está, del último emitido (para abrirlo desde
 //   las listas); CertificateExpired indica ese segundo caso.
+//   Retake: solicitud abierta de «Pedir que lo repita» (renewal | void) y su motivo.
 public record ComplianceRow(Guid UserId, string Name, string Email, List<Guid> GroupIds, List<string> Groups,
     Guid TrainingId, string Title, string Status, string Bucket, DateTime? Date, string? DateKind, int? Days,
-    DateTime? ApprovedAt = null, string? CertificateSerial = null, bool CertificateExpired = false);
+    DateTime? ApprovedAt = null, string? CertificateSerial = null, bool CertificateExpired = false,
+    string? Retake = null, string? RetakeReason = null);
 
 public static class ComplianceState
 {
     // En qué lista cae un pendiente; null = no cuenta (en curso o reprobado sin fecha
     // cerca, esperando calificación o cancelación). Las listas no se pisan: un curso vencido
     // no sale también como por vencer, ni uno por vencer como sin comenzar o al día.
+    // «Pedir que lo repita»: la renovación pedida va a «Por vencer» con su fecha límite
+    // (aunque falte más que la ventana) y la anulación a los pendientes («Sin comenzar»);
+    // pasada la fecha, las dos son vencidos. (El panel además deja la renovación pedida en
+    // «Al día» hasta la fecha: ver /compliance/summary.)
     public static (string bucket, DateTime? fecha, string? tipo)? Clasificar(PendingItem p, DateTime ahora, int dueSoonDays)
     {
         if (p.Status == "expired") return ("overdue", p.ExpiresAt, "expires");
         if (p.Status == "overdue") return ("overdue", p.DueAt, "due");
+        if (p.RetakeMode == "renewal" && p.Status is "renewal" or "in-progress" or "failed")
+            return ("due-soon", p.DueAt, "due");
+        if (p.RetakeMode == "void" && p.Status is "not-started" or "in-progress" or "failed")
+            return ("not-started", p.DueAt, "due");
 
         var fecha = p.ExpiresAt ?? p.DueAt;
         var tipo = p.ExpiresAt is not null ? "expires" : p.DueAt is not null ? "due" : null;
@@ -1237,11 +1340,12 @@ public static class ComplianceState
         // Última aprobación por persona y curso (la misma que usa el resolver: el intento
         // aprobado más reciente) y certificados emitidos, del más nuevo al más viejo.
         var aprobaciones = new Dictionary<(Guid, Guid), DateTime>();
-        var certificados = new Dictionary<(Guid, Guid), List<(string Serial, DateTime? Expira)>>();
+        var certificados = new Dictionary<(Guid, Guid), List<(string Serial, DateTime? Expira, string Estado)>>();
         if (conCertificados)
         {
+            // Los intentos anulados no son aprobaciones.
             var aprobados = await (from a in db.Attempts.AsNoTracking()
-                                   where a.Passed && a.CompletedAt != null && a.UserId != null
+                                   where a.Passed && a.CompletedAt != null && a.UserId != null && a.VoidedAt == null
                                    join v in db.TrainingVersions.AsNoTracking() on a.TrainingVersionId equals v.Id
                                    select new { UserId = a.UserId!.Value, v.TrainingId, Fecha = a.CompletedAt!.Value })
                                   .ToListAsync();
@@ -1249,15 +1353,18 @@ public static class ComplianceState
                 if (!aprobaciones.TryGetValue((a.UserId, a.TrainingId), out var f) || a.Fecha > f)
                     aprobaciones[(a.UserId, a.TrainingId)] = a.Fecha;
 
-            var emitidos = await db.Certificates.AsNoTracking().Where(c => c.UserId != null)
+            // Los anulados y los reemplazados no se ofrecen para descargar desde las listas
+            // (siguen en el expediente de la persona).
+            var emitidos = await db.Certificates.AsNoTracking()
+                .Where(c => c.UserId != null && c.Status == CertificateStatus.Valid)
                 .OrderByDescending(c => c.IssuedAt)
-                .Select(c => new { UserId = c.UserId!.Value, c.TrainingId, c.Serial, c.ExpiresAt })
+                .Select(c => new { UserId = c.UserId!.Value, c.TrainingId, c.Serial, c.ExpiresAt, c.Status })
                 .ToListAsync();
             foreach (var c in emitidos)
             {
                 if (!certificados.TryGetValue((c.UserId, c.TrainingId), out var l))
                     certificados[(c.UserId, c.TrainingId)] = l = new();
-                l.Add((c.Serial, c.ExpiresAt));
+                l.Add((c.Serial, c.ExpiresAt, c.Status));
             }
         }
 
@@ -1284,13 +1391,13 @@ public static class ComplianceState
                 string? folio = null; var caducado = false;
                 if (certificados.TryGetValue((u.Id, p.TrainingId), out var certs))
                 {
-                    var vigente = certs.FirstOrDefault(x => x.Expira is null || x.Expira > ahora);
+                    var vigente = certs.FirstOrDefault(x => x.Estado == CertificateStatus.Valid && (x.Expira is null || x.Expira > ahora));
                     if (vigente.Serial is not null) folio = vigente.Serial;
                     else { folio = certs[0].Serial; caducado = true; }
                 }
                 filas.Add(new ComplianceRow(u.Id, u.Name, u.Email, grupos, nombresGrupos,
                     p.TrainingId, p.Title, p.Status, c.bucket, c.fecha, c.tipo, dias,
-                    aprobado, folio, caducado));
+                    aprobado, folio, caducado, p.RetakeMode, p.RetakeReason));
             }
         }
         return filas;
@@ -1301,7 +1408,16 @@ public static class ComplianceState
         userId = r.UserId, name = r.Name, email = r.Email, groupIds = r.GroupIds, groups = r.Groups,
         trainingId = r.TrainingId, title = r.Title, status = r.Status, bucket = r.Bucket,
         date = r.Date, dateKind = r.DateKind, days = r.Days,
-        approvedAt = r.ApprovedAt, certificateSerial = r.CertificateSerial, certificateExpired = r.CertificateExpired
+        approvedAt = r.ApprovedAt, certificateSerial = r.CertificateSerial, certificateExpired = r.CertificateExpired,
+        retake = r.Retake, retakeReason = r.RetakeReason
+    };
+
+    // Etiqueta corta de la solicitud de «Pedir que lo repita» (correo del oficial).
+    public static string? EtiquetaRetake(string? modo) => modo switch
+    {
+        "renewal" => "Renovación pedida",
+        "void" => "Anulado",
+        _ => null
     };
 }
 
@@ -1409,9 +1525,9 @@ public static class ComplianceDigestRunner
         }
 
         var porVencer = filas.Where(f => f.Bucket == "due-soon").OrderBy(f => f.Date).ThenBy(f => f.Name).ToList();
-        var sinComenzar = comp.IncludeNotStarted
-            ? filas.Where(f => f.Bucket == "not-started").OrderBy(f => f.Date ?? DateTime.MaxValue).ThenBy(f => f.Name).ToList()
-            : new List<ComplianceRow>();
+        // Las anulaciones pendientes salen siempre, aunque la compañía no quiera los «sin comenzar».
+        var sinComenzar = filas.Where(f => f.Bucket == "not-started" && (comp.IncludeNotStarted || f.Retake == "void"))
+            .OrderBy(f => f.Date ?? DateTime.MaxValue).ThenBy(f => f.Name).ToList();
 
         // Solo se envía si hay algo que contar (salvo la prueba, que muestra el formato).
         if (prueba is null && nuevos.Count + siguen.Count + porVencer.Count + sinComenzar.Count == 0)
@@ -1540,8 +1656,12 @@ public static class ComplianceEndpoints
             var porVencer = filas.Where(f => f.Bucket == "due-soon").OrderBy(f => f.Date).ThenBy(f => f.Name).ToList();
             var sinComenzar = filas.Where(f => f.Bucket == "not-started")
                 .OrderBy(f => f.Date ?? DateTime.MaxValue).ThenBy(f => f.Name).ToList();
-            // Al día: aprobado y vigente (fecha = vigente hasta; null = sin vencimiento).
-            var alDia = filas.Where(f => f.Bucket == "current").OrderBy(f => f.Name).ThenBy(f => f.Title).ToList();
+            // Al día: aprobado y vigente (fecha = vigente hasta; null = sin vencimiento). Quien
+            // tiene una renovación pedida sigue al día hasta la fecha límite: sale aquí también
+            // (con su etiqueta y esa fecha), además de en «Por vencer». Una anulación no.
+            var alDia = filas.Where(f => f.Bucket == "current")
+                .Concat(porVencer.Where(f => f.Retake == "renewal").Select(f => f with { Bucket = "current" }))
+                .OrderBy(f => f.Name).ThenBy(f => f.Title).ToList();
 
             return Results.Ok(new
             {
@@ -1623,12 +1743,12 @@ public static class ComplianceEndpoints
                 }
                 else
                 {
-                    var fecha = p.ExpiresAt ?? p.DueAt;
+                    var fecha = ReminderRunner.FechaDeAviso(p);
                     var dias = fecha is DateTime f ? (f.Date - ahora.Date).Days : -1;
                     tipo = dias >= 0 ? $"due{dias}" : "open";
                     await email.SendAsync(persona.Email, persona.Name, $"Recordatorio: {p.Title}",
                         EmailTemplates.CourseReminder(persona.Name, p.Title, tipo, fecha, appUrl,
-                            esLimite: p.ExpiresAt is null && p.DueAt is not null));
+                            esLimite: ReminderRunner.EsLimite(p)));
                 }
             }
             catch
