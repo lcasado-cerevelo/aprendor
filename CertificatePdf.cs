@@ -101,7 +101,7 @@ public static class CertificatePdf
     private static readonly (double r, double g, double b)
         Tinta = Hex("#1f2937"), Gris700 = Hex("#374151"), Gris600 = Hex("#4b5563"), Gris500 = Hex("#6b7280"),
         Gris400 = Hex("#9ca3af"), Gris300 = Hex("#d1d5db"), Plataforma = Hex("#b0b7c3"),
-        Vigente = Hex("#047857"), Vencido = Hex("#b45309");
+        Vigente = Hex("#047857"), Vencido = Hex("#b45309"), Anulado = Hex("#b91c1c");
 
     private static readonly string[] Meses =
         { "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre" };
@@ -118,14 +118,32 @@ public static class CertificatePdf
         DateTime issuedAt, DateTime? expiresAt, int scorePercent, int passPercent,
         bool showScore, bool showValidity, string? statement,
         string? signatoryName, string? signatoryTitle, string accentColor,
-        string? logoDataUrl = null, string? signatureDataUrl = null)
+        string? logoDataUrl = null, string? signatureDataUrl = null,
+        string? estado = null, DateTime? estadoFecha = null, string? estadoMotivo = null)
     {
         var acento = Color(accentColor);
         var p = new Lienzo();
+        // «Pedir que lo repita»: un certificado anulado lleva la marca de agua ANULADO (detrás
+        // de todo) y la fecha y el motivo arriba; uno reemplazado, una nota en gris.
+        bool anulado = estado == "voided", reemplazado = estado == "superseded";
+        if (anulado) p.MarcaAgua("ANULADO", 500, AltoPx / 2, Fuente.SansNegrita, 150, Mezcla(Anulado, 0.16), 26);
 
         // --- Doble marco (.frame: 3px a 18px del borde; ::after: 1px a 28px, opacidad .5) ---
         p.Rect(19.5, 19.5, 1000 - 39, AltoPx - 39, 3, acento);
         p.Rect(28.5, 28.5, 1000 - 57, AltoPx - 57, 1, Mezcla(acento, 0.5));
+
+        // Nota de estado entre el marco y el cuerpo (11px, centrada, recortada si no cabe).
+        if (anulado || reemplazado)
+        {
+            var nota = anulado
+                ? "ANULADO" + (estadoFecha is DateTime fa ? " el " + Fecha(fa) : "") +
+                  (string.IsNullOrWhiteSpace(estadoMotivo) ? "" : " · Motivo: " + estadoMotivo!.Trim())
+                : "Reemplazado por el certificado del " + (estadoFecha is DateTime fr ? Fecha(fr) : "—") +
+                  (string.IsNullOrWhiteSpace(estadoMotivo) ? "" : " (folio " + estadoMotivo!.Trim() + ")");
+            var f = anulado ? Fuente.SansNegrita : Fuente.Sans;
+            while (nota.Length > 12 && Lienzo.Ancho(nota, f, 11) > 860) nota = nota[..^2].TrimEnd() + "…";
+            p.Texto(nota, 500, 52, f, 11, anulado ? Anulado : Gris500);
+        }
 
         // --- Cuerpo centrado (.inner: contenido de x 84 a 916, desde y 70) ---
         const double Centro = 500, AnchoCuerpo = 832;
@@ -190,7 +208,9 @@ public static class CertificatePdf
             ("FECHA DE EMISIÓN", Fecha(issuedAt), Gris700)
         };
         if (showScore) columnas.Add(("CALIFICACIÓN", $"{scorePercent}%", Gris700));
-        if (showValidity)
+        if (anulado) columnas.Add(("ESTADO", "Anulado", Anulado));
+        else if (reemplazado) columnas.Add(("ESTADO", "Reemplazado", Gris500));
+        else if (showValidity)
         {
             if (expiresAt is not DateTime vence) columnas.Add(("VIGENCIA", "Sin caducidad", Gris700));
             else if (DateTime.UtcNow >= vence) columnas.Add(("VENCIÓ", Fecha(vence), Vencido));
@@ -334,6 +354,19 @@ public static class CertificatePdf
             double x0 = cx - Ancho(texto, f, tam, espaciado) / 2;
             Flujo.Append($"BT {Rgb(color)} rg /F{(int)f + 1} {N(tam * S)} Tf {N(espaciado * S)} Tc " +
                          $"{N(X(x0))} {N(Y(linaBase))} Td ({Cadena(texto, f)}) Tj ET\n");
+        }
+
+        // Marca de agua: texto grande girado `grados` (en sentido antihorario, sube hacia la
+        // derecha) y centrado en (cx, cy) px. Se dibuja primero para que quede detrás.
+        public void MarcaAgua(string texto, double cx, double cy, Fuente f, double tam,
+            (double r, double g, double b) color, double grados)
+        {
+            double a = grados * Math.PI / 180, c = Math.Cos(a), s = Math.Sin(a);
+            double w = Ancho(texto, f, tam, 8);
+            Flujo.Append($"q {N(c)} {N(s)} {N(-s)} {N(c)} {N(X(cx))} {N(Y(cy))} cm\n");
+            // Alto de las mayúsculas de Helvetica: ~0.72 del cuerpo; se centra en vertical.
+            Flujo.Append($"BT {Rgb(color)} rg /F{(int)f + 1} {N(tam * S)} Tf {N(8 * S)} Tc " +
+                         $"{N(-w / 2 * S)} {N(-0.36 * tam * S)} Td ({Cadena(texto, f)}) Tj ET\nQ\n");
         }
 
         public void Rect(double x, double y, double w, double h, double grosor, (double r, double g, double b) color)

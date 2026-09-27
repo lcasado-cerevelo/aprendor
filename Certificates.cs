@@ -192,6 +192,11 @@ public static class CertificateService
             issuedAt = DateTime.SpecifyKind(c.IssuedAt, DateTimeKind.Utc),
             expiresAt = c.ExpiresAt is null ? (DateTime?)null : DateTime.SpecifyKind(c.ExpiresAt.Value, DateTimeKind.Utc),
             validity, // permanent | valid | expired
+            // valid | superseded | voided («Pedir que lo repita»): la plantilla pone la marca
+            // de agua ANULADO o la nota de reemplazo. statusReason: motivo o folio nuevo.
+            status = c.Status,
+            statusChangedAt = c.StatusChangedAt is null ? (DateTime?)null : DateTime.SpecifyKind(c.StatusChangedAt.Value, DateTimeKind.Utc),
+            statusReason = c.StatusReason,
             issuerName = string.IsNullOrWhiteSpace(cfg.IssuerName) ? issuerFallback : cfg.IssuerName,
             signatoryName = cfg.SignatoryName,
             signatoryTitle = cfg.SignatoryTitle,
@@ -341,7 +346,8 @@ public static class CertificateEndpoints
             cert.IssuedAt, cert.ExpiresAt, cert.ScorePercent, cert.PassPercent,
             cfg.ShowScore, cfg.ShowValidity, cfg.Statement,
             cfg.SignatoryName, cfg.SignatoryTitle, cfg.AccentColor,
-            cfg.LogoDataUrl, cfg.SignatureDataUrl);
+            cfg.LogoDataUrl, cfg.SignatureDataUrl,
+            cert.Status, cert.StatusChangedAt, cert.StatusReason);
 
     private static string NombreArchivo(Certificate cert)
         => $"Certificado-{Limpiar(cert.TrainingTitle)}-{Limpiar(cert.LearnerName)}-{cert.Serial}.pdf";
@@ -490,7 +496,8 @@ public static class CertificateEndpoints
                 var opts = new DbContextOptionsBuilder<TenantDbContext>().UseSqlServer(tenant.ConnectionString).Options;
                 await using var db = new TenantDbContext(opts);
                 var cert = await db.Certificates.AsNoTracking().FirstOrDefaultAsync(c => c.Id == link.CertificateId);
-                if (cert is null) return vencido;
+                // Anulado: sus enlaces se revocan al anularlo; esto cubre uno que se haya escapado.
+                if (cert is null || cert.Status == CertificateStatus.Voided) return vencido;
 
                 // Se regenera desde el snapshot congelado al emitir: es el mismo documento siempre.
                 var cfg = CertificateConfig.Parse(cert.ConfigSnapshotJson);
@@ -541,6 +548,8 @@ public static class CertificateEndpoints
 
             var cfg = CertificateConfig.Parse(cert.ConfigSnapshotJson);
             if (!cfg.Enabled) return Results.BadRequest("Este curso no emite certificado.");
+            if (cert.Status == CertificateStatus.Voided)
+                return Results.BadRequest("Este certificado fue anulado: ya no se puede reenviar.");
 
             // Freno anti-bombardeo: un reenvío por certificado por minuto.
             var ahora = DateTime.UtcNow;

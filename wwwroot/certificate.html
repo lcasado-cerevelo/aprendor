@@ -58,6 +58,16 @@
   .serial{ position:absolute; bottom:34px; left:0; right:0; text-align:center; font-size:11px;
            letter-spacing:1px; color:#9ca3af; font-family:system-ui,monospace; line-height:1.5; }
   .platform{ font-size:10px; letter-spacing:.5px; color:#b0b7c3; }
+  /* «Pedir que lo repita»: marca de agua de un certificado anulado y nota de estado
+     (misma idea que CertificatePdf: ANULADO detrás de todo, nota arriba entre marco y cuerpo). */
+  .void-mark{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;
+              overflow:hidden; z-index:0; }
+  .void-mark span{ font:700 150px/1 system-ui,Segoe UI,Helvetica,sans-serif; letter-spacing:8px; color:#b91c1c; opacity:.16;
+                   transform:rotate(-26deg); white-space:nowrap; }
+  .statenote{ position:absolute; top:34px; left:60px; right:60px; text-align:center; font:600 11px/1.4 system-ui,sans-serif;
+              white-space:nowrap; overflow:hidden; text-overflow:ellipsis; z-index:1; }
+  .statenote.void{ color:#b91c1c; font-weight:700; } .statenote.sup{ color:#6b7280; font-weight:400; }
+  .badge-void{ color:#b91c1c; } .badge-sup{ color:#6b7280; }
   .pvbanner{ max-width:96vw; width:1000px; margin:14px auto -6px; padding:8px 14px; text-align:center;
              background:#fef3c7; color:#92400e; border:1px solid #fbbf24; border-radius:8px;
              font-family:system-ui,sans-serif; font-size:13px; font-weight:600; }
@@ -125,8 +135,12 @@ function render(c, isPreview){
   document.documentElement.style.setProperty('--accent', COLOR_OK.test(c.accentColor || '') ? c.accentColor : '#1e3a8a');
   document.title = 'Certificado · '+ (c.learnerName||'');
 
+  // Estado («Pedir que lo repita»): anulado -> marca ANULADO, fecha y motivo; reemplazado -> nota.
+  const anulado = c.status === 'voided', reemplazado = c.status === 'superseded';
   let validity = '';
-  if(c.showValidity){
+  if(anulado) validity = `<div><span class="lbl">Estado</span><b class="badge-void">Anulado</b></div>`;
+  else if(reemplazado) validity = `<div><span class="lbl">Estado</span><b class="badge-sup">Reemplazado</b></div>`;
+  else if(c.showValidity){
     if(c.validity === 'permanent') validity =
       `<div><span class="lbl">Vigencia</span><b>Sin caducidad</b></div>`;
     else validity =
@@ -145,9 +159,17 @@ function render(c, isPreview){
       `<div class="role">${esc(c.signatoryTitle||'')}</div></div>`
     : `<div class="sign"><div class="line">&nbsp;</div><div class="role">Firma autorizada</div></div>`;
 
+  const nota = anulado
+    ? 'ANULADO' + (c.statusChangedAt ? ' el ' + fmt(c.statusChangedAt) : '') + (c.statusReason ? ' · Motivo: ' + c.statusReason : '')
+    : reemplazado ? 'Reemplazado por el certificado del ' + (c.statusChangedAt ? fmt(c.statusChangedAt) : '—') + (c.statusReason ? ' (folio ' + c.statusReason + ')' : '')
+    : '';
+  if(anulado) document.title = 'Certificado ANULADO · ' + (c.learnerName||'');
+
   document.getElementById('root').innerHTML = `
     <div class="sheet">
+      ${anulado ? '<div class="void-mark" aria-hidden="true"><span>ANULADO</span></div>' : ''}
       <div class="frame"></div>
+      ${nota ? `<div class="statenote ${anulado ? 'void' : 'sup'}" title="${esc(nota)}" role="note">${esc(nota)}</div>` : ''}
       <div class="inner">
         ${logoImg ? '<span id="certLogo"></span>' : ''}
         <div class="issuer">${esc(c.issuerName||'')}</div>

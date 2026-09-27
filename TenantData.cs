@@ -144,6 +144,11 @@ public class Attempt
     public string? CanceledByName { get; set; }
     public Guid? CanceledByUserId { get; set; }
     public DateTime? CanceledAt { get; set; }
+
+    // Anulación («Pedir que lo repita» en modo void): el intento aprobado deja de contar
+    // como aprobación. Se guarda cuándo y por qué; el resto del intento queda intacto.
+    public DateTime? VoidedAt { get; set; }
+    public string? VoidReason { get; set; }
 }
 
 // Registro inmutable de un certificado emitido. Se crea UNA vez cuando un intento aprueba,
@@ -164,6 +169,47 @@ public class Certificate
     public DateTime IssuedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ExpiresAt { get; set; }            // según recurrencia al emitir (null = sin caducidad)
     public string ConfigSnapshotJson { get; set; } = "{}"; // plantilla del curso congelada al emitir
+
+    // Estado del certificado (lo único que cambia después de emitido):
+    //   valid      -> vigente según sus fechas (todos los emitidos antes de esta columna)
+    //   superseded -> reemplazado por uno nuevo al cumplir una solicitud de repetirlo
+    //   voided     -> anulado: el adiestramiento no fue válido (lo tomó otra persona, error...)
+    // StatusReason: motivo de la anulación, o el folio del certificado que lo reemplazó.
+    public string Status { get; set; } = CertificateStatus.Valid;
+    public DateTime? StatusChangedAt { get; set; }
+    public string? StatusReason { get; set; }
+    public Guid? StatusByUserId { get; set; }
+}
+
+public static class CertificateStatus
+{
+    public const string Valid = "valid";
+    public const string Superseded = "superseded";
+    public const string Voided = "voided";
+}
+
+// «Pedir que lo repita»: el Admin de la compañía le pide a una persona repetir un curso.
+//   renewal -> renovación anticipada: lo anterior sigue siendo válido hasta aprobar de nuevo.
+//   void    -> no fue válido: el certificado se anula y el intento aprobado deja de contar.
+// Abierta = sin FulfilledAt ni CancelledAt; hay a lo sumo una abierta por persona y curso
+// (pedir otra cancela la anterior). Se cumple al aprobar el curso después de pedirla.
+public class RetakeRequest
+{
+    public const int MaxReason = 500;
+
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }                 // AppUser.Id (catálogo)
+    public Guid TrainingId { get; set; }             // maestro
+    public string Mode { get; set; } = "renewal";    // renewal | void
+    public string? Reason { get; set; }              // obligatorio en void
+    public DateTime DueAt { get; set; }              // fecha límite (UTC)
+    public Guid? CreatedByUserId { get; set; }
+    public string? CreatedByName { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? FulfilledAt { get; set; }
+    public Guid? FulfilledAttemptId { get; set; }
+    public DateTime? CancelledAt { get; set; }
+    public Guid? CancelledByUserId { get; set; }
 }
 
 public class ItemResponse
@@ -298,6 +344,7 @@ public class TenantDbContext : DbContext
     public DbSet<GroupCourse> GroupCourses => Set<GroupCourse>();
     public DbSet<NotificationLog> NotificationLogs => Set<NotificationLog>();
     public DbSet<ExternalCertification> ExternalCertifications => Set<ExternalCertification>();
+    public DbSet<RetakeRequest> RetakeRequests => Set<RetakeRequest>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -350,6 +397,17 @@ public class TenantDbContext : DbContext
         b.Entity<NotificationLog>().HasIndex(n => new { n.UserId, n.TrainingId, n.Kind }).IsUnique();
         b.Entity<ExternalCertification>().HasIndex(c => c.UserId);
         b.Entity<ExternalCertification>().HasIndex(c => new { c.ExternalSource, c.ExternalRef });
+
+        // ---- RetakeRequests («Pedir que lo repita») ----
+        // Los certificados que ya existían quedan `valid`; los intentos, sin cambios.
+        b.Entity<Certificate>().Property(c => c.Status).HasMaxLength(16).HasDefaultValue(CertificateStatus.Valid);
+        b.Entity<Certificate>().Property(c => c.StatusReason).HasMaxLength(RetakeRequest.MaxReason);
+        b.Entity<Attempt>().Property(a => a.VoidReason).HasMaxLength(RetakeRequest.MaxReason);
+        b.Entity<RetakeRequest>().ToTable("RetakeRequest");
+        b.Entity<RetakeRequest>().Property(r => r.Mode).HasMaxLength(16);
+        b.Entity<RetakeRequest>().Property(r => r.Reason).HasMaxLength(RetakeRequest.MaxReason);
+        b.Entity<RetakeRequest>().Property(r => r.CreatedByName).HasMaxLength(200);
+        b.Entity<RetakeRequest>().HasIndex(r => new { r.UserId, r.TrainingId });
     }
 }
 

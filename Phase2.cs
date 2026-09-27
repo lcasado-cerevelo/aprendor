@@ -299,7 +299,9 @@ public static class Phase2Endpoints
             {
                 trainingId = p.TrainingId, title = p.Title, versionId = p.VersionId,
                 setId = p.SetId, status = p.Status, expiresAt = p.ExpiresAt, dueAt = p.DueAt,
-                canReview = puedeRepasar.TryGetValue(p.TrainingId, out var r) && r
+                canReview = puedeRepasar.TryGetValue(p.TrainingId, out var r) && r,
+                // «Pedir que lo repita» abierto: renewal (renovación pedida) | void (anulado).
+                retake = p.RetakeMode is null ? null : new { mode = p.RetakeMode, reason = p.RetakeReason, dueAt = p.DueAt }
             }));
         }).RequireAuthorization();
 
@@ -484,6 +486,8 @@ public static class Phase2Endpoints
                 await CompletionAlert.SendAsync(catalog, email, tc.TenantId, attempt.LearnerName, title, score, total);
                 var cert = await CertificateService.EnsureIssuedAsync(db, attempt);
                 certificateSerial = cert?.Serial;
+                // «Pedir que lo repita»: cumple la solicitud abierta y reemplaza el certificado anterior.
+                await RetakeService.CumplirAsync(db, attempt, cert);
                 // El certificado en PDF va al learner y a quien esté configurado para archivarlo.
                 if (cert is not null)
                     await CertificateEndpoints.MailAsync(catalog, email, cert, tc.TenantId, cfg["App:BaseUrl"]);
@@ -600,7 +604,7 @@ public static class Phase2Endpoints
                               join v in db.TrainingVersions on a.TrainingVersionId equals v.Id
                               join t in db.Trainings on v.TrainingId equals t.Id
                               orderby a.StartedAt descending
-                              select new { a.Id, t.Title, a.Score, a.Passed, a.Status, a.StartedAt, a.CompletedAt, a.ActiveSeconds, a.CancelRequestComment, a.CancelApprovalComment })
+                              select new { a.Id, t.Title, a.Score, a.Passed, a.Status, a.StartedAt, a.CompletedAt, a.ActiveSeconds, a.CancelRequestComment, a.CancelApprovalComment, a.VoidedAt, a.VoidReason })
                              .ToListAsync();
             return Results.Ok(rows);
         }).RequireAuthorization();
@@ -642,7 +646,7 @@ public static class Phase2Endpoints
                               join v in db.TrainingVersions on a.TrainingVersionId equals v.Id
                               where v.TrainingId == id
                               orderby a.StartedAt descending
-                              select new { a.Id, a.LearnerName, a.Score, a.Passed, a.Status, a.StartedAt, a.CompletedAt, a.ActiveSeconds })
+                              select new { a.Id, a.UserId, a.LearnerName, a.Score, a.Passed, a.Status, a.StartedAt, a.CompletedAt, a.ActiveSeconds, a.VoidedAt, a.VoidReason })
                              .ToListAsync();
             return Results.Ok(rows);
         }).RequireAuthorization();
@@ -797,6 +801,7 @@ public static class Phase2Endpoints
                                   {
                                       origen = "plataforma",
                                       id = c.Id,
+                                      trainingId = (Guid?)c.TrainingId,
                                       title = c.TrainingTitle,
                                       issuer = (string?)null,
                                       credentialId = c.Serial,
@@ -804,7 +809,10 @@ public static class Phase2Endpoints
                                       expiresOn = c.ExpiresAt,
                                       documentUrl = "/certificate.html?serial=" + c.Serial,
                                       externalSource = (string?)null,
-                                      notes = (string?)null
+                                      notes = (string?)null,
+                                      status = c.Status,
+                                      statusChangedAt = c.StatusChangedAt,
+                                      statusReason = c.StatusReason
                                   }).ToListAsync();
 
             var externos = await (from c in db.ExternalCertifications
@@ -813,6 +821,7 @@ public static class Phase2Endpoints
                                   {
                                       origen = "externa",
                                       id = c.Id,
+                                      trainingId = (Guid?)null,
                                       title = c.Title,
                                       issuer = c.Issuer,
                                       credentialId = c.CredentialId,
@@ -820,16 +829,24 @@ public static class Phase2Endpoints
                                       expiresOn = c.ExpiresOn,
                                       documentUrl = c.MediaAssetId != null ? "/media/" + c.MediaAssetId : c.ExternalUrl,
                                       externalSource = c.ExternalSource,
-                                      notes = c.Notes
+                                      notes = c.Notes,
+                                      status = CertificateStatus.Valid,
+                                      statusChangedAt = (DateTime?)null,
+                                      statusReason = (string?)null
                                   }).ToListAsync();
 
             var todo = internos.Concat(externos).OrderByDescending(x => x.issuedOn).ToList();
             var hoy = DateTime.UtcNow.Date;
+            // status: valid | superseded (reemplazado al aprobar de nuevo) | voided (anulado).
+            // Un certificado anulado o reemplazado ya no está vigente, tenga la fecha que tenga.
             return Results.Ok(todo.Select(x => new
             {
-                x.origen, x.id, x.title, x.issuer, x.credentialId, x.issuedOn, x.expiresOn,
+                x.origen, x.id, x.trainingId, x.title, x.issuer, x.credentialId, x.issuedOn, x.expiresOn,
                 x.documentUrl, x.externalSource, x.notes,
-                vigente = x.expiresOn == null || x.expiresOn.Value.Date >= hoy
+                x.status,
+                statusChangedAt = x.statusChangedAt is DateTime sc ? DateTime.SpecifyKind(sc, DateTimeKind.Utc) : (DateTime?)null,
+                x.statusReason,
+                vigente = x.status == CertificateStatus.Valid && (x.expiresOn == null || x.expiresOn.Value.Date >= hoy)
             }));
         }).RequireAuthorization();
 
@@ -903,7 +920,8 @@ public static class Phase2Endpoints
                         var title = await (from v in db.TrainingVersions where v.Id == attempt.TrainingVersionId
                                            join t in db.Trainings on v.TrainingId equals t.Id select t.Title).FirstOrDefaultAsync();
                         await CompletionAlert.SendAsync(catalog, email, tc.TenantId, attempt.LearnerName, title, score, total);
-                        await CertificateService.EnsureIssuedAsync(db, attempt);
+                        var cert = await CertificateService.EnsureIssuedAsync(db, attempt);
+                        await RetakeService.CumplirAsync(db, attempt, cert);
                     }
                 }
             }

@@ -438,6 +438,27 @@
   .cert .bar i{display:block;height:100%;background:var(--ok);}
   .cert .bar.warn i{background:var(--warn);} .cert .bar.err i{background:var(--err);}
   .cert .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+  .cert.off .seal{filter:grayscale(1);opacity:.55;} .cert.off h3{color:var(--muted);}
+  .cert .why{font-size:12.5px;margin-top:4px;color:var(--muted);} .cert .why.err{color:var(--err);}
+
+  /* ===== «Pedir que lo repita»: modal, selección múltiple y solicitudes abiertas ===== */
+  .rt .modal-box{max-width:620px;}
+  .rt-people{max-height:250px;overflow:auto;border:1px solid var(--line);border-radius:var(--r);padding:0 12px;margin-top:14px;}
+  .rt-people .li:last-child{border-bottom:none;}
+  .rt-people .li.skip{opacity:.6;}
+  .rt-people .li small.due{color:var(--ink);} .rt-people .li small.warn{color:var(--warn);}
+  .rt-q{margin:16px 0 8px;font:700 14.5px var(--display);color:var(--ink);}
+  .rt label .opc{font-weight:400;color:var(--muted);}
+  .rt .count{float:right;}
+  .callout.err{background:var(--err-bg);color:#7f1d1d;display:flex;gap:10px;align-items:flex-start;}
+  .callout.err svg{flex:0 0 auto;margin-top:1px;}
+  .selbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--brand-soft);border-radius:var(--r-sm);padding:8px 12px;margin:6px 0 4px;font-size:13px;}
+  .selbar .n{font-weight:700;} .selbar .hint{margin:0;color:var(--muted);font-size:12.5px;}
+  .selbar label{margin:0;display:inline-flex;gap:6px;align-items:center;font-weight:600;cursor:pointer;}
+  .rtchk{width:17px;height:17px;flex:0 0 auto;accent-color:var(--brand);cursor:pointer;margin:0;}
+  .rtbox{background:#fff;border-radius:var(--r);padding:14px 16px;box-shadow:var(--rest);border-left:4px solid var(--warn);}
+  .rtbox h3{margin:0 0 2px;font-size:14px;} .rtbox .li{padding:10px 2px;} .rtbox .li:last-child{border-bottom:none;}
+  #recRetakes:empty{display:none;} #recRetakes{margin-bottom:12px;}
   @media (max-width:640px){.cert{grid-template-columns:auto 1fr;}.cert .acts{grid-column:1/-1;justify-content:flex-start;}}
   @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
 
@@ -959,6 +980,7 @@
           <p class="msg" id="certMsg2"></p>
         </div>
 
+        <div id="recRetakes"></div>
         <div class="certs" id="recordList"></div>
       </div>
 
@@ -2477,9 +2499,31 @@ function catInfo(c){
     case 'done':    r = { ...aprobado, due: 'No caduca' }; break;
     default:        r = { tone:'gray', label: s || '—', btn:'Tomar ▸', act:'take', rank:5, grp:'pend' };
   }
+  // «Pedir que lo repita» (retake): la fecha es la límite de la solicitud.
+  //   renewal -> «Renovación pedida · antes del …» (su certificado sigue vigente)
+  //   void    -> «Anulado · repítelo antes del …»
+  const rt = c.retake;
+  if (rt && due && s !== 'overdue' && s !== 'expired' && s !== 'pending-grading' && s !== 'pending-cancellation'){
+    const n = daysUntil(due), motivo = rt.reason ? ' title="' + esc('Motivo: ' + rt.reason) + '"' : '';
+    if (rt.mode === 'void'){
+      r.tone = 'err'; r.label = 'Anulado';
+      r.due = `<span${motivo}>Anulado · repítelo antes del <b>${esc(fmtDia(due))}</b></span>`;
+      r.dueTone = 'err';
+      if (s !== 'in-progress') r.btn = 'Repetir ▸';
+    } else {
+      r.tone = 'warn'; r.label = 'Renovación pedida';
+      r.due = `<span${motivo}>Renovación pedida · antes del <b>${esc(fmtDia(due))}</b></span>`;
+      r.dueTone = 'warn';
+      if (s !== 'in-progress') r.btn = 'Renovar ▸';
+    }
+    r.act = 'take'; r.when = due; r.rank = 1; r.grp = rt.mode === 'void' ? 'pend' : 'ren';
+    if (n <= 1) r.label += ' · ' + enDias(n);
+    return r;
+  }
+  if (rt && due && s === 'overdue') r.due = `${rt.mode === 'void' ? 'Anulado' : 'Renovación pedida'} · límite <b>${esc(fmtDia(due))}</b>`;
   // Pendiente con fecha límite todavía por delante: pasa a «vence antes» y lo dice;
   // la cinta se vuelve ámbar cuando faltan dos semanas o menos.
-  if (due && (s === 'not-started' || s === 'in-progress' || s === 'failed')){
+  if (!rt && due && (s === 'not-started' || s === 'in-progress' || s === 'failed')){
     const n = daysUntil(due);
     r.due = `Límite: <b>${fmtShort(due)}</b> · ${enDias(n)}`;
     r.when = due; r.rank = 1;
@@ -2604,7 +2648,7 @@ function renderHero(rows){
   const look = courseLook(c);
   const exp = c.expiresAt, due = c.dueAt;
   const tono = ['err','warn','info'][k.rank] || '';
-  const frase = ({
+  let frase = ({
     'expired':     exp ? `Tu certificación venció el ${fmtLong(exp)}. Renuévala para mantener tu expediente al día.` : 'Tu certificación venció. Renuévala para mantener tu expediente al día.',
     'overdue':     due ? `La fecha límite para completarlo fue el ${fmtLong(due)}. Tómalo cuanto antes.` : 'Está fuera de plazo. Tómalo cuanto antes.',
     'renewal':     exp ? `Tu certificación vence el ${fmtLong(exp)}. Ya puedes renovarla.` : 'Ya puedes renovar tu certificación.',
@@ -2612,7 +2656,12 @@ function renderHero(rows){
     'failed':      'No alcanzaste la puntuación para aprobar. Puedes intentarlo de nuevo.',
     'not-started': 'Lo tienes asignado y aún no lo comienzas.'
   })[c.status] || '';
-  const limite = (due && c.status !== 'overdue') ? ` Fecha límite: ${fmtLong(due)}.` : '';
+  // «Pedir que lo repita»: la frase lo dice con la fecha de la solicitud.
+  const rt = c.retake && c.status !== 'overdue' ? c.retake : null;
+  if (rt) frase = rt.mode === 'void'
+    ? `Tu certificado fue anulado${rt.reason ? ' (' + rt.reason + ')' : ''}. Debes repetirlo antes del ${fmtDia(due)}.`
+    : `Te pidieron repetirlo antes del ${fmtDia(due)}. Tu certificado sigue vigente mientras tanto.`;
+  const limite = (due && c.status !== 'overdue' && !rt) ? ` Fecha límite: ${fmtLong(due)}.` : '';
   const otros = tomables.length - 1;
   const boton = c.status === 'expired' || c.status === 'renewal' ? 'Renovar ahora ▸' : k.btn;
   el('dashHero').innerHTML = `<div class="hero">
@@ -2682,6 +2731,178 @@ function showSection(id){
   else if (id==='sec-admin'){ loadCompanyAdmin(); }
 }
 
+// ===== «Pedir que lo repita» =====
+// El Admin de la compañía le pide a una o varias personas repetir un curso, respondiendo
+// «¿El adiestramiento anterior sigue siendo válido?»:
+//   Sí (renewal) -> renovación anticipada: el certificado sigue vigente hasta aprobar de nuevo.
+//   No (void)    -> se ANULA el certificado (definitivo) y sus enlaces dejan de abrir.
+// Se abre desde el expediente (cada certificado), Cumplimiento («Al día», selección
+// múltiple), Grupos (cada curso del plan, para todo el grupo) y la ficha del curso
+// (Resultados, selección múltiple). El servidor calcula la fecha límite de cada persona
+// (/retakes/preview) y el modal la deja cambiar.
+// Las fechas límite son días: se guardan como 23:59:59 UTC de ese día y se muestran en UTC.
+function fmtDia(d){
+  if (!d) return '—';
+  const x = new Date(d);
+  if (isNaN(x)) return '—';
+  const o = { day:'numeric', month:'short', timeZone:'UTC' };
+  if (x.getUTCFullYear() !== new Date().getFullYear()) o.year = 'numeric';
+  return x.toLocaleDateString('es-PR', o).replace('.', '');
+}
+function diaIso(d){ const x = new Date(d); return isNaN(x) ? '' : x.toISOString().slice(0, 10); }
+function hoyIso(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+// Estado de una persona en un curso, como lo resuelve el servidor (CatalogLogic.ResolveAsync).
+const RT_ESTADO = { 'not-started':['gray','Por tomar'], 'in-progress':['info','En progreso'], failed:['info','No aprobado'],
+  overdue:['err','Vencido'], 'pending-grading':['info','En revisión'], 'pending-cancellation':['gray','Cancelación pendiente'],
+  renewal:['warn','Por renovar'], expired:['err','Vencido'], current:['ok','Al día'], done:['ok','Aprobado'], none:['gray','Sin asignar'] };
+const RT_MODO = { renewal:['warn','Renovación pedida'], void:['err','Anulado'] };
+function canRetake(){ return isCompanyAdmin(); }
+
+// o: { trainingId, title?, userIds?: [..] | groupId?, onDone?() }
+async function pedirRepetir(o){
+  if (!canRetake() || !o || !o.trainingId) return;
+  const prevFocus = document.activeElement;
+  const wrap = document.createElement('div');
+  wrap.className = 'modal dlg rt';
+  wrap.setAttribute('role', 'dialog'); wrap.setAttribute('aria-modal', 'true'); wrap.setAttribute('aria-labelledby', 'rtTitle');
+  wrap.innerHTML = `<div class="modal-box">
+    <div class="dlg-head"><div class="dlg-ic">${ic('refresh', 20)}</div>
+      <div style="flex:1;min-width:0"><h3 id="rtTitle">Pedir que lo repita</h3><p class="dlg-text" id="rtCurso">${esc(o.title || '')}</p></div></div>
+    <div id="rtBody">${loadingHtml('Calculando la fecha límite de cada persona…')}</div>
+    <p class="dlg-err" role="alert" id="rtErr"></p>
+    <div class="modal-actions"><button type="button" class="btn ghost" data-x>Cancelar</button>
+      <button type="button" class="btn" id="rtOk" disabled>Pedir que lo repita</button></div></div>`;
+  const $ = s => wrap.querySelector(s);
+  const S = { mode:null, reason:'', due:'', dueTouched:false, prev:null };
+  let cerrado = false;
+  function cerrar(){
+    if (cerrado) return; cerrado = true;
+    document.removeEventListener('keydown', onKey, true);
+    wrap.remove();
+    if (prevFocus && prevFocus.focus) try{ prevFocus.focus(); }catch{}
+  }
+  function onKey(e){
+    if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); if (!estaOcupado($('#rtOk'))) cerrar(); return; }
+    if (e.key === 'Tab'){   // el foco no se escapa del modal
+      const f = [...wrap.querySelectorAll('button,input,select,textarea')].filter(n => !n.disabled);
+      if (!f.length) return;
+      if (e.shiftKey && document.activeElement === f[0]){ e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === f[f.length - 1]){ e.preventDefault(); f[0].focus(); }
+    }
+  }
+  document.addEventListener('keydown', onKey, true);
+  document.body.appendChild(wrap);
+  $('[data-x]').addEventListener('click', cerrar);
+  $('[data-x]').focus();
+
+  // 1) Vista previa: estado, certificado y fecha límite calculada de cada persona.
+  const qs = 'trainingId=' + encodeURIComponent(o.trainingId)
+    + (o.groupId ? '&groupId=' + encodeURIComponent(o.groupId) : '&userIds=' + (o.userIds || []).map(encodeURIComponent).join(','));
+  const soltar = ocupar($('#rtOk'));
+  try{ S.prev = await api('/retakes/preview?' + qs); }
+  catch(e){
+    if (cerrado) return;
+    $('#rtBody').innerHTML = stateBox('alert', 'err', 'No se pudo preparar la solicitud', e.message);
+    return;
+  }
+  finally{ soltar(); }
+  if (cerrado) return;
+  const P = S.prev, gente = P.people || [];
+  const aptas = gente.filter(p => p.canRequest);
+  $('#rtCurso').textContent = P.title || o.title || '';
+  // Fecha prellenada: la calculada si todas coinciden; si no, la más próxima (y cada quien
+  // conserva la suya mientras no se cambie).
+  const dias = [...new Set(aptas.map(p => diaIso(p.dueAt)))].sort();
+  S.due = dias[0] || '';
+  const iguales = dias.length <= 1;
+
+  const fila = p => {
+    const [tono, txt] = RT_ESTADO[p.status] || ['gray', p.status];
+    const c = p.certificate;
+    const sub = c ? `Folio ${c.serial} · emitido ${fmtShort(c.issuedAt)}${c.expiresAt ? ' · vence ' + fmtShort(c.expiresAt) : ''}`
+                  : p.approvedAt ? 'Aprobado el ' + fmtShort(p.approvedAt) : 'Sin certificado vigente';
+    const abierta = p.openRequest
+      ? `<small class="warn">Ya tiene una solicitud abierta (${esc(RT_MODO[p.openRequest.mode] ? RT_MODO[p.openRequest.mode][1].toLowerCase() : p.openRequest.mode)}, límite ${esc(fmtDia(p.openRequest.dueAt))}): la nueva la reemplaza.</small>` : '';
+    return `<div class="li${p.canRequest ? '' : ' skip'}"><div class="av">${esc(initials(p.name))}</div>
+      <div class="t">${esc(p.name)}<small>${esc(sub)}</small>
+        ${p.canRequest ? `<small class="due">Límite calculado: <b>${esc(fmtDia(p.dueAt))}</b> · ${esc(p.dueSource)}</small>${abierta}`
+                       : `<small>${esc(p.reasonNot || 'No se le puede pedir.')}</small>`}</div>
+      <span class="st ${tono}">${esc(txt)}</span></div>`;
+  };
+  const cuantos = aptas.length === 1 ? '1 persona' : aptas.length + ' personas';
+  $('#rtBody').innerHTML = `
+    <div class="rt-people" role="list" aria-label="Personas">${gente.map(fila).join('') || '<div class="empty">Nadie.</div>'}</div>
+    ${aptas.length ? '' : `<p class="callout warn">Nadie de la lista ha aprobado este curso: no hay nada que pedir que repita.</p>`}
+    ${aptas.length && aptas.length < gente.length ? `<p class="dlg-hint">Se le pedirá a ${cuantos}; las demás todavía no lo han aprobado.</p>` : ''}
+    <div class="rt-q" id="rtQ">¿El adiestramiento anterior sigue siendo válido?</div>
+    <div role="radiogroup" aria-labelledby="rtQ">
+      <button type="button" class="radio" role="radio" aria-checked="false" data-m="renewal" aria-label="Sí, fue válido (renovación anticipada)"><i></i><div><b>Sí, fue válido (renovación anticipada)</b>
+        <span>Su certificado sigue vigente con sus fechas; cuando apruebe de nuevo, pasa a «Reemplazado».</span></div></button>
+      <button type="button" class="radio" role="radio" aria-checked="false" data-m="void" aria-label="No fue válido (anular)"><i></i><div><b>No fue válido (anular)</b>
+        <span>Lo tomó otra persona, hubo un error o un incidente: se anula el certificado y sus enlaces dejan de abrir.</span></div></button>
+    </div>
+    <label for="rtReason">Motivo <span class="opc" id="rtReasonOpc">(opcional)</span><span class="opc count" id="rtCount">0/500</span></label>
+    <textarea id="rtReason" class="field" rows="3" maxlength="500" placeholder="Por ejemplo: lo completó otra persona con su cuenta"></textarea>
+    <label for="rtDue">Fecha límite</label>
+    <input id="rtDue" type="date" class="field" style="max-width:200px" min="${hoyIso()}" value="${esc(S.due)}" />
+    <p class="dlg-hint" id="rtDueHint">${iguales
+      ? (aptas[0] ? 'Calculada con ' + esc(aptas[0].dueSource) + '.' : '')
+      : 'Cada persona tiene su fecha calculada (arriba). Si la cambias, todas quedan con la misma.'}</p>
+    <div class="callout err hidden" id="rtWarn">${ic('alert', 18)}<div><b>Anular es definitivo.</b> Aunque después canceles la solicitud,
+      el certificado sigue anulado y sus enlaces no vuelven a abrir.</div></div>`;
+  const ok = $('#rtOk');
+  ok.disabled = !aptas.length;
+  function pintarModo(){
+    wrap.querySelectorAll('[data-m]').forEach(b => { const on = b.dataset.m === S.mode; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+    $('#rtReasonOpc').textContent = S.mode === 'void' ? '(obligatorio)' : '(opcional)';
+    $('#rtWarn').classList.toggle('hidden', S.mode !== 'void');
+    ok.classList.toggle('red', S.mode === 'void');
+    ok.textContent = S.mode === 'void' ? 'Anular y pedir que lo repita' : 'Pedir que lo repita';
+    $('#rtErr').textContent = '';
+  }
+  wrap.querySelectorAll('[data-m]').forEach(b => b.addEventListener('click', () => { S.mode = b.dataset.m; pintarModo(); }));
+  $('#rtReason').addEventListener('input', e => { S.reason = e.target.value; $('#rtCount').textContent = e.target.value.length + '/500'; });
+  $('#rtDue').addEventListener('input', e => {
+    S.due = e.target.value; S.dueTouched = true;
+    if (!iguales) $('#rtDueHint').textContent = 'Todas las personas quedan con esta fecha.';
+  });
+  const primero = wrap.querySelector('[data-m]'); if (primero) primero.focus();
+
+  // 2) Enviar. El botón queda ocupado (api) mientras el servidor responde.
+  ok.addEventListener('click', async () => {
+    const err = $('#rtErr'); err.textContent = '';
+    if (!S.mode){ err.textContent = 'Responde si el adiestramiento anterior sigue siendo válido.'; return; }
+    const motivo = S.reason.trim();
+    if (S.mode === 'void' && !motivo){ err.textContent = 'Escribe el motivo de la anulación.'; $('#rtReason').focus(); return; }
+    if (S.dueTouched && (!S.due || S.due < hoyIso())){ err.textContent = 'La fecha límite tiene que ser hoy o un día futuro.'; $('#rtDue').focus(); return; }
+    const body = { trainingId: o.trainingId, mode: S.mode, reason: motivo || null, dueAt: S.dueTouched ? S.due : null };
+    if (o.groupId) body.groupId = o.groupId; else body.userIds = aptas.map(p => p.userId);
+    try{
+      const r = await api('/retakes', 'POST', body);
+      cerrar();
+      const n = r.created, omit = (r.skipped || []).length;
+      toast((S.mode === 'void' ? (n === 1 ? 'Certificado anulado y solicitud enviada.' : `Anulados y solicitud enviada a ${n} personas.`)
+                               : (n === 1 ? 'Solicitud enviada: le avisamos por correo.' : `Solicitud enviada a ${n} personas.`))
+            + (omit ? ` ${omit} sin aprobar, omitida${omit === 1 ? '' : 's'}.` : ''));
+      if (o.onDone) o.onDone(r);
+    }catch(e){ if (!cerrado) err.textContent = e.message; }
+  });
+}
+
+// Solicitudes abiertas de una persona (expediente): cancelar deja la anulación como está.
+async function cancelarRetake(id, modo, btn){
+  const anul = modo === 'void';
+  if (!await confirmModal('¿Cancelar la solicitud?',
+      anul ? 'La persona ya no tendrá que repetirlo. El certificado SIGUE ANULADO: la anulación es definitiva y no se deshace al cancelar.'
+           : 'La persona ya no tendrá que repetirlo antes de la fecha; su certificado sigue vigente con sus fechas.',
+      { danger: anul, icon:'refresh', okText:'Cancelar solicitud', cancelText:'Volver' })) return;
+  try{
+    const r = await api('/retakes/' + id, 'DELETE');
+    toast(r.voidStays ? 'Solicitud cancelada. El certificado sigue anulado.' : 'Solicitud cancelada.');
+    loadRecord();
+  }catch(e){ toast(e.message, 'err'); }
+}
+
 // ===== Expediente de certificaciones =====
 // Una tarjeta horizontal por certificado: curso, emitido, vence, folio, barra de vigencia
 // y cuántas veces se abrió su enlace, con Ver / Reenviar enlace / Revocar. Las externas
@@ -2693,6 +2914,7 @@ let recRows = [];          // último /record/{userId}
 let recUserId = null;
 let recLinks = {};         // folio → /certificates/{folio}/links
 let recPaint = 0;
+let recRetakes = [];       // solicitudes abiertas de «Pedir que lo repita» de la persona
 
 function canManageCerts(){ return isReviewer() || canCompliance(); }
 async function initRecord(){
@@ -2734,11 +2956,14 @@ async function loadRecord(){
   const p = recPeople.find(x => x.id === userId);
   el('recTitle').textContent = userId === user.id ? 'Mi expediente' : 'Expediente de ' + (p ? p.name : '…');
   el('recordList').innerHTML = loadingHtml();
-  recUserId = userId; recRows = []; recLinks = {};
+  el('recRetakes').innerHTML = '';
+  recUserId = userId; recRows = []; recLinks = {}; recRetakes = [];
   try{
-    const filas = await api('/record/'+userId);
+    // Con el expediente, las solicitudes abiertas de «Pedir que lo repita» de esa persona.
+    const [filas, sols] = await Promise.all([api('/record/'+userId), api('/retakes?open=true&userId='+userId).catch(() => [])]);
     if (userId !== recUserId) return;
     recRows = Array.isArray(filas) ? filas : [];
+    recRetakes = Array.isArray(sols) ? sols : [];
   }catch(e){
     el('recordList').innerHTML = stateBox('alert','err','No se pudo cargar el expediente', e.message);
     return;
@@ -2765,9 +2990,27 @@ function recordLook(title){
 function docUrl(u){
   return /^\/media\//.test(u || '') ? u + (u.includes('?') ? '&' : '?') + 'access_token=' + encodeURIComponent(token) : u;
 }
+// Solicitudes abiertas: curso, modo, fecha límite, quién y por qué; el Admin las cancela.
+function renderRecRetakes(){
+  const box = el('recRetakes'); if (!box) return;
+  if (!recRetakes.length){ box.innerHTML = ''; return; }
+  const propio = recUserId === user.id;
+  box.innerHTML = `<div class="rtbox"><h3>${propio ? 'Te pidieron repetir' : 'Solicitudes abiertas para repetir'} · ${recRetakes.length}</h3>
+    <div class="list" style="margin-top:6px">${recRetakes.map(s => {
+      const [tono, txt] = RT_MODO[s.mode] || ['gray', s.mode];
+      const partes = [(s.overdue ? 'venció el ' : 'antes del ') + fmtDia(s.dueAt),
+        'pedida el ' + fmtShort(s.createdAt) + (s.createdByName ? ' por ' + s.createdByName : '')];
+      if (s.reason) partes.push('motivo: «' + s.reason + '»');
+      return `<div class="li"><div class="crow-ic">${ic('refresh', 18)}</div>
+        <div class="t">${esc(s.title)}<small${s.overdue ? ' style="color:var(--err)"' : ''}>${esc(partes.join(' · '))}</small></div>
+        <span class="st ${tono}">${esc(txt)}</span>
+        ${canRetake() ? `<button type="button" class="btn sm ghost" onclick="cancelarRetake('${s.id}','${esc(s.mode)}',this)">Cancelar solicitud</button>` : ''}</div>`;
+    }).join('')}</div></div>`;
+}
 function renderRecord(){
   const box = el('recordList'); if (!box) return;
   const propio = recUserId === user.id;
+  renderRecRetakes();
   if (!recRows.length){
     box.innerHTML = stateBox('award','gray','Sin certificaciones todavía', propio
       ? 'Cuando apruebes un adiestramiento, su certificado aparecerá aquí con su enlace.'
@@ -2779,7 +3022,9 @@ function renderRecord(){
 function certCard(r, i, propio){
   const ext = r.origen !== 'plataforma';
   const emit = diaLocal(r.issuedOn), exp = r.expiresOn ? diaLocal(r.expiresOn) : null;
-  const vencida = r.vigente === false;
+  // «Pedir que lo repita»: anulado (rojo) o reemplazado al aprobar de nuevo (gris).
+  const anulado = r.status === 'voided', reemplazado = r.status === 'superseded', fuera = anulado || reemplazado;
+  const vencida = r.vigente === false && !fuera;
   const dias = exp ? daysUntil(exp) : null;
   const tono = !exp ? 'ok' : vencida ? 'err' : dias <= compDueSoon ? 'warn' : 'ok';
   let pct = 100;
@@ -2791,7 +3036,8 @@ function certCard(r, i, propio){
   const meta = [];
   if (ext && r.issuer) meta.push('Emitida por ' + esc(r.issuer));
   meta.push((ext ? 'Emitida ' : 'Emitido ') + esc(fmtShort(emit)));
-  meta.push(!exp ? 'No caduca'
+  meta.push(fuera ? (exp ? 'Vencía ' + esc(fmtShort(exp)) : 'No caducaba')
+    : !exp ? 'No caduca'
     : vencida ? `<span style="color:var(--err)">Venció ${esc(fmtShort(exp))}</span>`
     : `<span${tono === 'warn' ? ' style="color:var(--warn)"' : ''}>Vence ${esc(fmtShort(exp))}${tono === 'warn' ? ' · ' + enDias(dias) : ''}</span>`);
   if (r.credentialId) meta.push('Folio ' + esc(r.credentialId));
@@ -2808,18 +3054,32 @@ function certCard(r, i, propio){
     if (isReviewer()) acts.push(`<button type="button" class="btn sm danger" onclick="deleteCert('${r.id}')">Eliminar</button>`);
   } else if (r.credentialId){
     acts.push(`<button type="button" class="btn sm ghost" onclick="verCert(${i})">Ver</button>`);
-    if (!vencida) acts.push(`<button type="button" class="btn sm ghost" onclick="resendCert(${i},this)">Reenviar enlace</button>`);
-    else if (propio) acts.push(`<button type="button" class="btn sm" onclick="openCatalogFilter('ren')">Renovar ▸</button>`);
+    if (anulado) { /* un anulado no se reenvía ni se renueva desde aquí */ }
+    else if (!vencida && !reemplazado) acts.push(`<button type="button" class="btn sm ghost" onclick="resendCert(${i},this)">Reenviar enlace</button>`);
+    else if (propio && vencida) acts.push(`<button type="button" class="btn sm" onclick="openCatalogFilter('ren')">Renovar ▸</button>`);
+    if (!fuera && r.trainingId && canRetake())
+      acts.push(`<button type="button" class="btn sm ghost" onclick="retakeDesdeCert(${i})">Pedir que lo repita</button>`);
     if (L && L.activeLinks > 0) acts.push(`<button type="button" class="btn sm danger" onclick="revokeCert(${i})" title="${L.activeLinks === 1 ? '1 enlace vivo' : L.activeLinks + ' enlaces vivos'}">Revocar</button>`);
   }
-  return `<div class="cert">${seal}
+  // Detalle de la anulación o del reemplazo (también al pasar el ratón por la insignia).
+  const cuando = r.statusChangedAt ? fmtLong(r.statusChangedAt) : '';
+  const porque = anulado ? `Anulado${cuando ? ' el ' + cuando : ''}${r.statusReason ? '. Motivo: ' + r.statusReason : ''}`
+               : reemplazado ? `Reemplazado por el certificado del ${cuando || '—'}${r.statusReason ? ' (folio ' + r.statusReason + ')' : ''}` : '';
+  const insignia = anulado ? `<span class="st err" title="${esc(porque)}">Anulado</span>`
+                 : reemplazado ? `<span class="st gray" title="${esc(porque)}">Reemplazado</span>` : '';
+  return `<div class="cert${fuera ? ' off' : ''}">${seal}
     <div style="min-width:0">
-      <div class="inline"><h3>${esc(r.title)}</h3>${ext ? `<span class="st gray">Externa${r.externalSource ? ' · ' + esc(r.externalSource) : ''}</span>` : ''}${vencida ? '<span class="st err">Vencida</span>' : ''}</div>
+      <div class="inline"><h3>${esc(r.title)}</h3>${ext ? `<span class="st gray">Externa${r.externalSource ? ' · ' + esc(r.externalSource) : ''}</span>` : ''}${vencida ? '<span class="st err">Vencida</span>' : ''}${insignia}</div>
       <div class="meta">${meta.map(m => `<span>${m}</span>`).join('')}</div>
+      ${porque ? `<div class="why${anulado ? ' err' : ''}">${esc(porque)}</div>` : ''}
       ${r.notes ? `<div class="note">${esc(r.notes)}</div>` : ''}
-      ${exp ? `<div class="bar ${tono === 'ok' ? '' : tono}" role="img" aria-label="${vencida ? 'Vigencia agotada' : 'Vigencia consumida: ' + pct + ' %'}"><i style="width:${pct}%"></i></div>` : ''}
+      ${exp && !fuera ? `<div class="bar ${tono === 'ok' ? '' : tono}" role="img" aria-label="${vencida ? 'Vigencia agotada' : 'Vigencia consumida: ' + pct + ' %'}"><i style="width:${pct}%"></i></div>` : ''}
     </div>
     <div class="acts">${acts.join('')}</div></div>`;
+}
+function retakeDesdeCert(i){
+  const r = recRows[i]; if (!r || !r.trainingId) return;
+  pedirRepetir({ trainingId: r.trainingId, title: r.title, userIds: [recUserId], onDone: () => loadRecord() });
 }
 // Ver: el PDF va por endpoint autenticado; se pide con fetch y se abre en otra pestaña.
 async function verCert(i){
@@ -2930,6 +3190,7 @@ let compView = { bucket:'overdue', trainingId:'', group:'', q:'' };
 let compCfg = null;        // /company/compliance tal como está guardado
 let CC = null, compCfgDirty = false;   // copia editable
 let compOfficers = null;   // solo Admin: usuarios de la compañía con su marca de oficial
+const compSel = new Set(); // «Al día»: filas marcadas (userId|trainingId) para «Pedir que lo repita»
 // «Al día» (current): aprobado y vigente, fuera de la ventana de «por vencer»; no se pisa
 // con las otras tres listas.
 const COMP_BUCKETS = [
@@ -2946,6 +3207,15 @@ function compRowsAll(){ return compSummary ? [...(compSummary.overdue || []), ..
 // Fecha de una fila del panel: txt para la lista, short para las pastillas de Grupos.
 function compWhen(r){
   const f = r.date ? new Date(r.date) : null, lim = r.dateKind === 'due';
+  // «Pedir que lo repita»: la fecha es la límite de la solicitud (un día, en UTC).
+  if (r.retake && r.bucket !== 'overdue' && f){
+    const n = r.days != null ? r.days : daysUntil(f);
+    if (r.retake === 'void')
+      return { tone:'err', short:'anulado', txt:'anulado · repítelo antes del ' + fmtDia(f) };
+    if (r.bucket === 'current')
+      return { tone:'ok', short:'renovación pedida', txt:'al día · renovación pedida antes del ' + fmtDia(f) };
+    return { tone:'warn', short:'renovación pedida', txt:'renovación pedida · límite ' + enDias(n) + ' · ' + fmtDia(f) };
+  }
   if (r.bucket === 'overdue'){
     const hace = r.days > 0 ? ` · hace ${r.days} ${r.days === 1 ? 'día' : 'días'}` : '';
     return { tone:'err', short:'vencido', txt: f ? (lim ? 'límite ' : 'venció ') + fmtShort(f) + hace : 'vencido' };
@@ -3048,11 +3318,12 @@ function compFilter(list){
                                 && (!q || normBusca(r.name).includes(q) || normBusca(r.email).includes(q)));
 }
 function setCompBucket(k){
-  compView.bucket = k; renderCompList();
+  compView.bucket = k; compSel.clear(); renderCompList();
   const b = document.querySelector('#compKpis .kpi.on'); if (b) b.focus();
 }
 function setCompFilter(k, v){
   if (k === '*'){ compView.trainingId = ''; compView.group = ''; compView.q = ''; } else compView[k] = v;
+  compSel.clear();
   renderCompliance();
 }
 // La búsqueda repinta solo contadores y lista: así el campo no pierde el foco al escribir.
@@ -3107,25 +3378,64 @@ function renderCompList(){
   const vacio = filtrado ? 'Nadie coincide con estos filtros en esta lista.'
     : { overdue:'Nadie tiene cursos vencidos.', 'due-soon':`Nadie tiene cursos que venzan en los próximos ${n} días.`,
         'not-started':'Nadie tiene cursos sin comenzar.', current:'Todavía nadie tiene cursos aprobados y vigentes.' }[b.key];
+  // «Al día» con selección múltiple (solo el Admin): «Pedir que lo repita» a varias personas
+  // de un mismo curso. La selección se queda solo con lo que se ve.
+  const sel = b.key === 'current' && canRetake();
+  const visibles = new Set(filas.map(compKey));
+  [...compSel].forEach(k => { if (!visibles.has(k)) compSel.delete(k); });
   box.innerHTML = `
     <div class="sectionhead"><h4>${esc(b.label.replace('{n}', n))} · ${filas.length}</h4></div>
-    <div class="list" style="margin-top:0">${filas.length ? filas.map(compRowHtml).join('') : `<div class="empty">${esc(vacio)}</div>`}</div>`;
+    ${sel && filas.length ? `<div class="selbar" id="compSelBar"></div>` : ''}
+    <div class="list" style="margin-top:0">${filas.length ? filas.map(r => compRowHtml(r, sel)).join('') : `<div class="empty">${esc(vacio)}</div>`}</div>`;
+  if (sel) paintCompSel(filas);
 }
-function compRowHtml(r){
+function compKey(r){ return r.userId + '|' + r.trainingId; }
+function compCurrentRows(){ return compSummary ? compFilter(compSummary.current) : []; }
+function paintCompSel(filas){
+  const bar = el('compSelBar'); if (!bar) return;
+  filas = filas || compCurrentRows();
+  const elegidas = filas.filter(r => compSel.has(compKey(r)));
+  const cursos = new Set(elegidas.map(r => r.trainingId));
+  const todas = filas.length && elegidas.length === filas.length;
+  bar.innerHTML = `<label><input type="checkbox" class="rtchk" ${todas ? 'checked' : ''} onchange="compSelTodas(this.checked)" aria-label="Seleccionar todas" /> Todas</label>
+    <span class="n">${elegidas.length ? (elegidas.length === 1 ? '1 seleccionada' : elegidas.length + ' seleccionadas') : 'Marca a quién pedírselo'}</span>
+    ${cursos.size > 1 ? `<span class="hint">Son de ${cursos.size} cursos: elige personas de un solo curso (o filtra por curso).</span>` : ''}
+    <button type="button" class="btn sm" style="margin-left:auto" onclick="compRetakeSel()" ${elegidas.length && cursos.size === 1 ? '' : 'disabled'}>Pedir que lo repita</button>`;
+  document.querySelectorAll('#compLista .rtchk[data-k]').forEach(c => { c.checked = compSel.has(c.dataset.k); });
+}
+function compSelToggle(k, on){ if (on) compSel.add(k); else compSel.delete(k); paintCompSel(); }
+function compSelTodas(on){ compCurrentRows().forEach(r => on ? compSel.add(compKey(r)) : compSel.delete(compKey(r))); paintCompSel(); }
+function compRetakeSel(){
+  const elegidas = compCurrentRows().filter(r => compSel.has(compKey(r)));
+  if (!elegidas.length) return;
+  pedirRepetir({ trainingId: elegidas[0].trainingId, title: elegidas[0].title, userIds: [...new Set(elegidas.map(r => r.userId))],
+    onDone: () => { compSel.clear(); loadCompliance(); } });
+}
+function compRetakeUno(uid, tid){
+  const r = compCurrentRows().find(x => x.userId === uid && x.trainingId === tid);
+  pedirRepetir({ trainingId: tid, title: r ? r.title : '', userIds: [uid], onDone: () => loadCompliance() });
+}
+function compRowHtml(r, sel){
   const w = compWhen(r);
   // El servidor no recuerda nada a quien ya aprobó y sigue vigente, ni a quien espera calificación.
   const puede = r.bucket !== 'current' && !['current','done','pending-grading','pending-cancellation'].includes(r.status);
   const partes = [r.title];
   if (r.groups && r.groups.length) partes.push(r.groups.join(', '));
   if (r.bucket === 'current' && r.approvedAt) partes.push('aprobado el ' + fmtShort(r.approvedAt));
+  if (r.retake && r.retakeReason) partes.push('motivo: «' + r.retakeReason + '»');
+  const etiqueta = r.retake && RT_MODO[r.retake] ? `<span class="st xs ${RT_MODO[r.retake][0]}">${RT_MODO[r.retake][1]}</span>` : '';
+  const chk = sel ? `<input type="checkbox" class="rtchk" data-k="${esc(compKey(r))}" ${compSel.has(compKey(r)) ? 'checked' : ''}
+      onchange="compSelToggle(this.dataset.k,this.checked)" aria-label="Seleccionar a ${esc(r.name)} (${esc(r.title)})" />` : '';
+  const pedir = sel && r.retake !== 'renewal'
+    ? `<button type="button" class="linkbtn" onclick="compRetakeUno('${r.userId}','${r.trainingId}')">Pedir que lo repita</button>` : '';
   // Certificado: el vigente o, en las otras listas, el último emitido aunque ya haya caducado.
   const cert = r.certificateSerial
     ? `<button type="button" class="linkbtn" onclick="descargarCertComp(this,'${esc(r.certificateSerial)}')"
          title="Folio ${esc(r.certificateSerial)}">${r.certificateExpired ? 'Descargar certificado vencido' : 'Descargar certificado'}</button>` : '';
-  return `<div class="li"><div class="av">${esc(initials(r.name))}</div>
-    <div class="t">${esc(r.name)}<small>${esc(partes.join(' · '))}</small>
+  return `<div class="li">${chk}<div class="av">${esc(initials(r.name))}</div>
+    <div class="t">${esc(r.name)} ${etiqueta}<small>${esc(partes.join(' · '))}</small>
       <div class="lacts">${puede ? `<button type="button" class="linkbtn" onclick="remindNow(this,'${r.userId}','${r.trainingId}')">Recordar ahora</button>` : ''}
-        ${cert}
+        ${cert}${pedir}
         <button type="button" class="linkbtn" onclick="openRecordFor('${r.userId}')">Ver expediente</button></div></div>
     <span class="st ${w.tone}">${esc(w.txt)}</span></div>`;
 }
@@ -4070,7 +4380,7 @@ function fichaDirty(){ return presDirty || vigDirty || certDirty; }
 async function openFicha(id, tab){
   if (!trCache.some(t => t.id === id)) await refreshTrainings();
   fichaId = id; editingTrainingId = id;
-  F = {}; P = null; V = null; presPage = null; presDirty = vigDirty = certDirty = false; overflowIds = new Set(); resFilter = 'all';
+  F = {}; P = null; V = null; presPage = null; presDirty = vigDirty = certDirty = false; overflowIds = new Set(); resFilter = 'all'; resSel.clear();
   draftVersionId = null; draftItems = []; contentGroups = []; activeTab = 0;
   el('contentTabs').innerHTML = ''; el('contentItems').innerHTML = loadingHtml(); el('contentMsg').textContent = '';
   el('mgList').classList.add('hidden');
@@ -4934,8 +5244,10 @@ el('certPreviewBtn').onclick = () => {
 
 // ----- Resultados -----
 const RES_FILTERS = [['all','Todos'],['passed','Aprobados'],['failed','No aprobados'],['review','En revisión'],['progress','En progreso'],['cancel','Cancelados']];
-const RES_PILL = { passed:['ok','Aprobado'], failed:['err','No aprobado'], review:['warn','En revisión'], progress:['info','En progreso'], cancel:['gray','Cancelado'], other:['gray','—'] };
+const RES_PILL = { passed:['ok','Aprobado'], failed:['err','No aprobado'], review:['warn','En revisión'], progress:['info','En progreso'], cancel:['gray','Cancelado'], voided:['err','Anulado'], other:['gray','—'] };
+const resSel = new Set();   // personas marcadas (userId) para «Pedir que lo repita»
 function resKind(a){
+  if (a.voidedAt) return 'voided';   // aprobado anulado con «Pedir que lo repita»
   if (a.status === 'completed') return a.passed ? 'passed' : 'failed';
   if (a.status === 'pending-grading') return 'review';
   if (a.status === 'in-progress') return 'progress';
@@ -4951,18 +5263,55 @@ function renderResultados(){
   const badge = el('resBadge');
   badge.textContent = cuenta.review || ''; badge.classList.toggle('hidden', !cuenta.review);
   const lista = rows.filter(a => resFilter === 'all' || resKind(a) === resFilter);
+  // Selección múltiple para «Pedir que lo repita» (solo el Admin): aprobados que cuentan.
+  const sel = canRetake() && trStatus(fichaT() || {}) === 'published';
+  const filtros = RES_FILTERS.concat(cuenta.voided ? [['voided','Anulados']] : []);
   box.innerHTML = `<div class="sectionhead" style="margin-top:0"><h4>Intentos · ${rows.length}</h4>
-    <div class="inline" role="group" aria-label="Filtrar intentos">${RES_FILTERS.map(([k, l]) =>
+    <div class="inline" role="group" aria-label="Filtrar intentos">${filtros.map(([k, l]) =>
       `<button type="button" class="daychip ${resFilter===k?'on':''}" aria-pressed="${resFilter===k}" onclick="setResFilter('${k}')">${l}${k !== 'all' && cuenta[k] ? ` <span class="num">${cuenta[k]}</span>` : ''}</button>`).join('')}
       <button type="button" class="btn sm ghost" onclick="exportResults()" ${rows.length ? '' : 'disabled'}>Exportar CSV</button></div></div>
+    ${sel && rows.some(resElegible) ? '<div class="selbar" id="resSelBar"></div>' : ''}
     <div class="list">${lista.length ? lista.map(a => {
       const k = resKind(a), pill = RES_PILL[k];
-      const sub = [fmtFecha(a.completedAt || a.startedAt), a.activeSeconds > 0 ? fmtTime(a.activeSeconds) + ' frente al curso' : null].filter(Boolean).join(' · ');
+      const sub = [fmtFecha(a.completedAt || a.startedAt), a.activeSeconds > 0 ? fmtTime(a.activeSeconds) + ' frente al curso' : null,
+        a.voidedAt ? 'anulado el ' + fmtDia(a.voidedAt) + (a.voidReason ? ': «' + a.voidReason + '»' : '') : null].filter(Boolean).join(' · ');
       const pts = a.status === 'completed' ? `<b class="num">${a.score} pts</b>` : '<b>—</b>';
-      return `<div class="li"><div class="av">${esc(initials(a.learnerName || '?'))}</div>
+      const chk = sel && resElegible(a)
+        ? `<input type="checkbox" class="rtchk" data-u="${esc(a.userId)}" ${resSel.has(a.userId) ? 'checked' : ''} onchange="resSelToggle(this.dataset.u,this.checked)" aria-label="Seleccionar a ${esc(a.learnerName || 'la persona')}" />`
+        : sel ? '<span class="rtchk" aria-hidden="true"></span>' : '';
+      return `<div class="li">${chk}<div class="av">${esc(initials(a.learnerName || '?'))}</div>
         <div class="t">${esc(a.learnerName || '(anónimo)')}<small>${esc(sub)}</small></div>
         <div class="r">${pts}</div><span class="st ${pill[0]}">${pill[1]}</span></div>`;
     }).join('') : `<div class="empty">${rows.length ? 'Ningún intento con este filtro.' : 'Nadie lo ha tomado todavía.'}</div>`}</div>`;
+  if (sel) paintResSel();
+}
+// Se le puede pedir a quien tiene un intento aprobado que cuenta (con cuenta, no anónimo):
+// su última aprobación, si no está anulada (la casilla va en esa fila).
+function resElegible(a){
+  if (!a.userId || resKind(a) !== 'passed') return false;
+  const ultima = (F.attempts || []).filter(x => x.userId === a.userId && x.passed && x.completedAt)
+    .sort((x, y) => String(y.completedAt).localeCompare(String(x.completedAt)))[0];
+  return !!ultima && ultima.id === a.id;
+}
+function paintResSel(){
+  const bar = el('resSelBar'); if (!bar) return;
+  const elegibles = [...new Set((F.attempts || []).filter(resElegible).map(a => a.userId))];
+  [...resSel].forEach(u => { if (!elegibles.includes(u)) resSel.delete(u); });
+  const todas = elegibles.length && resSel.size === elegibles.length;
+  bar.innerHTML = `<label><input type="checkbox" class="rtchk" ${todas ? 'checked' : ''} onchange="resSelTodas(this.checked)" aria-label="Seleccionar a todos los aprobados" /> Todos los aprobados</label>
+    <span class="n">${resSel.size ? (resSel.size === 1 ? '1 persona seleccionada' : resSel.size + ' personas seleccionadas') : 'Marca a quién pedírselo'}</span>
+    <button type="button" class="btn sm" style="margin-left:auto" onclick="resRetakeSel()" ${resSel.size ? '' : 'disabled'}>Pedir que lo repita</button>`;
+  document.querySelectorAll('#pRes .rtchk[data-u]').forEach(c => { c.checked = resSel.has(c.dataset.u); });
+}
+function resSelToggle(u, on){ if (on) resSel.add(u); else resSel.delete(u); paintResSel(); }
+function resSelTodas(on){ (F.attempts || []).filter(resElegible).forEach(a => on ? resSel.add(a.userId) : resSel.delete(a.userId)); paintResSel(); }
+function resRetakeSel(){
+  const t = fichaT(); if (!t || !resSel.size) return;
+  const id = t.id;
+  pedirRepetir({ trainingId: id, title: t.title, userIds: [...resSel], onDone: async () => {
+    resSel.clear();
+    try{ const a = await api('/trainings/' + id + '/attempts'); if (id === fichaId){ F.attempts = Array.isArray(a) ? a : []; renderResultados(); } }catch(e){}
+  } });
 }
 function exportResults(){
   const t = fichaT(), rows = F.attempts || [];
@@ -5626,10 +5975,14 @@ function renderGrpPlan(){
            <option value="">Set por defecto</option>${sets.map(s => `<option value="${s.id}" ${c.setId === s.id ? 'selected' : ''}>${esc(s.name)}${s.isDefault ? ' (por defecto)' : ''}</option>`).join('')}</select>`;
     const pub = c.status === 'published' ? 'Publicado' : c.status === 'archived' ? 'Archivado' : 'Borrador: aún no le aparece a nadie';
     const aud = c.audience === 'groups' ? 'solo para grupos con este curso en su plan' : 'obligatorio para toda la compañía; aquí se fija el plazo del grupo';
+    // «Pedir que lo repita» a todo el grupo: solo el Admin, cursos publicados y ya guardados en el plan.
+    const guardado = grpPlan && (grpPlan.courses || []).some(x => x.trainingId === c.trainingId);
+    const repetir = canRetake() && guardado && c.status === 'published'
+      ? `<button type="button" class="btn sm ghost" onclick="retakeGrupo(${i})" title="A los miembros del grupo que ya lo aprobaron">Pedir que lo repita</button>` : '';
     return `<div class="prow">
       <div class="t"><b>${esc(c.title)}</b><small>${esc(pub + ' · ' + aud)}</small></div>
       <div class="inline"><span>plazo</span><input id="gpDue${i}" type="number" class="field sm num" style="width:84px" min="0" max="3650" value="${esc(c.dueDays)}" placeholder="${esc(GP.onboardingDays)}" aria-label="Días de plazo para ${esc(c.title)}" oninput="setGP(${i},'dueDays',this.value)" /><span>días</span></div>
-      ${setSel}
+      ${setSel}${repetir}
       <button type="button" class="ibtn danger" title="Quitar del plan" aria-label="Quitar ${esc(c.title)} del plan" onclick="removePlanCourse(${i})">${ic('trash', 16)}</button>
     </div>`;
   }).join('');
@@ -5649,6 +6002,10 @@ function renderGrpPlan(){
     <div class="panefoot"><button type="button" class="btn sm" id="gpSave" onclick="saveGrpPlan()" ${grpPlanDirty ? '' : 'disabled'}>Guardar plan</button>
       <span class="hint dirty" id="gpDirty">${grpPlanDirty ? 'Cambios sin guardar' : ''}</span></div>`;
   if (foco){ const n = el(foco); if (n) n.focus(); }
+}
+function retakeGrupo(i){
+  const c = GP && GP.courses[i]; if (!c || !grpId) return;
+  pedirRepetir({ trainingId: c.trainingId, title: c.title, groupId: grpId, onDone: () => refreshGrpStatus() });
 }
 function addPlanCourse(){
   const id = el('gpAdd') && el('gpAdd').value; if (!id || !GP) return;
@@ -5933,16 +6290,19 @@ async function loadMyHistory(){
     const h = await api('/me/attempts');
     histRows = Array.isArray(h) ? h : [];
     el('historyList').innerHTML = histRows.length ? histRows.map((a, i) => {
-      const pill = a.status === 'completed' ? (a.passed ? ['ok', 'Aprobado · ' + a.score + ' pts'] : ['err', 'No aprobado · ' + a.score + ' pts'])
+      // Anulado («Pedir que lo repita» sin validez): el aprobado ya no cuenta.
+      const pill = a.voidedAt ? ['err', 'Anulado']
+                 : a.status === 'completed' ? (a.passed ? ['ok', 'Aprobado · ' + a.score + ' pts'] : ['err', 'No aprobado · ' + a.score + ' pts'])
                  : HIST_PILL[a.status] || ['gray', a.status];
       const sub = [fmtFecha(a.completedAt || a.startedAt),
         a.activeSeconds > 0 ? fmtTime(a.activeSeconds) + ' frente al curso' : null,
+        a.voidedAt ? 'anulado el ' + fmtDia(a.voidedAt) + (a.voidReason ? ': «' + a.voidReason + '»' : '') : null,
         a.status === 'cancellation-requested' && a.cancelRequestComment ? 'motivo: «' + a.cancelRequestComment + '»' : null,
         a.status === 'cancelled' && a.cancelApprovalComment ? 'aprobó: «' + a.cancelApprovalComment + '»' : null].filter(Boolean).join(' · ');
       const acts = [];
       if (a.status === 'completed' || a.status === 'pending-grading')
         acts.push(`<button type="button" class="btn sm ghost" onclick="openReview('${a.id}',histRows[${i}].title)">Revisar</button>`);
-      if (a.status === 'completed' && a.passed)
+      if (a.status === 'completed' && a.passed && !a.voidedAt)
         acts.push(`<button type="button" class="btn sm ghost" onclick="resendFromAttempt(${i},this)" title="Te enviamos a tu correo un enlace nuevo al certificado">Reenviar enlace</button>`);
       if (a.status === 'in-progress')
         acts.push(`<button type="button" class="btn sm ghost" onclick="requestCancel('${a.id}')">Solicitar cancelación</button>`);
