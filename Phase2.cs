@@ -591,7 +591,11 @@ public static class Phase2Endpoints
             var tipo = MediaTipos.PorExtension(Path.GetExtension(asset.RelativePath).ToLowerInvariant()) ?? "application/octet-stream";
             var h = http.Response.Headers;
             h["X-Content-Type-Options"] = "nosniff";
-            h["Content-Security-Policy"] = MediaTipos.Csp;
+            // PDF sin CSP: el visor de Edge es un complemento y la CSP con sandbox lo bloquea
+            // (ERR_BLOCKED_BY_CLIENT). El visor corre aislado del sitio; lo demás (imágenes,
+            // audio, video y descargas) sigue con la CSP de sandbox.
+            if (tipo == "application/pdf") h.Remove("Content-Security-Policy");
+            else h["Content-Security-Policy"] = MediaTipos.Csp;
             h["Referrer-Policy"] = "no-referrer";
             h.CacheControl = "private, no-store";
             if (MediaTipos.EnLinea(tipo))
@@ -1566,9 +1570,10 @@ public static class MediaTipos
     public static bool EnLinea(string tipo)
         => tipo.StartsWith("image/") || tipo.StartsWith("audio/") || tipo.StartsWith("video/") || tipo == "application/pdf";
 
-    // CSP de todo lo que sirve /media, PDF incluido: sandbox y nada que cargar. Probado
-    // (25 sep 2026, Chrome 153, Edge 153 y Firefox, abriendo el PDF en la pestaña): el
-    // visor de PDF lo muestra igual con sandbox y con object-src 'none'.
+    // CSP de lo que sirve /media: sandbox y nada que cargar. Los PDF van SIN CSP (en /media
+    // y en /c/{token}): en producción, Edge bloqueó el certificado con ella («blocked by
+    // Microsoft Edge», ERR_BLOCKED_BY_CLIENT, 27 sep 2026), aunque Chrome, Firefox y Opera
+    // lo mostraban; una prueba anterior (25 sep) no lo había detectado.
     public const string Csp = "sandbox; default-src 'none'; img-src 'self'; media-src 'self'";
 
     public static bool FirmaValida(string ext, Stream s)

@@ -515,8 +515,11 @@ public static class CertificateEndpoints
                 var disposicion = new Microsoft.Net.Http.Headers.ContentDispositionHeaderValue("inline");
                 disposicion.SetHttpFileName(NombreArchivo(cert));
                 http.Response.Headers.ContentDisposition = disposicion.ToString();
-                // El PDF lleva la misma CSP con sandbox que /media (el visor lo muestra igual).
-                http.Response.Headers.ContentSecurityPolicy = MediaTipos.Csp;
+                // Sin CSP: el visor de PDF de Edge es un complemento y una CSP con sandbox u
+                // object-src 'none' lo bloquea («blocked by Microsoft Edge», ERR_BLOCKED_BY_CLIENT);
+                // Chrome, Firefox y Opera usan otro visor y no se enteran. El PDF lo genera la
+                // plataforma (no es contenido subido) y va con nosniff y como application/pdf.
+                http.Response.Headers.Remove("Content-Security-Policy");
                 return Results.File(pdf, "application/pdf");
             }
             catch (Exception ex)

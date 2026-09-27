@@ -1063,6 +1063,12 @@ app.MapPost("/auth/reset-password", async (ResetWithTokenRequest? req, HttpConte
     user.LockoutEnd = null;
     Sesiones.Rotar(catalog, user, cache);
 
+    // El enlace llegó a su buzón: vale como la «prueba del correo» que se pide antes de
+    // registrar la app autenticadora por primera vez fuera de las redes de confianza
+    // (PruebaCorreo, 15 min desde esta IP). Así, al aceptar una invitación y activar el
+    // doble factor enseguida, no se le vuelve a mandar un código por correo.
+    if (!tieneApp) PruebaCorreo.Anotar(catalog, user.Id, ip);
+
     // Cualquier otro enlace pendiente de este usuario deja de servir.
     var otros = await catalog.PasswordResetTokens
         .Where(t => t.UserId == user.Id && t.UsedAt == null && t.Id != registro.Id).ToListAsync();
