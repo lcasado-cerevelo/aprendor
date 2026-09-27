@@ -294,7 +294,7 @@ public class UserCompany
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid UserId { get; set; }
     public Guid TenantId { get; set; }
-    public string Role { get; set; } = "Learner";   // Admin | Author | Moderator | Learner
+    public string Role { get; set; } = "Learner";   // Admin | Author | Learner (Moderator se retiró en sep 2026 y pasó a Author)
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Oficial de cumplimiento de ESTA compañía. No es un rol: se suma al rol que tenga.
@@ -313,7 +313,7 @@ public class AppUser
     public string Email { get; set; } = "";
     public string Name { get; set; } = "";
     public string PasswordHash { get; set; } = "";
-    public string Role { get; set; } = "Learner"; // Admin | Author | Moderator | Learner
+    public string Role { get; set; } = "Learner"; // Admin | Author | Learner (Moderator se retiró en sep 2026 y pasó a Author)
     public Guid? TenantId { get; set; }            // null = platform admin (no tenant)
     public bool MustChangePassword { get; set; }   // true tras un reseteo del admin
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

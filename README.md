@@ -501,3 +501,17 @@ corriendo un build anterior: la pantalla «Validar correo» no avanza (y el segu
 reproductor no muestra la pantalla de entrada del curso y el favicon no sale. Vuelve a publicar y
 recicla el grupo de aplicaciones. Las páginas ya salen con `Cache-Control: no-cache`, así que tras
 publicar basta con recargar; con el build anterior hay que forzarlo una vez (Ctrl+F5).
+
+## Roles y doble factor de administradores (septiembre 2026)
+
+- **Roles:** Admin, Author y Learner. El rol Moderator se retiró: la migración de catálogo
+  `RetireModeratorRole` pasa a Author a quien lo tenía (`dotnet TrainingPlatform.dll migrate`).
+- **Aprobar cancelaciones** de cursos a medias y **«Pedir que lo repita»** (renovar o anular):
+  Admin, Author u oficial de cumplimiento de la compañía. Calificar respuestas abiertas: Admin y Author.
+- **Administradores con doble factor obligatorio:** el admin de plataforma y cualquier Admin de
+  compañía, aunque la política de la compañía no lo exija. No les valen las redes de confianza
+  ni pueden desactivarlo.
+- **Recuperar el doble factor desde el servidor** (el admin de plataforma no se recupera por
+  correo): en la carpeta del sitio, como administrador,
+  `dotnet TrainingPlatform.dll reset-2fa correo@dominio`. Quita la app autenticadora, cierra sus
+  sesiones y queda en la auditoría; al entrar tendrá que registrarla de nuevo.

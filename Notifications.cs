@@ -988,7 +988,7 @@ public static class CompletionAlert
     {
         if (tenantId is null) return;
         var recipients = (await CompanyUsers.OfAsync(catalog, tenantId.Value))
-            .Where(u => u.Role is "Author" or "Moderator" or "Admin")
+            .Where(u => u.Role is "Author" or "Admin")
             .Select(u => new { u.Email, u.Name }).ToList();
         var html = EmailTemplates.Completion(learnerName ?? "", trainingTitle ?? "", score, total);
         foreach (var r in recipients)

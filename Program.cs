@@ -26,11 +26,15 @@ builder.Configuration.AddEnvironmentVariables(prefix: "APRENDOR_");
 var cfg = builder.Configuration;
 var esDesarrollo = builder.Environment.IsDevelopment();
 var modoMigracion = args.Length > 0 && args[0].Equals("migrate", StringComparison.OrdinalIgnoreCase);
+// Consola: "reset-2fa <correo>" quita el doble factor de una cuenta. Es la salida para el
+// admin de plataforma que pierde el autenticador (a él no se le recupera por correo).
+var modoReset2fa = args.Length > 0 && args[0].Equals("reset-2fa", StringComparison.OrdinalIgnoreCase);
+var modoConsola = modoMigracion || modoReset2fa;
 
 // Arranque seguro: fuera de Development la app NO arranca con la clave JWT de ejemplo
-// ni sin la URL pública (los enlaces de los correos se arman solo con ella). El modo
-// "migrate" solo toca la base, así que no lo exige.
-if (!esDesarrollo && !modoMigracion) ArranqueSeguro.Validar(cfg);
+// ni sin la URL pública (los enlaces de los correos se arman solo con ella). Los modos
+// de consola solo tocan la base, así que no lo exigen.
+if (!esDesarrollo && !modoConsola) ArranqueSeguro.Validar(cfg);
 
 // Bitácora en texto plano en App_Data\logs\app-log-AAAAMMDD.txt (un archivo por día,
 // se guardan los últimos 14) — para ver errores reales (como un envío de correo que
@@ -184,7 +188,7 @@ DosFactores.RegistrarCodigosEnLog = app.Environment.IsDevelopment();
 {
     var logSeguridad = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Seguridad");
     RedesConfianza.Configurar(cfg, logSeguridad);
-    if (!modoMigracion) app.Services.GetRequiredService<Turnstile>().AdvertirAlArrancar();
+    if (!modoConsola) app.Services.GetRequiredService<Turnstile>().AdvertirAlArrancar();
 }
 // Zona horaria de la aplicación (App:TimeZone, por defecto America/Puerto_Rico): con ella
 // se muestran las fechas y se cuentan los días, esté el servidor en la zona que esté.
@@ -195,6 +199,32 @@ if (HoraLocal.Configurar(cfg["App:TimeZone"]) is string avisoZona)
 if (modoMigracion)
 {
     await MigrationRunner.RunAsync(app.Services);
+    return;
+}
+
+// dotnet TrainingPlatform.dll reset-2fa correo@dominio
+// Quita la app autenticadora de esa cuenta y cierra todas sus sesiones; al volver a entrar,
+// si la cuenta lo exige (administradores o compañías con política obligatoria), tendrá que
+// registrar el autenticador de nuevo. Queda en la auditoría del catálogo. Solo lo puede
+// correr quien tiene acceso al servidor y a la base: es el último recurso.
+if (modoReset2fa)
+{
+    // El correo es el primer argumento con arroba (se ignoran opciones como --contentRoot).
+    var correo = args.Skip(1).Select(a => a.Trim()).FirstOrDefault(a => !a.StartsWith("--") && a.Contains('@')) ?? "";
+    if (correo.Length == 0) { Console.WriteLine("Uso: dotnet TrainingPlatform.dll reset-2fa correo@dominio"); Environment.ExitCode = 2; return; }
+    using var scopeConsola = app.Services.CreateScope();
+    var catalogo = scopeConsola.ServiceProvider.GetRequiredService<CatalogDbContext>();
+    var cuenta = await catalogo.Users.FirstOrDefaultAsync(u => u.Email == correo);
+    if (cuenta is null) { Console.WriteLine($"No existe ninguna cuenta con el correo {correo}."); Environment.ExitCode = 1; return; }
+    DobleFactor.Quitar(catalogo, cuenta, scopeConsola.ServiceProvider.GetRequiredService<IMemoryCache>());
+    catalogo.AuditLogs.Add(new CatalogAuditLog
+    {
+        Action = "2fa-reset-console",
+        Detail = $"{cuenta.Email} (desde la consola del servidor, usuario de Windows {Environment.UserName})",
+        UserId = cuenta.Id
+    });
+    await catalogo.SaveChangesAsync();
+    Console.WriteLine($"Listo: se quitó el doble factor de {cuenta.Email} y se cerraron sus sesiones. Al entrar tendrá que registrar su app autenticadora de nuevo.");
     return;
 }
 
@@ -2170,7 +2200,7 @@ static class PlantillaTenant
 // Roles con permiso para crear contenido en la compañía activa.
 static class ContenidoAcceso
 {
-    public static bool PuedeCrear(string? rol) => rol is "Admin" or "Author" or "Moderator";
+    public static bool PuedeCrear(string? rol) => rol is "Admin" or "Author";
 
     // De la configuración del reproductor, solo la portada (lo que pinta la tarjeta del catálogo).
     public static string SoloPortada(string? json)
@@ -2192,7 +2222,7 @@ static class ContenidoAcceso
 // UserCompany) y nunca a un admin de plataforma.
 static class AdminUsuarios
 {
-    public static readonly string[] Roles = { "Admin", "Author", "Moderator", "Learner" };
+    public static readonly string[] Roles = { "Admin", "Author", "Learner" };   // el rol Moderator se retiró (sep 2026)
 
     // Compañia null = admin de plataforma (sin límite).
     public record Alcance(Guid? Compañia);

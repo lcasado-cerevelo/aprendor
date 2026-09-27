@@ -153,11 +153,14 @@ public static class RetakeService
 
 public static class RetakeEndpoints
 {
-    // Admin de la compañía activa. El admin de plataforma entra a una compañía con
+    // Pedir que lo repita (renovar o anular): Admin o Autor de la compañía activa, o su
+    // oficial de cumplimiento. El admin de plataforma entra a una compañía con
     // /me/switch-company y ahí lleva su rol de esa compañía.
-    private static bool PuedePedir(ITenantContext tc) => tc.TenantId is not null && tc.Role == "Admin";
+    private static async Task<bool> PuedePedirAsync(ITenantContext tc, CatalogDbContext catalog)
+        => tc.TenantId is not null
+           && (tc.Role is "Admin" or "Author" || await ComplianceAccess.EsOficialAsync(catalog, tc));
 
-    private static bool CanAuthor(string? role) => role is "Admin" or "Author" or "Moderator";
+    private static bool CanAuthor(string? role) => role is "Admin" or "Author";
 
     private static object? SolicitudJson(RetakeRequest? r) => r is null ? null : new
     {
@@ -214,7 +217,7 @@ public static class RetakeEndpoints
             ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
         {
             if (tc.TenantId is not Guid tid) return Results.BadRequest("No tenant context.");
-            if (!PuedePedir(tc)) return Results.Forbid();
+            if (!await PuedePedirAsync(tc, catalog)) return Results.Forbid();
             var db = sp.GetRequiredService<TenantDbContext>();
             var (t, errCurso) = await CursoAsync(db, trainingId);
             if (t is null) return Results.BadRequest(errCurso);
@@ -283,7 +286,7 @@ public static class RetakeEndpoints
             IServiceProvider sp, CatalogDbContext catalog, IEmailSender email, IConfiguration config) =>
         {
             if (tc.TenantId is not Guid tid) return Results.BadRequest("No tenant context.");
-            if (!PuedePedir(tc)) return Results.Forbid();
+            if (!await PuedePedirAsync(tc, catalog)) return Results.Forbid();
             var db = sp.GetRequiredService<TenantDbContext>();
 
             var modo = (req.Mode ?? "").Trim().ToLowerInvariant();
@@ -486,7 +489,7 @@ public static class RetakeEndpoints
         app.MapDelete("/retakes/{id:guid}", async (Guid id, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
         {
             if (tc.TenantId is not Guid tid) return Results.BadRequest("No tenant context.");
-            if (!PuedePedir(tc)) return Results.Forbid();
+            if (!await PuedePedirAsync(tc, catalog)) return Results.Forbid();
             var db = sp.GetRequiredService<TenantDbContext>();
             var r = await db.RetakeRequests.FindAsync(id);
             if (r is null) return Results.NotFound();

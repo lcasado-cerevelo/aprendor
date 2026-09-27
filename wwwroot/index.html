@@ -789,7 +789,7 @@
           <div><label for="uEmail">Correo</label><input id="uEmail" class="field" placeholder="autor@compania.com" /></div>
           <div><label for="uName">Nombre</label><input id="uName" class="field" placeholder="Autora" /></div>
           <div><label for="uRole">Rol</label><select id="uRole" class="field">
-            <option value="Author">Autor</option><option value="Moderator">Moderador</option><option value="Learner">Aprendiz</option><option value="Admin">Administrador</option></select></div>
+            <option value="Author">Autor</option><option value="Learner">Aprendiz</option><option value="Admin">Administrador</option></select></div>
           <div><label for="uTenant">Compañía</label><select id="uTenant" class="field"></select></div>
         </div>
         <div class="inline" style="margin-top:12px">
@@ -1030,7 +1030,7 @@
               <label for="caName">Nombre</label><input id="caName" class="field" placeholder="Nombre y apellido" />
               <label for="caRole">Rol</label>
               <select id="caRole" class="field">
-                <option value="Learner">Aprendiz</option><option value="Moderator">Moderador</option>
+                <option value="Learner">Aprendiz</option>
                 <option value="Author">Autor</option><option value="Admin">Administrador</option></select>
               <div class="inline" style="margin-top:14px">
                 <button type="button" class="btn sm" id="caInviteBtn">Enviar invitación</button>
@@ -2583,7 +2583,9 @@ let tenantName = '';
 // ===== Dashboard y navegación por secciones =====
 const SECTIONS = ['sec-manage','sec-take','sec-history','sec-review','sec-record','sec-compliance','sec-groups','sec-admin'];
 function isCreator(){ return !!user && ['Admin','Author'].includes(user.role); }
-function isReviewer(){ return !!user && ['Admin','Author','Moderator'].includes(user.role); }
+function isReviewer(){ return !!user && ['Admin','Author'].includes(user.role); }
+// Aprobar cancelaciones de cursos a medias: Admin, Autor u oficial de cumplimiento.
+function canApproveCancel(){ return isReviewer() || (!!user && !!user.tenantId && user.isComplianceOfficer === true); }
 // Cumplimiento: el Admin de la compañía o quien tenga la marca de oficial (no es un rol).
 function canCompliance(){ return !!user && !!user.tenantId && (user.role === 'Admin' || user.isComplianceOfficer === true); }
 function isCompanyAdmin(){ return !!user && !!user.tenantId && user.role === 'Admin'; }
@@ -2599,8 +2601,8 @@ function buildDashTiles(){
     tiles.push({key:'manage', icon:'layers', title:'Adiestramientos', desc:'Crear, editar contenido y publicar'});
     tiles.push({key:'groups', icon:'users', title:'Grupos', desc:'Miembros, plan de onboarding y sets'});
   }
-  if (isReviewer()){
-    tiles.push({key:'review', icon:'checkCircle', title:'Revisar', desc:'Calificar y aprobar cancelaciones', badge:'badge-review'});
+  if (canApproveCancel()){
+    tiles.push({key:'review', icon:'checkCircle', title:'Revisar', desc: isReviewer() ? 'Calificar y aprobar cancelaciones' : 'Aprobar cancelaciones', badge:'badge-review'});
   }
   if (isCompanyAdmin()){
     tiles.push({key:'admin', icon:'lock', title:'Usuarios y seguridad', desc:'Altas, contraseñas, doble factor y redes de confianza'});
@@ -2951,7 +2953,12 @@ function showSection(id){
   if (id==='sec-manage'){ fichaId=null; el('mgFicha').classList.add('hidden'); el('mgList').classList.remove('hidden'); loadTrainings(); }
   else if (id==='sec-take'){ loadCatalog(); }
   else if (id==='sec-history'){ loadMyHistory(); }
-  else if (id==='sec-review'){ loadGrading(); loadPending(); }
+  else if (id==='sec-review'){
+    // El oficial de cumplimiento (sin rol de autor) solo aprueba cancelaciones: no califica.
+    el('gradingCard').classList.toggle('hidden', !isReviewer());
+    if (isReviewer()) loadGrading();
+    loadPending();
+  }
   else if (id==='sec-record'){ initRecord(); }
   else if (id==='sec-compliance'){ loadCompliance(); }
   else if (id==='sec-groups'){ showGroupList(); loadGroups(); }
@@ -2974,7 +2981,8 @@ const RT_ESTADO = { 'not-started':['gray','Por tomar'], 'in-progress':['info','E
   overdue:['err','Vencido'], 'pending-grading':['info','En revisión'], 'pending-cancellation':['gray','Cancelación pendiente'],
   renewal:['warn','Por renovar'], expired:['err','Vencido'], current:['ok','Al día'], done:['ok','Aprobado'], none:['gray','Sin asignar'] };
 const RT_MODO = { renewal:['warn','Renovación pedida'], void:['err','Anulado'] };
-function canRetake(){ return isCompanyAdmin(); }
+// «Pedir que lo repita» (renovar o anular): Admin, Autor u oficial de cumplimiento de la compañía.
+function canRetake(){ return !!user && !!user.tenantId && (user.role === 'Admin' || user.role === 'Author' || user.isComplianceOfficer === true); }
 
 // o: { trainingId, title?, userIds?: [..] | groupId?, onDone?() }
 async function pedirRepetir(o){
@@ -3605,7 +3613,7 @@ function renderCompList(){
   const vacio = filtrado ? 'Nadie coincide con estos filtros en esta lista.'
     : { overdue:'Nadie tiene cursos vencidos.', 'due-soon':`Nadie tiene cursos que venzan en los próximos ${n} días.`,
         'not-started':'Nadie tiene cursos sin comenzar.', current:'Todavía nadie tiene cursos aprobados y vigentes.' }[b.key];
-  // «Al día» con selección múltiple (solo el Admin): «Pedir que lo repita» a varias personas
+  // «Al día» con selección múltiple (Admin, Autor u oficial): «Pedir que lo repita» a varias personas
   // de un mismo curso. La selección se queda solo con lo que se ve.
   const sel = b.key === 'current' && canRetake();
   const visibles = new Set(filas.map(compKey));
@@ -4080,7 +4088,7 @@ function recargarUsuarios(){ return isCompanyAdmin() ? loadCompanyUsers() : load
 function fmtVence(d){
   return fecha(d) ? 'el ' + fmtTz(d, { day:'numeric', month:'long', hour:'numeric', minute:'2-digit' }) : 'en 72 horas';
 }
-const ROLES = [['Admin','Administrador'],['Author','Autor'],['Moderator','Moderador'],['Learner','Aprendiz']];
+const ROLES = [['Admin','Administrador'],['Author','Autor'],['Learner','Aprendiz']];   // Moderador se retiró (sep 2026)
 
 // o.plataforma: lista del admin de plataforma (con compañía y marca de oficial);
 // si no, la del Admin de la compañía activa.
@@ -5485,7 +5493,7 @@ function renderResultados(){
   const badge = el('resBadge');
   badge.textContent = cuenta.review || ''; badge.classList.toggle('hidden', !cuenta.review);
   const lista = rows.filter(a => resFilter === 'all' || resKind(a) === resFilter);
-  // Selección múltiple para «Pedir que lo repita» (solo el Admin): aprobados que cuentan.
+  // Selección múltiple para «Pedir que lo repita» (Admin, Autor u oficial): aprobados que cuentan.
   const sel = canRetake() && trStatus(fichaT() || {}) === 'published';
   const filtros = RES_FILTERS.concat(cuenta.voided ? [['voided','Anulados']] : []);
   box.innerHTML = `<div class="sectionhead" style="margin-top:0"><h4>Intentos · ${rows.length}</h4>
@@ -6197,7 +6205,7 @@ function renderGrpPlan(){
            <option value="">Set por defecto</option>${sets.map(s => `<option value="${s.id}" ${c.setId === s.id ? 'selected' : ''}>${esc(s.name)}${s.isDefault ? ' (por defecto)' : ''}</option>`).join('')}</select>`;
     const pub = c.status === 'published' ? 'Publicado' : c.status === 'archived' ? 'Archivado' : 'Borrador: aún no le aparece a nadie';
     const aud = c.audience === 'groups' ? 'solo para grupos con este curso en su plan' : 'obligatorio para toda la compañía; aquí se fija el plazo del grupo';
-    // «Pedir que lo repita» a todo el grupo: solo el Admin, cursos publicados y ya guardados en el plan.
+    // «Pedir que lo repita» a todo el grupo: Admin, Autor u oficial, cursos publicados y ya guardados en el plan.
     const guardado = grpPlan && (grpPlan.courses || []).some(x => x.trainingId === c.trainingId);
     const repetir = canRetake() && guardado && c.status === 'published'
       ? `<button type="button" class="btn sm ghost" onclick="retakeGrupo(${i})" title="A los miembros del grupo que ya lo aprobaron">Pedir que lo repita</button>` : '';

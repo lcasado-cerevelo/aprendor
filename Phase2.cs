@@ -14,7 +14,7 @@ public static class Phase2Endpoints
     private static TenantDbContext? Db(IServiceProvider sp, ITenantContext tc)
         => tc.TenantId is null ? null : sp.GetRequiredService<TenantDbContext>();
 
-    private static bool CanAuthor(string? role) => role is "Admin" or "Author" or "Moderator";
+    private static bool CanAuthor(string? role) => role is "Admin" or "Author";
 
     public static void MapPhase2(this WebApplication app)
     {
@@ -955,11 +955,11 @@ public static class Phase2Endpoints
             return Results.Ok();
         }).RequireAuthorization();
 
-        // Reviewer roles see pending cancellation requests.
-        app.MapGet("/cancellations/pending", async (ITenantContext tc, IServiceProvider sp) =>
+        // Cancelaciones pendientes: Admin, Autor u oficial de cumplimiento de la compañía.
+        app.MapGet("/cancellations/pending", async (ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
-            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            if (!CanAuthor(tc.Role) && !await ComplianceAccess.EsOficialAsync(catalog, tc)) return Results.Forbid();
             var rows = await (from a in db.Attempts
                               where a.Status == "cancellation-requested"
                               join v in db.TrainingVersions on a.TrainingVersionId equals v.Id
@@ -970,11 +970,12 @@ public static class Phase2Endpoints
             return Results.Ok(rows);
         }).RequireAuthorization();
 
-        // Reviewer approves the cancellation. Comment required; cannot approve your own request.
-        app.MapPost("/attempts/{attemptId:guid}/approve-cancel", async (Guid attemptId, CommentRequest req, ClaimsPrincipal principal, ITenantContext tc, IServiceProvider sp) =>
+        // Aprobar la cancelación: Admin, Autor u oficial de cumplimiento. Comentario obligatorio;
+        // nadie aprueba su propia solicitud.
+        app.MapPost("/attempts/{attemptId:guid}/approve-cancel", async (Guid attemptId, CommentRequest req, ClaimsPrincipal principal, ITenantContext tc, IServiceProvider sp, CatalogDbContext catalog) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
-            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            if (!CanAuthor(tc.Role) && !await ComplianceAccess.EsOficialAsync(catalog, tc)) return Results.Forbid();
             if (string.IsNullOrWhiteSpace(req.Comment)) return Results.BadRequest("Se requiere un comentario.");
             if (req.Comment.Trim().Length > MaxComentario) return Results.BadRequest($"El comentario no puede pasar de {MaxComentario} caracteres.");
             var attempt = await db.Attempts.FindAsync(attemptId);

@@ -216,7 +216,7 @@ public static class CertificateEndpoints
     private static TenantDbContext? Db(IServiceProvider sp, ITenantContext tc)
         => tc.TenantId is null ? null : sp.GetRequiredService<TenantDbContext>();
 
-    private static bool CanAuthor(string? role) => role is "Admin" or "Author" or "Moderator";
+    private static bool CanAuthor(string? role) => role is "Admin" or "Author";
 
     // Quién puede reenviar, revocar y ver los enlaces de un certificado ajeno:
     // autores/moderadores/admin de la compañía y los oficiales de cumplimiento.
