@@ -16,6 +16,18 @@ namespace TrainingPlatform.Notifications;
 // ---- Envío de correo (SMTP, sin dependencias externas) ----
 public record EmailAttachment(string FileName, byte[] Content, string ContentType);
 
+// Nombre del remitente de TODOS los correos (los dos IEmailSender pasan por aquí).
+// Email:FromName si está configurado; si no, «Aprendor / Advance Logistics». El valor por
+// defecto va en el código porque el servidor de producción usa su propio appsettings.json,
+// que la publicación no reemplaza.
+public static class Remitente
+{
+    public const string PorDefecto = "Aprendor / Advance Logistics";
+
+    public static string Nombre(IConfiguration cfg)
+        => string.IsNullOrWhiteSpace(cfg["Email:FromName"]) ? PorDefecto : cfg["Email:FromName"]!.Trim();
+}
+
 public interface IEmailSender
 {
     Task SendAsync(string toEmail, string toName, string subject, string htmlBody,
@@ -36,7 +48,7 @@ public class SmtpEmailSender : IEmailSender
         if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(toEmail)) return;
 
         var fromEmail = _cfg["Email:From"] ?? "no-reply@local";
-        var fromName = string.IsNullOrWhiteSpace(_cfg["Email:FromName"]) ? "Aprendor" : _cfg["Email:FromName"]!;   // nombre del remitente: Aprendor si no se configura otro
+        var fromName = Remitente.Nombre(_cfg);
         var port = int.TryParse(_cfg["Email:Port"], out var p) ? p : 587;
         var ssl = !bool.TryParse(_cfg["Email:UseSsl"], out var s) || s; // default true
 
@@ -93,7 +105,7 @@ public class BrevoApiEmailSender : IEmailSender
         if (string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(toEmail)) return;
 
         var fromEmail = _cfg["Email:From"] ?? "no-reply@local";
-        var fromName = string.IsNullOrWhiteSpace(_cfg["Email:FromName"]) ? "Aprendor" : _cfg["Email:FromName"]!;   // nombre del remitente: Aprendor si no se configura otro
+        var fromName = Remitente.Nombre(_cfg);
 
         var payload = new JsonObject
         {
