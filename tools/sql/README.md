@@ -12,6 +12,7 @@ sin que hagan nada, y sobre una atrasada aplicando solo lo que falta.
 | `tenant-cambios.sql` | Base de **cada cliente** | Solo lo añadido en esta ronda |
 | `borrar-hipaa-advance-logistics.sql` | Base del tenant de **Advance Logistics** | Borrado definitivo del curso HIPAA anterior (7 módulos), retirado y reemplazado por `content/ley-hipaa`. Ver `content/README.md`. |
 | `limpiar-pruebas.sql` | Base de **una compañía** (y la del catálogo, por SQLCMD) | Limpieza después de las pruebas: reinicia el progreso de todos (intentos, certificados, asignaciones, planes de grupo, expedientes, bitácora de la compañía) y borra por completo a los usuarios dados de baja y a los huérfanos del «Eliminar» de antes. Simula primero (`@Simular = 1`); en SSMS, con «SQLCMD Mode». |
+| `reinicio-total.sql` | Base de **una compañía** (y la del catálogo, por SQLCMD) | Deja la plataforma en cero: conserva solo dos cuentas (por correo) y los adiestramientos; borra las demás cuentas, todo el historial, grupos, asignaciones, expedientes y las bitácoras de la compañía y del catálogo. Se detiene si no encuentra las dos cuentas. Simula primero (`@Simular = 1`). |
 
 Los primeros cuatro son de **esquema** (tablas/columnas). El curso HIPAA no lo es —
 el contenido de los cursos no vive en migraciones, ver `content/README.md`.
