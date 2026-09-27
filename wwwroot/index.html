@@ -54,7 +54,9 @@
   .msg{margin-top:12px;font-size:14px;min-height:1em;} .msg.err{color:var(--err);} .msg.ok{color:var(--ok);}
   /* Topbar */
   .topbar{background:var(--bar);color:#e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:10px 22px;border-bottom:1px solid #1e293b;position:sticky;top:0;z-index:5;}
-  .topbar .left{display:flex;align-items:center;gap:11px;}
+  .topbar .left{display:flex;align-items:center;gap:11px;color:inherit;text-decoration:none;border-radius:8px;}
+  .topbar a.left:hover .brandname{color:#c7d2fe;}
+  .topbar a.left:focus-visible{outline:2px solid #818cf8;outline-offset:4px;}
   .brandname{font:800 18px var(--display);color:#fff;letter-spacing:.2px;}
   .topbar .right{display:flex;align-items:center;gap:12px;}
   .topbar .who{font-size:13px;color:#94a3b8;} .topbar .who b{color:#fff;}
@@ -400,6 +402,49 @@
   .psl.sl-photo .sl-rule{position:absolute;left:535px;right:85px;top:218px;border-top:3px solid var(--pacc);}
   .psl.sl-photo .sl-body{left:535px;right:85px;top:255px;bottom:40px;font-size:24px;}
   .psl.sl-photo .sl-body h2{font-size:30px;}
+  /* franja, tarjetas y destacado; y tema claro (.plight), igual que en player.html */
+  .psl{--pacc-d:var(--pacc);--pacc-t:color-mix(in srgb,var(--pacc) 16%,var(--pbg,#0d0d0d));}
+  .psl.sl-band .band{position:absolute;left:0;right:0;top:0;height:196px;background:var(--pacc-d);}
+  .psl.sl-band .band::after{content:"";position:absolute;left:0;bottom:-12px;width:300px;height:12px;background:var(--pacc);}
+  .psl.sl-band .sl-kicker{position:absolute;left:90px;right:90px;top:40px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.82);}
+  .psl.sl-band .sl-title{position:absolute;left:90px;right:90px;top:72px;height:100px;display:flex;align-items:center;margin:0;font-size:42px;font-weight:700;line-height:1.1;color:#fff;}
+  .psl.sl-band .sl-body{left:90px;right:90px;top:240px;bottom:36px;font-size:24px;}
+  .psl.sl-cards .sl-kicker{position:absolute;left:90px;right:90px;top:40px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--pacc);}
+  .psl.sl-cards .sl-title{position:absolute;left:90px;right:90px;top:70px;margin:0;font-size:40px;font-weight:700;line-height:1.1;}
+  .psl.sl-cards .sl-rule{position:absolute;left:90px;width:120px;top:150px;border-top:6px solid var(--pacc);}
+  .psl.sl-cards .sl-body{left:90px;right:90px;top:184px;bottom:36px;font-size:22px;}
+  .psl.sl-cards .sl-body ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;list-style:none;padding:0;margin:6px 0 14px;}
+  .psl.sl-cards .sl-body ul>li{margin:0;padding:18px 22px;background:var(--pacc-t);border-top:5px solid var(--pacc);border-radius:12px;line-height:1.3;}
+  .psl.sl-cards .sl-body li ul{display:block;list-style:disc;padding-left:26px;margin:8px 0 0;}
+  .psl.sl-cards .sl-body li li{padding:0;background:none;border:0;border-radius:0;margin:0 0 4px;}
+  .psl.sl-callout .sl-kicker{position:absolute;left:140px;right:140px;top:54px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--pacc);}
+  .psl.sl-callout .sl-body{left:140px;right:140px;top:100px;bottom:70px;display:flex;flex-direction:column;}
+  .psl.sl-callout .sl-fit{margin:auto 0;background:var(--pacc-t);border-left:14px solid var(--pacc);border-radius:0 18px 18px 0;padding:40px 52px;font-size:32px;line-height:1.3;}
+  .psl.sl-callout .sl-body h2{font-size:38px;color:var(--pacc);margin-bottom:18px;}
+  .psl.plight{--pacc-d:color-mix(in srgb,var(--pacc) 72%,#000);--pacc-t:color-mix(in srgb,var(--pacc) 11%,#fff);color:#1f2937;}
+  .psl.plight .sl-body li::marker{color:var(--pacc);}
+  .psl.plight .sl-body a{color:var(--pacc-d);}
+  .psl.plight .sl-body ol{list-style:none;counter-reset:st;padding-left:0;margin:0 0 10px;}
+  .psl.plight .sl-body ol>li{counter-increment:st;position:relative;padding-left:62px;min-height:44px;margin-bottom:14px;}
+  .psl.plight .sl-body ol>li::before{content:counter(st);position:absolute;left:0;top:-5px;width:44px;height:44px;border-radius:50%;background:var(--pacc-d);color:#fff;font-weight:700;font-size:22px;display:flex;align-items:center;justify-content:center;}
+  .psl.plight.sl-cover .cover-band{border-color:var(--pacc);}
+  .psl.plight.sl-dark::before{content:"";position:absolute;left:0;top:44px;width:16px;height:128px;background:var(--pacc);}
+  .psl.plight.sl-dark.sl-mod::before{top:250px;height:140px;}
+  .psl.plight.sl-q::before{display:none;}
+  .psl.plight.sl-dark .sl-kicker{color:#111;}
+  .psl.plight.sl-dark .sl-body h3{border-bottom-color:#d1d5db;}
+  .psl.plight.sl-dark.sl-mod .sl-body{color:#4b5563;}
+  .psl.plight.sl-cards .sl-kicker,.psl.plight.sl-callout .sl-kicker,.psl.plight.sl-callout .sl-body h2{color:var(--pacc-d);}
+  .psl.plight.sl-cards .sl-title{color:#111;}
+  .psl.plight.sl-q .qwrap+.qwrap{border-top-color:#e5e7eb;}
+  .psl.plight.sl-q .qopen{background:#fff;border-color:#cbd5e1;}
+  .psl.plight.sl-split .panel{background:var(--pacc-d);}
+  .psl.plight.sl-split .panel::before{background:var(--pacc);}
+  .psl.plight.sl-split.right .panel{background:transparent;}
+  .psl.plight.sl-split.right .panel::after{background:var(--pacc-d);}
+  .psl.plight.sl-split.lines{color:#1f2937;}
+  .psl.plight.sl-split.lines .ptitle{color:#111;}
+  .psl.plight.sl-split.no-panel .sl-kicker{color:var(--pacc-d);}
 
   /* ===== Cumplimiento: banner del inicio, KPIs y listas ===== */
   #dashAlerts:empty{display:none;} #dashAlerts{margin:0 0 14px;}
@@ -743,7 +788,7 @@
 <!-- APP -->
 <div id="appView" class="hidden">
   <div class="topbar">
-    <div class="left">
+    <a class="left" href="#" id="homeLink" onclick="irAlInicio(event)" title="Ir al inicio" aria-label="Aprendor: ir al inicio">
       <svg class="logo" width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs><linearGradient id="apLogo2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
         <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#apLogo2)"/>
@@ -751,7 +796,7 @@
         <path d="M11 22.5 L21 22.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".75"/>
       </svg>
       <span class="brandname">Aprendor</span>
-    </div>
+    </a>
     <div class="right">
       <div class="profile-chip" id="profileChip" onclick="openProfile()" title="Ver perfil">
         <div class="avatar" id="navAvatar">··</div>
@@ -1157,6 +1202,9 @@
               <option value="dark">Fondo oscuro · rótulo arriba y línea de acento</option>
               <option value="split">Panel diagonal · contenido sobre blanco</option>
               <option value="photo-left">Foto a la izquierda</option>
+              <option value="band">Franja · título en una franja de color arriba</option>
+              <option value="cards">Tarjetas · cada viñeta de la lista en una tarjeta</option>
+              <option value="callout">Destacado · una idea en una caja de color</option>
             </select></div>
           <div id="infoVariantRow"><label for="infoVariant">Variante del panel</label>
             <select id="infoVariant" class="field">
@@ -2937,6 +2985,29 @@ function showDash(){
   buildDashTiles();
   loadDashStats();
   loadAlerts();
+}
+// Logo de la barra: vuelve siempre al inicio (el panel de la compañía, o la vista de
+// plataforma del admin). Los cursos se toman en player.html, en otra pestaña, donde no hay
+// logo: a mitad de un curso no se sale por aquí. Si hay cambios sin guardar (ficha de un
+// curso, plan de un grupo, seguridad o cumplimiento), pregunta antes, como «Volver».
+async function irAlInicio(e){
+  if (e) e.preventDefault();
+  if (!user) return;
+  const pendiente = (fichaId && fichaDirty()) || (grpId && grpPlanDirty) || (SEG && SEG.dirty) || compCfgDirty;
+  if (pendiente && !await confirmModal('¿Salir sin guardar?', 'Hay cambios sin guardar. Si sales, se pierden.',
+      { danger:true, icon:'alert', okText:'Salir sin guardar', cancelText:'Seguir editando' })) return;
+  if (fichaId){
+    fichaId = null; editingTrainingId = null; F = {}; presDirty = vigDirty = certDirty = false;
+    el('mgFicha').classList.add('hidden');
+    el('mgList').classList.remove('hidden');
+  }
+  if (grpId) showGroupList();
+  if (SEG) SEG.dirty = false;
+  compCfgDirty = false;
+  if (!el('profileModal').classList.contains('hidden')) closeProfile();
+  window.scrollTo({ top:0 });
+  if (user.role === 'Admin' && !user.tenantId) return;   // la vista de plataforma es una sola
+  showDash();
 }
 function showSection(id){
   // Cumplimiento solo existe para el Admin de la compañía y los oficiales; si alguien
@@ -4872,7 +4943,7 @@ function renderTabs(){
   renderTabItems();
 }
 function setTab(i){ activeTab = i; renderTabs(); }
-const LAYOUT_TXT = { cover:'Portada · foto a sangre', dark:'Fondo oscuro', split:'Panel diagonal', 'photo-left':'Foto a la izquierda' };
+const LAYOUT_TXT = { cover:'Portada · foto a sangre', dark:'Rótulo arriba', split:'Panel diagonal', 'photo-left':'Foto a la izquierda', band:'Franja', cards:'Tarjetas', callout:'Destacado' };
 const VARIANT_TXT = { right:'contenido sobre oscuro', lines:'líneas de acento' };
 function itemInfo(it, p){
   switch (it.type){
@@ -4927,8 +4998,9 @@ function renderTabItems(){
 function presTheme(){ return normPres(P || (F.player && F.player.presentation)); }
 function normPres(p){
   p = p || {}; const th = p.theme || {};
+  const mode = th.mode === 'light' ? 'light' : 'dark';
   return { enabled: !!p.enabled,
-           theme: { bg: th.bg || '#0d0d0d', accent: th.accent || '#f97316', panel: th.panel !== false, panelTitle: th.panelTitle || '' },
+           theme: { mode, bg: th.bg || (mode === 'light' ? '#ffffff' : '#0d0d0d'), accent: th.accent || '#f97316', panel: th.panel !== false, panelTitle: th.panelTitle || '' },
            transition: ['cover','fade','none'].includes(p.transition) ? p.transition : 'cover' };
 }
 function slMedia(url, type){
@@ -4962,8 +5034,9 @@ function slideHtml(page, pres, num, total){
   const ptitle = (th.panelTitle || '').trim() || (t ? t.title : '').toUpperCase();
   const vars = `--pbg:${th.bg};--pacc:${th.accent}`;
   const ctr = num ? `<div class="ctr">${num} / ${total}</div>` : '';
+  const lt = th.mode === 'light' ? ' plight' : '';
   const wrap = (cls, chrome, body, extra) =>
-    `<div class="psl ${cls}" style="${vars}${extra ? ';' + extra : ''}">${chrome}<div class="sl-body"><div class="sl-fit">${body}</div></div>${ctr}</div>`;
+    `<div class="psl ${cls}${lt}" style="${vars}${extra ? ';' + extra : ''}">${chrome}<div class="sl-body"><div class="sl-fit">${body}</div></div>${ctr}</div>`;
   const items = page.items;
   if (items.length === 1){
     const it = items[0], p = pj(it.payloadJson);
@@ -4982,6 +5055,12 @@ function slideHtml(page, pres, num, total){
         const v = (p.variant === 'right' || p.variant === 'lines') ? ' ' + p.variant : '', np = th.panel === false ? ' no-panel' : '';
         return wrap('sl-split' + v + np, `<div class="panel"></div><h1 class="ptitle">${esc(ptitle)}</h1>${np ? `<div class="sl-kicker">${esc(ptitle)}</div>` : ''}`, tt + body);
       }
+      if (layout === 'band')
+        return wrap('sl-band', `<div class="band"></div><div class="sl-kicker">${esc(p.kicker || ptitle)}</div><h1 class="sl-title">${esc(p.title || '')}</h1>`, body);
+      if (layout === 'cards')
+        return wrap('sl-cards', `<div class="sl-kicker">${esc(p.kicker || ptitle)}</div><h1 class="sl-title">${esc(p.title || '')}</h1><div class="sl-rule"></div>`, body);
+      if (layout === 'callout')
+        return wrap('sl-callout', `<div class="sl-kicker">${esc(p.kicker || ptitle)}</div>`, tt + body);
       const sub = (p.title && !/<h3[\s>]/i.test(body)) ? `<h3>${esc(p.title)}</h3>` : '';
       return wrap('sl-dark', `<h1 class="sl-kicker">${esc(p.kicker || ptitle)}</h1><div class="sl-rule"></div>`, sub + body);
     }
@@ -5034,7 +5113,7 @@ async function measureOverflow(){
 
 // ----- Presentación -----
 const ACCENTS = ['#f97316','#4f46e5','#a21caf','#0ea5e9','#16a34a','#dc2626'];
-const DEF_LAYOUTS = [['split','Panel diagonal'],['dark','Fondo oscuro'],['photo-left','Foto a la izquierda']];
+const DEF_LAYOUTS = [['split','Panel diagonal'],['dark','Rótulo arriba'],['photo-left','Foto a la izquierda'],['band','Franja'],['cards','Tarjetas']];
 function infoItems(){ return (draftItems || []).filter(i => i.type === 'Info'); }
 // Composición por defecto: la que se propone a las pantallas nuevas y a las que no tienen.
 // El servidor no guarda este dato (PlayerConfig.presentation solo lleva enabled, theme y
@@ -5075,6 +5154,15 @@ function setPres(k, v, suave){
   if (suave){ paintPresPreview(); paintPresSave(); } else renderPresentacion();
   if (k === 'panel' || k === 'enabled') measureOverflow();
 }
+// Cambiar de estilo cambia también el fondo al de ese estilo (negro o blanco).
+function setPresMode(m){
+  if (!P || P.theme.mode === m) return;
+  P.theme.mode = m;
+  P.theme.bg = m === 'light' ? '#ffffff' : '#0d0d0d';
+  presDirty = true;
+  renderPresentacion();
+  measureOverflow();
+}
 function presGo(d){ presPage = Math.max(0, (presPage || 0) + d); renderPresentacion(); }
 function paintPresSave(){
   const b = el('presSave'); if (b) b.disabled = !presDirty;
@@ -5114,17 +5202,21 @@ function renderPresentacion(){
       <h3>Modo presentación</h3>
       <p class="hint">Cada página se dibuja en un escenario 16:9 que se escala a la pantalla del empleado. Sin scroll.</p>
       ${swRow('presEnabled', P.enabled, 'Activar modo presentación', 'Pantalla completa, una lámina por página, navegación con teclado.', "setPres('enabled',!P.enabled)")}
+      <label>Estilo</label>
+      <div class="inline" role="group" aria-label="Estilo de las láminas">${[['dark','Oscuro (fondo negro)'],['light','Claro (fondo blanco)']].map(([k, l]) =>
+        `<button type="button" class="daychip ${P.theme.mode===k?'on':''}" aria-pressed="${P.theme.mode===k}" onclick="setPresMode('${k}')">${l}</button>`).join('')}</div>
+      <p class="hint" style="margin:6px 0 0">Oscuro para los cursos de cumplimiento; claro para los de adiestramiento.</p>
       <label>Composición por defecto</label>
       <div class="inline" role="group" aria-label="Composición por defecto">${DEF_LAYOUTS.map(([k, l]) =>
         `<button type="button" class="daychip ${lay===k?'on':''}" aria-pressed="${lay===k}" onclick="setDefLayout('${k}')">${l}</button>`).join('')}</div>
       <p class="hint" style="margin:6px 0 0">Se propone a las pantallas nuevas. ${sin
-        ? `${sin === 1 ? 'Hay 1 pantalla' : 'Hay ' + sin + ' pantallas'} sin composición (se ven con fondo oscuro). <button type="button" class="linkbtn" onclick="applyDefLayout()">Aplicársela</button>`
+        ? `${sin === 1 ? 'Hay 1 pantalla' : 'Hay ' + sin + ' pantallas'} sin composición (se ven con rótulo arriba). <button type="button" class="linkbtn" onclick="applyDefLayout()">Aplicársela</button>`
         : 'Todas las pantallas tienen composición.'}</p>
       <label>Color de acento</label>
       <div class="swatches">${ACCENTS.map(c => `<button type="button" class="swatch ${P.theme.accent===c?'on':''}" style="background:${c}" aria-label="Acento ${c}" aria-pressed="${P.theme.accent===c}" onclick="setPres('accent','${c}')"></button>`).join('')}
         <input type="color" class="swatch-pick" value="${esc(P.theme.accent)}" aria-label="Otro color de acento" title="Otro color" onchange="setPres('accent',this.value)" oninput="setPres('accent',this.value,true)" /></div>
       <div class="row">
-        <div style="max-width:170px"><label for="presBg">Fondo oscuro</label><input id="presBg" type="color" class="field colorf" value="${esc(P.theme.bg)}" oninput="setPres('bg',this.value,true)" /></div>
+        <div style="max-width:170px"><label for="presBg">Fondo</label><input id="presBg" type="color" class="field colorf" value="${esc(P.theme.bg)}" oninput="setPres('bg',this.value,true)" /></div>
         <div><label for="presTrans">Transición</label>
           <select id="presTrans" class="field" onchange="setPres('transition',this.value)">
             <option value="cover" ${P.transition==='cover'?'selected':''}>Cover (como el PowerPoint)</option>
@@ -5132,7 +5224,7 @@ function renderPresentacion(){
             <option value="none" ${P.transition==='none'?'selected':''}>Ninguna</option>
           </select></div>
       </div>
-      ${swRow('presPanel', P.theme.panel, 'Panel diagonal oscuro', 'En las láminas de panel diagonal, el panel de la izquierda con el título.', "setPres('panel',!P.theme.panel)")}
+      ${swRow('presPanel', P.theme.panel, 'Panel diagonal', 'En las láminas de panel diagonal, el panel de la izquierda con el título.', "setPres('panel',!P.theme.panel)")}
       <label for="presPT">Título del panel</label>
       <input id="presPT" class="field" maxlength="120" value="${esc(P.theme.panelTitle)}" placeholder="${esc(t.title.toUpperCase())}" oninput="setPres('panelTitle',this.value,true)" />
       <p class="hint" style="margin:4px 0 0">Vacío = el título del curso, en mayúsculas.</p>
@@ -5563,7 +5655,7 @@ let infoExtra = {};       // campos del payload que el formulario no edita (phot
 function syncLayoutFields(){
   const l = el('infoLayout').value;
   el('infoVariantRow').classList.toggle('hidden', l !== 'split');
-  el('infoKickerRow').classList.toggle('hidden', !(l === 'dark' || l === 'photo-left'));
+  el('infoKickerRow').classList.toggle('hidden', !['dark','photo-left','band','cards','callout'].includes(l));
   el('infoPhotoRow').classList.toggle('hidden', !(l === 'cover' || l === 'photo-left'));
 }
 function setInfoPhoto(url){
@@ -5805,7 +5897,7 @@ el('addItemBtn').onclick = async () => {
       t='Info'; payload={ ...infoExtra, title:el('infoTitle').value.trim(), blocks };
       if(layout) payload.layout = layout;
       if(layout==='split' && el('infoVariant').value) payload.variant = el('infoVariant').value;
-      if((layout==='dark' || layout==='photo-left') && el('infoKicker').value.trim()) payload.kicker = el('infoKicker').value.trim();
+      if(['dark','photo-left','band','cards','callout'].includes(layout) && el('infoKicker').value.trim()) payload.kicker = el('infoKicker').value.trim();
       if((layout==='cover' || layout==='photo-left') && infoPhoto) payload.photo = infoPhoto;
     } else if(type==='Matching'){
       const media = await maybeUpload('mtFile');

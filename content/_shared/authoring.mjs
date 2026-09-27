@@ -48,6 +48,15 @@ export const info = (title, ...blocks) => ({ type: 'Info', payload: { title, blo
 //               del panel entre dos líneas de acento).
 //   photo-left  foto a la izquierda (~40 %), contenido a la derecha. `photoPos` es el
 //               object-position CSS para elegir qué parte de la foto se ve.
+//   band        franja de acento arriba con el rótulo (`kicker`) y el título, contenido
+//               debajo.
+//   cards       rótulo y título arriba con una barra corta de acento; cada viñeta de la
+//               primera lista se dibuja como tarjeta (2-3 por fila).
+//   callout     una idea destacada: el título y el cuerpo en una caja de acento centrada.
+// Con theme.mode 'light' (cursos de Adiestramiento) todo va sobre blanco: dark, pregunta y
+// resumen pasan a fondo blanco con una barra de acento, el panel diagonal se pinta con el
+// acento y las listas numeradas (<ol>) salen como pasos en círculos. Conviene alternar
+// composiciones y no abusar del panel diagonal.
 //   intro       PANTALLA DE ENTRADA, no una lámina: sólo puede ser el primer ítem del
 //               curso (ver intro() más abajo). En modo presentación el reproductor la
 //               saca de la numeración y la usa para dibujar la pantalla previa al botón
@@ -65,7 +74,7 @@ export const photo = (moduleUrl, relPath) => {
   return `data:image/${mime};base64,${fs.readFileSync(filePath).toString('base64')}`;
 };
 
-export const LAYOUTS = ['cover', 'dark', 'split', 'photo-left', 'intro'];
+export const LAYOUTS = ['cover', 'dark', 'split', 'photo-left', 'band', 'cards', 'callout', 'intro'];
 export const SPLIT_VARIANTS = ['left', 'right', 'lines'];
 
 export const slide = ({ layout = 'dark', title = '', photo, photoPos, variant, kicker }, ...blocks) => {

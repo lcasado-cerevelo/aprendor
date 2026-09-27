@@ -1627,17 +1627,22 @@ public record PresentationConfig(bool Enabled = false, PresentationTheme? Theme 
     };
 }
 
-// bg: fondo del escenario; accent: color de líneas y marcos; panel: si las láminas
-// `split` llevan el panel diagonal oscuro; panelTitle: texto en mayúsculas de ese panel
-// (vacío = el título del curso).
-public record PresentationTheme(string? Bg = null, string? Accent = null, bool Panel = true, string? PanelTitle = null)
+// mode: 'dark' (fondo negro, el estilo de los cursos de cumplimiento) o 'light' (fondo
+// blanco, texto oscuro y adornos del color de acento); bg: fondo del escenario; accent:
+// color de líneas y marcos; panel: si las láminas `split` llevan el panel diagonal;
+// panelTitle: texto en mayúsculas de ese panel (vacío = el título del curso).
+public record PresentationTheme(string? Bg = null, string? Accent = null, bool Panel = true, string? PanelTitle = null,
+    string? Mode = null)
 {
     public const string BgPorDefecto = "#0d0d0d";
+    public const string BgClaroPorDefecto = "#ffffff";
     public const string AccentPorDefecto = "#f97316";
+    public static readonly string[] Modos = { "dark", "light" };
 
     public JsonObject ToJson() => new()
     {
-        ["bg"] = Bg ?? BgPorDefecto,
+        ["mode"] = Mode ?? "dark",
+        ["bg"] = Bg ?? (Mode == "light" ? BgClaroPorDefecto : BgPorDefecto),
         ["accent"] = Accent ?? AccentPorDefecto,
         ["panel"] = Panel,
         ["panelTitle"] = PanelTitle ?? ""
@@ -1671,13 +1676,16 @@ public static class PlayerConfig
         var th = cfg.Theme ?? new PresentationTheme();
         var transition = (cfg.Transition ?? "").Trim().ToLowerInvariant();
         if (!PresentationConfig.Transiciones.Contains(transition)) transition = PresentationConfig.TransicionPorDefecto;
+        var modo = (th.Mode ?? "").Trim().ToLowerInvariant();
+        if (!PresentationTheme.Modos.Contains(modo)) modo = "dark";
         return new PresentationConfig(
             cfg.Enabled,
             new PresentationTheme(
-                Color(th.Bg) ?? PresentationTheme.BgPorDefecto,
+                Color(th.Bg) ?? (modo == "light" ? PresentationTheme.BgClaroPorDefecto : PresentationTheme.BgPorDefecto),
                 Color(th.Accent) ?? PresentationTheme.AccentPorDefecto,
                 th.Panel,
-                (th.PanelTitle ?? "").Trim() is { Length: > 0 } pt ? (pt.Length > 120 ? pt[..120] : pt) : ""),
+                (th.PanelTitle ?? "").Trim() is { Length: > 0 } pt ? (pt.Length > 120 ? pt[..120] : pt) : "",
+                modo),
             transition);
     }
 

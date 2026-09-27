@@ -359,6 +359,12 @@ function slideHtml(it, ctx) {
       const np = ctx.panel === false ? ' no-panel' : '';
       return wrap('sl-split' + v + np, `<div class="panel"></div><h1 class="ptitle">${esc(panel)}</h1>${np ? `<div class="sl-kicker">${esc(panel)}</div>` : ''}`, tt + body);
     }
+    if (layout === 'band')
+      return wrap('sl-band', `<div class="band"></div><div class="sl-kicker">${esc(p.kicker || panel)}</div><h1 class="sl-title">${esc(p.title || '')}</h1>`, body);
+    if (layout === 'cards')
+      return wrap('sl-cards', `<div class="sl-kicker">${esc(p.kicker || panel)}</div><h1 class="sl-title">${esc(p.title || '')}</h1><div class="sl-rule"></div>`, body);
+    if (layout === 'callout')
+      return wrap('sl-callout', `<div class="sl-kicker">${esc(p.kicker || panel)}</div>`, tt + body);
     const sub = (p.title && !/<h3[\s>]/i.test(body)) ? `<h3>${esc(p.title)}</h3>` : '';
     return wrap('sl-dark', `<h1 class="sl-kicker">${esc(p.kicker || panel)}</h1><div class="sl-rule"></div>`, sub + body);
   }
@@ -377,7 +383,8 @@ function slideHtml(it, ctx) {
 }
 
 function buildSlidePreview(pres) {
-  const theme = { bg: '#0d0d0d', accent: '#f97316', panel: true, panelTitle: '', ...(pres.theme || {}) };
+  const light = pres.theme?.mode === 'light';
+  const theme = { mode: 'dark', bg: light ? '#ffffff' : '#0d0d0d', accent: '#f97316', panel: true, panelTitle: '', ...(pres.theme || {}) };
   const ctx = { q: 0, panel: theme.panel, panelTitle: (theme.panelTitle || '').trim() || course.training.title.toUpperCase() };
   // La pantalla de entrada va aparte, antes de las láminas: no se numera ni entra en el
   // chequeo de desborde (no es una .sl), igual que en el reproductor.
@@ -420,7 +427,7 @@ function buildSlidePreview(pres) {
   .frame .pstage{left:0;top:0;transform:scale(var(--pk,1));transform-origin:top left}
   /* La pantalla de entrada ocupa el marco (en el reproductor cubre la ventana) */
   .frame.entry .pres-start{position:absolute;overflow:hidden}
-</style></head><body>
+</style></head><body${light ? ' class="plight"' : ''}>
 <header>
   <h1>${esc(course.training.title)}</h1>
   <p>${esc(course.training.description)}</p>

@@ -180,6 +180,87 @@
   .pres-start .ps-hint{margin-top:12px;font:13px system-ui,sans-serif;color:#9a9a9a;letter-spacing:.02em;}
   .pres-toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:10px;font:600 14px system-ui,sans-serif;z-index:25;opacity:0;transition:opacity .25s;pointer-events:none;max-width:min(90vw,640px);text-align:center;}
   .pres-toast.show{opacity:1;}
+
+  /* --- colores derivados del acento: --pacc-d (fuerte, para fondos con texto blanco) y
+     --pacc-t (tinte suave, para cajas y tarjetas). En tema claro, el fuerte se oscurece
+     para que el texto blanco encima y el texto de acento sobre blanco se lean. --- */
+  :root{--pacc-d:var(--pacc);--pacc-t:color-mix(in srgb,var(--pacc) 16%,var(--pbg));}
+
+  /* --- band: franja de acento arriba con rótulo y título, contenido debajo --- */
+  .sl-band .band{position:absolute;left:0;right:0;top:0;height:196px;background:var(--pacc-d);}
+  .sl-band .band::after{content:"";position:absolute;left:0;bottom:-12px;width:300px;height:12px;background:var(--pacc);}
+  .sl-band .sl-kicker{position:absolute;left:90px;right:90px;top:40px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.82);}
+  .sl-band .sl-title{position:absolute;left:90px;right:90px;top:72px;height:100px;display:flex;align-items:center;margin:0;font-size:42px;font-weight:700;line-height:1.1;color:#fff;}
+  .sl-band .sl-body{left:90px;right:90px;top:240px;bottom:36px;font-size:24px;}
+
+  /* --- cards: título arriba con barra corta de acento; cada viñeta de la lista es una tarjeta --- */
+  .sl-cards .sl-kicker{position:absolute;left:90px;right:90px;top:40px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--pacc);}
+  .sl-cards .sl-title{position:absolute;left:90px;right:90px;top:70px;margin:0;font-size:40px;font-weight:700;line-height:1.1;}
+  .sl-cards .sl-rule{position:absolute;left:90px;width:120px;top:150px;border-top:6px solid var(--pacc);}
+  .sl-cards .sl-body{left:90px;right:90px;top:184px;bottom:36px;font-size:22px;}
+  .sl-cards .sl-body ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;list-style:none;padding:0;margin:6px 0 14px;}
+  .sl-cards .sl-body ul>li{margin:0;padding:18px 22px;background:var(--pacc-t);border-top:5px solid var(--pacc);border-radius:12px;line-height:1.3;}
+  .sl-cards .sl-body li ul{display:block;list-style:disc;padding-left:26px;margin:8px 0 0;}
+  .sl-cards .sl-body li li{padding:0;background:none;border:0;border-radius:0;margin:0 0 4px;}
+
+  /* --- callout: una idea destacada en caja de acento, centrada en la lámina --- */
+  .sl-callout .sl-kicker{position:absolute;left:140px;right:140px;top:54px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--pacc);}
+  .sl-callout .sl-body{left:140px;right:140px;top:100px;bottom:70px;display:flex;flex-direction:column;}
+  .sl-callout .sl-fit{margin:auto 0;background:var(--pacc-t);border-left:14px solid var(--pacc);border-radius:0 18px 18px 0;padding:40px 52px;font-size:32px;line-height:1.3;}
+  .sl-callout .sl-body h2{font-size:38px;color:var(--pacc);margin-bottom:18px;}
+  .sl-callout .sl-body p:last-child,.sl-callout .sl-body ul:last-child{margin-bottom:0;}
+
+  /* --- tema claro (theme.mode 'light'): fondo blanco, texto oscuro, adornos de acento.
+     Clase .plight en <body>. Las láminas oscuras (dark, pregunta, resumen) pasan a
+     blanco; el panel diagonal se pinta con el acento. Pasos numerados en círculos. --- */
+  .plight{--pacc-d:color-mix(in srgb,var(--pacc) 72%,#000);--pacc-t:color-mix(in srgb,var(--pacc) 11%,#fff);}
+  .plight .sl{color:#1f2937;}
+  .plight .sl-body li::marker{color:var(--pacc);}
+  .plight .sl-body a{color:var(--pacc-d);}
+  .plight .sl-body ol{list-style:none;counter-reset:st;padding-left:0;margin:0 0 10px;}
+  .plight .sl-body ol>li{counter-increment:st;position:relative;padding-left:62px;min-height:44px;margin-bottom:14px;}
+  .plight .sl-body ol>li::before{content:counter(st);position:absolute;left:0;top:-5px;width:44px;height:44px;border-radius:50%;background:var(--pacc-d);color:#fff;font-weight:700;font-size:22px;display:flex;align-items:center;justify-content:center;}
+  .plight .sl-cover .cover-band{border-color:var(--pacc);box-shadow:0 -5px 0 rgba(255,255,255,.75),0 5px 0 rgba(255,255,255,.75);}
+  .plight .sl-dark::before{content:"";position:absolute;left:0;top:44px;width:16px;height:128px;background:var(--pacc);}
+  .plight .sl-dark .sl-kicker{color:#111;}
+  .plight .sl-dark .sl-body h3{border-bottom-color:#d1d5db;}
+  .plight .sl-dark.sl-mod .sl-body{color:#4b5563;}
+  .plight .sl-cards .sl-kicker,.plight .sl-callout .sl-kicker,.plight .sl-callout .sl-body h2{color:var(--pacc-d);}
+  .plight .sl-cards .sl-title{color:#111;}
+  .plight .sl-q .sl-kicker{color:#111;}
+  .plight .sl-q::before,.plight .sl-final::before{display:none;}
+  .plight .sl-dark.sl-mod::before{top:250px;height:140px;}
+  .plight .sl-q .qwrap+.qwrap{border-top-color:#e5e7eb;}
+  .plight .sl-q .opt{color:#1f2937;}
+  .plight .sl-q .opt:hover{background:rgba(0,0,0,.05);}
+  .plight .sl-q .opt:has(input:checked){background:var(--pacc-t);outline-color:var(--pacc-d);}
+  .plight .sl-q .opt.correct{background:#dcfce7;} .plight .sl-q .opt.wrong{background:#fee2e2;}
+  .plight .sl-q .opt .mk,.plight .sl-q .qwrap>.mk{color:#6b7280;}
+  .plight .sl-q .matchrow select,.plight .sl-q .opentext,.plight .sl-q .opentext-ro{background:#fff;color:#111;border-color:#cbd5e1;}
+  .plight .sl-split .panel{background:var(--pacc-d);}
+  .plight .sl-split .panel::before{background:var(--pacc);}
+  .plight .sl-split.right .panel{background:transparent;}
+  .plight .sl-split.right .panel::before{background:var(--pacc);}
+  .plight .sl-split.right .panel::after{background:var(--pacc-d);}
+  .plight .sl-split.lines{color:#1f2937;}
+  .plight .sl-split.lines .ptitle{color:#111;}
+  .plight .sl-split.no-panel .sl-kicker{color:var(--pacc-d);}
+  .plight .sl-photo .sl-kicker{color:#111;}
+  .plight .sl-sum .sumrow{border-bottom-color:#e5e7eb;}
+  .plight .sl .res.pass{color:#15803d;} .plight .sl .res.fail{color:#b91c1c;}
+  .plight .sl .tiempo{color:#6b7280 !important;} .plight .sl .center{color:#6b7280;}
+  .plight .sl .hintbox{background:#fef9c3;border-color:#fde68a;color:#854d0e;}
+  .plight .sl .btn,.plight .pbtn{background:var(--pacc-d);}
+  .plight .sl .btn.ghost,.plight .pbtn.ghost{background:transparent;color:#1f2937;border-color:rgba(0,0,0,.25);}
+  .plight .pres-start{color:#111;}
+  .plight .pres-start p{color:#4b5563;}
+  .plight .pres-start .ps-resume,.plight .pres-start .ps-desc{color:#374151;}
+  .plight .pres-start .ps-desc b{color:#111;}
+  .plight .pres-start .ps-photo{opacity:.22;}
+  .plight .pres-start .ps-shade{background:linear-gradient(180deg,rgba(255,255,255,.2) 0%,color-mix(in srgb,var(--pbg) 80%,transparent) 55%,var(--pbg) 100%);}
+  .plight .pres-start .ps-stats{border-color:rgba(0,0,0,.12);}
+  .plight .pres-start .ps-stat b{color:var(--pacc-d);}
+  .plight .pres-start .ps-stat span,.plight .pres-start .ps-hint{color:#6b7280;}
   
   /* La vista previa escala cada escenario al ancho de su marco, no a la ventana */
   .frame .pstage{left:0;top:0;transform:scale(var(--pk,1));transform-origin:top left}
