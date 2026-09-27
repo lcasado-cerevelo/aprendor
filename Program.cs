@@ -1901,12 +1901,14 @@ static class DosFactores
 
         if (modo == "email" && codigo is not null)
         {
+            // URL pública para el botón «Copiar código» (App:BaseUrl; en desarrollo, el origen).
+            var appUrl = CertificateLinks.BaseUrl(cfg["App:BaseUrl"]);
             var (asunto, html) = proposito switch
             {
-                "verify-email" => (EmailTemplates.AsuntoConCodigo(codigo, "tu código para validar tu correo en Aprendor"), EmailTemplates.VerifyEmail(user.Name, codigo, VigenciaMinutos)),
-                "recover-2fa" => (EmailTemplates.AsuntoConCodigo(codigo, "tu código para recuperar tu acceso a Aprendor"), EmailTemplates.RecoveryCode(user.Name, codigo, VigenciaMinutos)),
-                "enroll-2fa" => (EmailTemplates.AsuntoConCodigo(codigo, "tu código para registrar tu app autenticadora en Aprendor"), EmailTemplates.EnrollCode(user.Name, codigo, VigenciaMinutos)),
-                _ => (EmailTemplates.AsuntoConCodigo(codigo, "tu código de verificación de Aprendor"), EmailTemplates.TwoFactorCode(user.Name, codigo, VigenciaMinutos)),
+                "verify-email" => (EmailTemplates.AsuntoConCodigo(codigo, "tu código para validar tu correo en Aprendor"), EmailTemplates.VerifyEmail(user.Name, codigo, VigenciaMinutos, appUrl)),
+                "recover-2fa" => (EmailTemplates.AsuntoConCodigo(codigo, "tu código para recuperar tu acceso a Aprendor"), EmailTemplates.RecoveryCode(user.Name, codigo, VigenciaMinutos, appUrl)),
+                "enroll-2fa" => (EmailTemplates.AsuntoConCodigo(codigo, "tu código para registrar tu app autenticadora en Aprendor"), EmailTemplates.EnrollCode(user.Name, codigo, VigenciaMinutos, appUrl)),
+                _ => (EmailTemplates.AsuntoConCodigo(codigo, "tu código de verificación de Aprendor"), EmailTemplates.TwoFactorCode(user.Name, codigo, VigenciaMinutos, appUrl)),
             };
             try
             {

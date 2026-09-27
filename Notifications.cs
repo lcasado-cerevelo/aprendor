@@ -583,7 +583,7 @@ public static class EmailTemplates
     }
 
     // Código para «Perdí mi autenticador»: recuperar el acceso quitando la app autenticadora.
-    public static string RecoveryCode(string name, string code, int minutos)
+    public static string RecoveryCode(string name, string code, int minutos, string? appUrl = null)
     {
         string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
         var body =
@@ -591,7 +591,7 @@ public static class EmailTemplates
             $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
             "<p style=\"margin:0;\">Alguien que conoce tu contraseña dijo haber perdido tu app autenticadora y pidió " +
             "recuperar el acceso a tu cuenta. Si fuiste tú, escribe este código en la pantalla de entrada:</p>" +
-            CodigoGrande(code) +
+            CodigoGrande(code, appUrl) +
             $"<p style=\"margin:0;color:#64748b;font-size:13px;\">Vence en {minutos} minutos y solo se puede usar una vez. " +
             "Al usarlo quitaremos la app autenticadora de tu cuenta y tendrás que registrarla de nuevo.</p>" +
             "<p style=\"margin:10px 0 0;color:#b91c1c;font-size:13px;\"><b>Si no fuiste tú, no compartas este código con nadie</b> " +
@@ -601,14 +601,14 @@ public static class EmailTemplates
 
     // Código para registrar la app autenticadora por primera vez desde fuera de una red de
     // confianza: confirma que quien la registra también tiene acceso a este correo.
-    public static string EnrollCode(string name, string code, int minutos)
+    public static string EnrollCode(string name, string code, int minutos, string? appUrl = null)
     {
         string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
         var body =
             Titulo("Confirma el registro de tu app autenticadora") +
             $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
             "<p style=\"margin:0;\">Para registrar una app autenticadora en tu cuenta, escribe este código en la plataforma:</p>" +
-            CodigoGrande(code) +
+            CodigoGrande(code, appUrl) +
             $"<p style=\"margin:0;color:#64748b;font-size:13px;\">Vence en {minutos} minutos y solo se puede usar una vez.</p>" +
             "<p style=\"margin:6px 0 0;color:#64748b;font-size:13px;\">Si no fuiste tú, no compartas este código y cambia tu contraseña: alguien la conoce.</p>";
         return Render(body, $"Tu código: {code}. Registra tu app autenticadora en Aprendor.");
@@ -664,14 +664,40 @@ public static class EmailTemplates
     // letter-spacing, que en algunos clientes se copia con espacios), con user-select:all
     // donde el cliente lo respeta (un toque lo selecciona todo), y además va al principio
     // del asunto y del preheader, donde Gmail y el correo del teléfono ofrecen «Copiar código».
-    private static string CodigoGrande(string code)
-        => "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" " +
-           "style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:18px 0 6px;\"><tr>" +
-           "<td align=\"center\" style=\"padding:18px;font:700 34px/1 Consolas,Menlo,monospace;color:#0f172a;" +
-           "-webkit-user-select:all;user-select:all;\">" +
-           $"{System.Net.WebUtility.HtmlEncode(code ?? "")}</td></tr></table>" +
-           "<p style=\"margin:0 0 16px;text-align:center;color:#64748b;font-size:12px;\">" +
-           "Para copiarlo, haz doble clic sobre el código (en el teléfono, mantenlo presionado).</p>";
+    // Con la URL pública de la app, debajo del código va el botón «Copiar código»: abre
+    // wwwroot/copiar-codigo.html#<código>, que lo copia solo, dice «Código copiado» y, si la
+    // persona tiene Aprendor abierto en otra pestaña, se lo escribe en el campo. El código va
+    // en el fragmento (#), que el navegador nunca manda al servidor ni queda en los logs.
+    private static string CodigoGrande(string code, string? appUrl = null)
+    {
+        var caja =
+            "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" " +
+            "style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:18px 0 6px;\"><tr>" +
+            "<td align=\"center\" style=\"padding:18px;font:700 34px/1 Consolas,Menlo,monospace;color:#0f172a;" +
+            "-webkit-user-select:all;user-select:all;\">" +
+            $"{System.Net.WebUtility.HtmlEncode(code ?? "")}</td></tr></table>";
+        var enlace = EnlaceCopiar(code, appUrl);
+        if (enlace is null)
+            return caja +
+                "<p style=\"margin:0 0 16px;text-align:center;color:#64748b;font-size:12px;\">" +
+                "Para copiarlo, haz doble clic sobre el código (en el teléfono, mantenlo presionado).</p>";
+        return caja +
+            "<table role=\"presentation\" align=\"center\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin:12px auto 6px;\"><tr>" +
+            "<td align=\"center\" style=\"background:#4f46e5;border-radius:10px;\">" +
+            $"<a href=\"{System.Net.WebUtility.HtmlEncode(enlace)}\" style=\"display:inline-block;padding:12px 28px;" +
+            "font:700 15px/1 Segoe UI,Arial,sans-serif;color:#ffffff;text-decoration:none;border-radius:10px;\">" +
+            "Copiar código</a></td></tr></table>" +
+            "<p style=\"margin:0 0 16px;text-align:center;color:#64748b;font-size:12px;\">" +
+            "Se copia solo y, si tienes Aprendor abierto, lo escribe en tu pantalla.</p>";
+    }
+
+    private static string? EnlaceCopiar(string? code, string? appUrl)
+    {
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(appUrl)
+            || !Uri.TryCreate(appUrl.Trim().TrimEnd('/'), UriKind.Absolute, out var b)
+            || (b.Scheme != Uri.UriSchemeHttps && b.Scheme != Uri.UriSchemeHttp)) return null;
+        return b.GetLeftPart(UriPartial.Path).TrimEnd('/') + "/copiar-codigo.html#" + Uri.EscapeDataString(code);
+    }
 
     // Asunto con el código delante: el teléfono y Gmail lo detectan y ofrecen copiarlo desde
     // la notificación, sin abrir el correo.
@@ -914,7 +940,7 @@ public static class EmailTemplates
         return Render(body, $"Cumplimiento: {vencidos} vencidos, {porVencer.Count} por vencer.");
     }
 
-    public static string VerifyEmail(string name, string code, int minutos)
+    public static string VerifyEmail(string name, string code, int minutos, string? appUrl = null)
     {
         string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
         var body =
@@ -922,19 +948,19 @@ public static class EmailTemplates
             $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
             "<p style=\"margin:0;\">Escribe este código en la plataforma para confirmar que este correo es tuyo. " +
             "A esta dirección te enviaremos los certificados de los adiestramientos que apruebes.</p>" +
-            CodigoGrande(code) +
+            CodigoGrande(code, appUrl) +
             $"<p style=\"margin:0;color:#64748b;font-size:13px;\">Vence en {minutos} minutos.</p>";
         return Render(body, $"Tu código: {code}. Valida tu correo en Aprendor.");
     }
 
-    public static string TwoFactorCode(string name, string code, int minutos)
+    public static string TwoFactorCode(string name, string code, int minutos, string? appUrl = null)
     {
         string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
         var body =
             Titulo("Tu código de verificación") +
             $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
             "<p style=\"margin:0;\">Usa este código para completar tu inicio de sesión:</p>" +
-            CodigoGrande(code) +
+            CodigoGrande(code, appUrl) +
             $"<p style=\"margin:0;color:#64748b;font-size:13px;\">Vence en {minutos} minutos y solo se puede usar una vez.</p>" +
             "<p style=\"margin:6px 0 0;color:#64748b;font-size:13px;\">Si no fuiste tú quien intentó entrar, cambia tu contraseña.</p>";
         return Render(body, $"Tu código: {code}. Código de verificación de Aprendor.");

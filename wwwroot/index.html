@@ -1567,6 +1567,24 @@ document.addEventListener('input', e => {
   const limpio = t.value.replace(/\D/g, '').slice(0, 6);
   if (limpio !== t.value) t.value = limpio;
 }, true);
+// Botón «Copiar código» de los correos: abre copiar-codigo.html, que manda el código por
+// este canal. Si esta pestaña tiene a la vista un campo de código, lo escribe y avisa de
+// vuelta para que esa página diga que ya está puesto. No lo envía: la persona confirma.
+try{
+  const canalCodigo = new BroadcastChannel('aprendor-codigo');
+  canalCodigo.onmessage = ev => {
+    const d = ev.data || {};
+    if (d.tipo !== 'codigo' || !/^\d{6}$/.test(d.codigo || '')) return;
+    const campo = [...document.querySelectorAll('input[autocomplete="one-time-code"]')]
+      .find(i => i.offsetParent !== null && !i.disabled && !i.readOnly);
+    if (!campo) return;
+    campo.value = d.codigo;
+    campo.dispatchEvent(new Event('input', { bubbles: true }));
+    campo.focus();
+    canalCodigo.postMessage({ tipo: 'recibido' });
+    toast('Código del correo escrito. Pulsa el botón para confirmar.', 'ok');
+  };
+}catch{}
 // Un fetch cualquiera con la barra de carga (y el botón del clic, si lo hay).
 async function conCarga(promesa){
   const soltar = ocupar(Carga.boton);
