@@ -26,6 +26,18 @@ if (args.Length > 1 && args[0].Equals("voz-texto", StringComparison.OrdinalIgnor
     TrainingPlatform.Narracion.Consola(args[1]);
     return;
 }
+// Consola: "certificado-muestra <salida.pdf>" genera un certificado de ejemplo (para revisar
+// el diseño o cómo imprime). No toca la base.
+if (args.Length > 1 && args[0].Equals("certificado-muestra", StringComparison.OrdinalIgnoreCase))
+{
+    var hoy = DateTime.UtcNow;
+    File.WriteAllBytes(args[1], TrainingPlatform.Certificates.CertificatePdf.Render("Advance Logistics", "Nombre Apellido de Ejemplo",
+        "Hostigamiento Sexual en el Empleo", "CERT-2026-MUESTRA", hoy, hoy.AddYears(1), 100, 70, true, true,
+        "Certifica haber completado el adiestramiento sobre Hostigamiento Sexual en el Empleo bajo la Ley Núm. 17 de Puerto Rico.",
+        "Recursos Humanos", "Advance Logistics", "#a21caf"));
+    Console.WriteLine($"Certificado de muestra escrito en {args[1]}");
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args);
 // Además de las variables de entorno sin prefijo que ya carga CreateBuilder, admite

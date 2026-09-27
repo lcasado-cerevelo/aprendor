@@ -17,8 +17,10 @@ namespace TrainingPlatform.Certificates;
 // marco en el color de acento, emisor, «Certificado de aprobación», «Constancia de
 // cumplimiento», nombre en cursiva con línea, curso, leyenda, fila de fecha /
 // calificación / vigencia, firma a la izquierda, sello circular a la derecha y folio al
-// pie. Se maqueta en «px» de la hoja de 1000 px de ancho de esa plantilla y se escala a
-// A4 apaisado (la misma proporción 1.414 y el mismo @page de certificate.html). Si se
+// pie. Se maqueta en «px» de la hoja de 1000 px de ancho de esa plantilla (proporción
+// 1.414, la de A4 y la de certificate.html) y se pone centrada, con margen, en una hoja
+// CARTA apaisada: en Puerto Rico se imprime en papel Carta, y un PDF A4 impreso a tamaño
+// real en Carta perdía el borde derecho (Chrome no lo ajusta al papel; Firefox sí). Si se
 // cambia la plantilla, hay que cambiar esto también. Georgia pasa a Times (serif) y
 // system-ui a Helvetica.
 //
@@ -26,10 +28,14 @@ namespace TrainingPlatform.Certificates;
 // casi tal cual. WebP y GIF no: el certificado sale igual, sin la imagen.
 public static class CertificatePdf
 {
-    // ---- Página: A4 apaisado, en puntos; S convierte px de la plantilla a puntos ----
-    private const double AnchoPag = 841.89, AltoPag = 595.28;
-    private const double S = AnchoPag / 1000.0;
-    private const double AltoPx = AltoPag / S;          // ~707 px, como la hoja en pantalla
+    // ---- Página: Carta apaisada (11 × 8.5 in), en puntos. S convierte px de la plantilla
+    // a puntos: la hoja de 1000 × 707 px queda en 760 × 537 pt, centrada, con ~0.5 in de
+    // margen arriba y abajo y ~0.2 in a los lados más el marco, dentro del área que imprime
+    // cualquier impresora.
+    private const double AnchoPag = 792, AltoPag = 612;
+    private const double S = 0.76;
+    private const double AltoPx = 1000 / 1.41421356;    // ~707 px, como la hoja en pantalla
+    private const double MargenX = (AnchoPag - 1000 * S) / 2, MargenY = (AltoPag - AltoPx * S) / 2;
 
     // Fuentes estándar (nombre de recurso en la página).
     private enum Fuente { Serif, SerifNegrita, SerifCursiva, Sans, SansNegrita }
@@ -296,8 +302,8 @@ public static class CertificatePdf
         public readonly List<Imagen> Imagenes = new();
 
         private static string N(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
-        private static double X(double px) => px * S;
-        private static double Y(double px) => AltoPag - px * S;
+        private static double X(double px) => MargenX + px * S;
+        private static double Y(double px) => AltoPag - MargenY - px * S;
         private static string Rgb((double r, double g, double b) c) => $"{N(c.r)} {N(c.g)} {N(c.b)}";
 
         // Ancho en px de un texto (con el espaciado entre letras de CSS, que Chrome
