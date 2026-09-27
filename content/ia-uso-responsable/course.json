@@ -1,0 +1,3386 @@
+{
+  "training": {
+    "title": "Inteligencia Artificial: Uso Seguro, Ético y Responsable",
+    "description": "Uso seguro de la inteligencia artificial en el trabajo: qué información nunca se comparte, cómo reconocer información inventada, propiedad intelectual, decisiones con supervisión humana y las reglas de la empresa.",
+    "category": "Adiestramiento",
+    "recurrenceMonths": 12,
+    "renewLeadDays": 30,
+    "voice": "es-PR-KarinaNeural",
+    "certificate": {
+      "enabled": true,
+      "issuerName": "Advance Logistics",
+      "signatoryName": "Recursos Humanos",
+      "signatoryTitle": "Advance Logistics",
+      "statement": "Certifica haber completado el adiestramiento Inteligencia Artificial: Uso Seguro, Ético y Responsable.",
+      "showScore": true,
+      "showValidity": true,
+      "accentColor": "#047857"
+    },
+    "playerConfig": {
+      "allowBack": true,
+      "presentation": {
+        "enabled": true,
+        "theme": {
+          "mode": "light",
+          "bg": "#ffffff",
+          "accent": "#059669",
+          "panel": true,
+          "panelTitle": "INTELIGENCIA ARTIFICIAL"
+        },
+        "transition": "cover"
+      }
+    }
+  },
+  "items": [
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "layout": "intro",
+        "title": "Inteligencia Artificial: Uso Seguro, Ético y Responsable",
+        "description": "<p>La inteligencia artificial ya está en el correo, el celular y las herramientas de trabajo. Bien usada ahorra tiempo; mal usada puede <b>filtrar información de la empresa y de los clientes</b> o llevar a decisiones equivocadas.</p><p>En este adiestramiento verás qué es la IA, qué información nunca se le comparte, por qué hay que verificar lo que dice y cómo usarla de forma responsable en el trabajo.</p>",
+        "minutes": 25
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Inteligencia Artificial: Uso Seguro, Ético y Responsable",
+        "layout": "band",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Fundamentos de la IA, riesgos de compartir información, errores de la IA, propiedad intelectual, decisiones y uso responsable en el trabajo.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Adiestramiento"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Objetivos de aprendizaje",
+        "layout": "cards",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ul>\n         <li><b>Entender qué es la IA</b>, incluida la IA generativa y los modelos de lenguaje.</li>\n         <li><b>Identificar qué información no se comparte</b> y evitar filtraciones.</li>\n         <li><b>Reconocer errores e información inventada</b> y verificar los resultados.</li>\n         <li><b>Respetar la propiedad intelectual</b> y evitar problemas legales.</li>\n         <li><b>Evaluar decisiones apoyadas por IA</b> sin sesgos ni discriminación.</li>\n         <li><b>Usar la IA de forma responsable</b>, con revisión humana y siguiendo las reglas de la empresa.</li>\n       </ul>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Al terminar este curso podrás"
+      }
+    },
+    {
+      "type": "ModuleHeader",
+      "points": 0,
+      "payload": {
+        "title": "Módulo 1 — Introducción a la Inteligencia Artificial",
+        "subtitle": "Usar la IA de forma responsable empieza por entender qué es, qué puede hacer y qué limitaciones tiene."
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "¿Qué es la inteligencia artificial?",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Es la capacidad de un sistema de computadoras de hacer tareas que normalmente requieren inteligencia humana:</p>\n       <ul><li>Analizar información y reconocer patrones.</li><li>Tomar decisiones y resolver problemas.</li><li>Generar contenido.</li><li>Entender el lenguaje de las personas.</li></ul>\n       <p><b>La IA no «piensa» ni «entiende» como una persona:</b> funciona con modelos matemáticos entrenados con enormes cantidades de datos.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "¿Qué es la IA generativa?",
+        "layout": "band",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Es la IA que crea contenido nuevo a partir de lo que aprendió: texto, imágenes, audio, video, código, resúmenes e ideas.</p>\n       <p>Por ejemplo: redactar un correo, preparar una presentación, resumir un documento largo o proponer ideas para un problema.</p>\n       <p><b>La IA generativa no copia: predice.</b> Y esa predicción puede ser útil… o completamente incorrecta.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Los modelos de lenguaje (LLM)",
+        "layout": "split",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Son modelos entrenados con enormes cantidades de texto para responder de forma fluida. Algunos conocidos: GPT, Claude, Gemini, Llama.</p>\n       <ul><li>Predicen la siguiente palabra a partir de patrones.</li><li>No verifican los datos por sí mismos.</li><li>Simulan que entienden, pero no entienden el mundo.</li><li>Pueden equivocarse con total seguridad.</li><li>Muchas herramientas guardan tus conversaciones o una «memoria»: lo que escribes puede quedar guardado.</li></ul>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Herramientas más conocidas",
+        "layout": "cards",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ul>\n         <li><b>ChatGPT</b><br>De OpenAI. Genera textos, ideas, código y análisis.</li>\n         <li><b>Claude</b><br>De Anthropic. Útil para análisis y documentos largos.</li>\n         <li><b>Gemini</b><br>De Google, integrado con Gmail, Docs y Drive.</li>\n         <li><b>Copilot</b><br>De Microsoft, integrado con Windows y Office.</li>\n       </ul>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Cuáles se pueden usar lo decide la empresa (módulo 8)"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Usos en el trabajo",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>En una empresa de logística, la IA puede ayudar a:</p>\n       <ul><li>Redactar y corregir correos y avisos.</li><li>Resumir documentos largos y traducir textos que no son confidenciales.</li><li>Ordenar ideas para planificar rutas, inventario o procesos.</li><li>Preparar borradores de respuestas para clientes, sin datos personales.</li></ul>\n       <p>Es una herramienta poderosa, siempre que se use de forma segura, ética y responsable.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué es la Inteligencia Artificial?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Un sistema que piensa como un humano"
+          },
+          {
+            "id": "b",
+            "text": "Tecnología que realiza tareas basadas en patrones y datos"
+          },
+          {
+            "id": "c",
+            "text": "Un programa que nunca se equivoca"
+          },
+          {
+            "id": "d",
+            "text": "Un sistema de entretenimiento"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué es IA generativa?",
+        "options": [
+          {
+            "id": "a",
+            "text": "IA que solo analiza datos"
+          },
+          {
+            "id": "b",
+            "text": "IA que crea contenido nuevo"
+          },
+          {
+            "id": "c",
+            "text": "IA que solo responde preguntas"
+          },
+          {
+            "id": "d",
+            "text": "IA que no puede generar texto"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué es un LLM?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Un modelo pequeño"
+          },
+          {
+            "id": "b",
+            "text": "Un modelo de lenguaje entrenado con grandes cantidades de texto"
+          },
+          {
+            "id": "c",
+            "text": "Un sistema de almacenamiento"
+          },
+          {
+            "id": "d",
+            "text": "Un hardware especializado"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Cuál de estas herramientas es un asistente de IA corporativo?",
+        "options": [
+          {
+            "id": "a",
+            "text": "ChatGPT"
+          },
+          {
+            "id": "b",
+            "text": "Gemini"
+          },
+          {
+            "id": "c",
+            "text": "Copilot"
+          },
+          {
+            "id": "d",
+            "text": "Claude"
+          }
+        ],
+        "correctOptionId": "c"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué describe un caso de uso empresarial?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Jugar con IA"
+          },
+          {
+            "id": "b",
+            "text": "Generar contenido útil para el trabajo"
+          },
+          {
+            "id": "c",
+            "text": "Usar IA sin supervisión"
+          },
+          {
+            "id": "d",
+            "text": "Compartir información personal"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué puede generar la IA generativa?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Texto"
+          },
+          {
+            "id": "b",
+            "text": "Imágenes"
+          },
+          {
+            "id": "c",
+            "text": "Código"
+          },
+          {
+            "id": "d",
+            "text": "Información médica real"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué herramientas son LLMs?",
+        "options": [
+          {
+            "id": "a",
+            "text": "ChatGPT"
+          },
+          {
+            "id": "b",
+            "text": "Claude"
+          },
+          {
+            "id": "c",
+            "text": "Gemini"
+          },
+          {
+            "id": "d",
+            "text": "Excel"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Un empleado usa IA para redactar un informe. La herramienta genera un texto que se lee bien, pero incluye datos incorrectos y referencias inventadas.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Caso práctico"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "En el caso del informe, ¿qué ocurrió?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Un error humano"
+          },
+          {
+            "id": "b",
+            "text": "Una alucinación de IA"
+          },
+          {
+            "id": "c",
+            "text": "Un problema de red"
+          },
+          {
+            "id": "d",
+            "text": "Un fallo del sistema"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso del informe, ¿qué debe hacer el empleado?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Enviar el informe sin revisar"
+          },
+          {
+            "id": "b",
+            "text": "Verificar la información antes de usarla"
+          },
+          {
+            "id": "c",
+            "text": "Asumir que la IA siempre tiene razón"
+          },
+          {
+            "id": "d",
+            "text": "Compartir datos sensibles para mejorar la respuesta"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "La IA generativa puede inventar información.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "Los LLMs entienden el mundo como un humano.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Copilot está diseñado para entornos corporativos.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "La IA puede ser útil en análisis, creatividad y productividad.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Todas las herramientas de IA son seguras para compartir información confidencial.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "ModuleHeader",
+      "points": 0,
+      "payload": {
+        "title": "Módulo 2 — Riesgos de Compartir Información con IA",
+        "subtitle": "Muchas herramientas de IA envían lo que escribes a servidores externos. Compartir información sensible puede provocar una filtración que no se puede deshacer."
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Lo que nunca va a una IA pública",
+        "layout": "cards",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ul>\n         <li><b>Información confidencial</b><br>Estrategias, planes, procedimientos y políticas internas.</li>\n         <li><b>Datos de clientes</b><br>Nombres, direcciones, teléfonos, pedidos, información financiera.</li>\n         <li><b>Datos de empleados</b><br>Información personal, evaluaciones, nómina.</li>\n         <li><b>Contratos</b><br>Tarifas, cláusulas y acuerdos de confidencialidad.</li>\n         <li><b>Información financiera interna</b><br>Presupuestos, resultados, proyecciones.</li>\n         <li><b>Contraseñas y accesos</b><br>Y también código o configuraciones de los sistemas.</li>\n       </ul>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Aunque sea para ahorrar tiempo"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Datos de clientes y de salud: lo que dice la ley",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Los datos personales y de salud están protegidos por ley. Pegarlos en una IA pública puede ser una violación legal.</p>\n       <ul><li><b>HIPAA</b> protege la información de salud de los pacientes: diagnósticos, medicamentos, órdenes médicas. Ninguna IA pública está autorizada para recibirla.</li><li>En Puerto Rico, la <b>Ley Núm. 111-2005</b> obliga a avisar a las personas cuando se filtra su información personal.</li></ul>\n       <p>Consecuencias: demandas, multas y pérdida de la confianza de los clientes.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Casos y ejemplos",
+        "layout": "band",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p><b>Caso real: Samsung (2023).</b> Empleados pegaron código interno en ChatGPT para corregir errores. La información quedó en\n       servidores externos y la empresa restringió el uso de estas herramientas.</p>\n       <p><b>Ejemplos de lo que puede pasar:</b> un analista pega datos de clientes para preparar un informe; un empleado pega un contrato\n       para resumirlo; alguien escribe información médica de un paciente. En todos, la información sale de la empresa sin permiso.</p>\n       <p><b>La IA no es peligrosa. El peligro es compartir lo que nunca debió salir de la empresa.</b></p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Cuál es el mayor riesgo al compartir información con IA pública?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Respuestas lentas"
+          },
+          {
+            "id": "b",
+            "text": "Filtración de datos sensibles"
+          },
+          {
+            "id": "c",
+            "text": "Falta de creatividad"
+          },
+          {
+            "id": "d",
+            "text": "Problemas de conexión"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué tipo de información nunca debe compartirse?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Información pública"
+          },
+          {
+            "id": "b",
+            "text": "Datos de clientes"
+          },
+          {
+            "id": "c",
+            "text": "Ideas generales"
+          },
+          {
+            "id": "d",
+            "text": "Preguntas técnicas sin contexto"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué riesgo implica compartir contratos?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Mejorar la productividad"
+          },
+          {
+            "id": "b",
+            "text": "Violación de acuerdos de confidencialidad"
+          },
+          {
+            "id": "c",
+            "text": "Acelerar procesos"
+          },
+          {
+            "id": "d",
+            "text": "Obtener resúmenes más rápidos"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué representa el código fuente?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Información irrelevante"
+          },
+          {
+            "id": "b",
+            "text": "Un activo crítico de la empresa"
+          },
+          {
+            "id": "c",
+            "text": "Un documento público"
+          },
+          {
+            "id": "d",
+            "text": "Un archivo temporal"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué ocurrió en el caso de Samsung?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Se filtraron estados financieros"
+          },
+          {
+            "id": "b",
+            "text": "Se filtró código fuente interno"
+          },
+          {
+            "id": "c",
+            "text": "Se filtraron datos médicos"
+          },
+          {
+            "id": "d",
+            "text": "No ocurrió nada"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué información es considerada altamente sensible?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Estados financieros"
+          },
+          {
+            "id": "b",
+            "text": "Código fuente"
+          },
+          {
+            "id": "c",
+            "text": "Información médica"
+          },
+          {
+            "id": "d",
+            "text": "Memes"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué consecuencias puede tener una filtración?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Multas legales"
+          },
+          {
+            "id": "b",
+            "text": "Pérdida de clientes"
+          },
+          {
+            "id": "c",
+            "text": "Mejora de reputación"
+          },
+          {
+            "id": "d",
+            "text": "Despido del empleado"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "d"
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Un empleado copia y pega un contrato confidencial en una IA pública para pedir un resumen. La herramienta procesa el documento y responde.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Caso práctico"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso del contrato, ¿qué riesgo ocurrió?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Ninguno"
+          },
+          {
+            "id": "b",
+            "text": "Filtración de información legal"
+          },
+          {
+            "id": "c",
+            "text": "Error técnico"
+          },
+          {
+            "id": "d",
+            "text": "Problema de formato"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso del contrato, ¿qué debió hacer el empleado?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Usar una herramienta aprobada por la empresa"
+          },
+          {
+            "id": "b",
+            "text": "Compartir más información para mejorar la respuesta"
+          },
+          {
+            "id": "c",
+            "text": "Enviar el contrato sin revisar"
+          },
+          {
+            "id": "d",
+            "text": "Publicarlo en redes sociales"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Compartir datos de clientes con IA pública puede violar leyes.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "El código fuente puede compartirse si es para depurar errores.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Las IA públicas pueden almacenar temporalmente la información ingresada.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Los estados financieros son información sensible.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Las filtraciones por IA no tienen consecuencias reales.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "ModuleHeader",
+      "points": 0,
+      "payload": {
+        "title": "Módulo 3 — Alucinaciones y Errores de la IA",
+        "subtitle": "La IA puede presentar información inventada como si fuera 100 % real. No es una falla: es cómo funcionan estos modelos. Por eso todo se verifica."
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "¿Qué es una alucinación?",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Es cuando la IA:</p>\n       <ul><li>Da información incorrecta o inventa datos.</li><li>Crea fuentes que no existen.</li><li>Mezcla hechos reales con ficción.</li><li>Responde con seguridad aunque no tenga información suficiente.</li></ul>\n       <p>No lo hace a propósito: son predicciones que parecen reales, pero no lo son. Por ejemplo, una ley, un estudio o una cita que no existe.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Datos incorrectos e inventados",
+        "layout": "cards",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ul>\n         <li><b>Fechas</b><br>Dice que algo pasó en 2021 cuando fue en 2019.</li>\n         <li><b>Cifras</b><br>Inventa números de ventas, costos o inventario.</li>\n         <li><b>Nombres y documentos</b><br>Inventa empleados, números de contrato o registros internos.</li>\n       </ul>\n       <p>En el trabajo, un dato incorrecto puede llevar a una decisión equivocada o a un error en la operación.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Cuando la IA «rellena» lo que no sabe"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Fuentes falsas",
+        "layout": "split",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>La IA puede inventar artículos, estudios, citas de expertos y enlaces que no funcionan, con un formato perfecto.</p>\n       <p><b>Caso real:</b> en 2023, en Nueva York, unos abogados presentaron a un tribunal un escrito con casos inventados por ChatGPT\n       (caso Mata contra Avianca). El juez los multó con 5,000 dólares y el caso dio la vuelta al mundo.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Si la información es importante, se verifica. Siempre.",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>La IA es una herramienta de apoyo, no una fuente. Confirma las cifras con los documentos de la empresa, las leyes y políticas con\n       la fuente oficial, y revisa los enlaces y las referencias. Si hace falta, consulta a quien sabe.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Verificación de resultados"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué es una alucinación de IA?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Un error visual"
+          },
+          {
+            "id": "b",
+            "text": "Información inventada presentada como real"
+          },
+          {
+            "id": "c",
+            "text": "Un problema de hardware"
+          },
+          {
+            "id": "d",
+            "text": "Un fallo de conexión"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué puede generar la IA cuando no tiene suficiente información?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Datos inventados"
+          },
+          {
+            "id": "b",
+            "text": "Resultados perfectos"
+          },
+          {
+            "id": "c",
+            "text": "Información verificada"
+          },
+          {
+            "id": "d",
+            "text": "Cifras oficiales"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué es una fuente falsa?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Un documento oficial"
+          },
+          {
+            "id": "b",
+            "text": "Una referencia inventada por la IA"
+          },
+          {
+            "id": "c",
+            "text": "Un enlace verificado"
+          },
+          {
+            "id": "d",
+            "text": "Un estudio académico real"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué debe hacerse con información generada por IA?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Usarla sin revisar"
+          },
+          {
+            "id": "b",
+            "text": "Verificarla con fuentes confiables"
+          },
+          {
+            "id": "c",
+            "text": "Asumir que es correcta"
+          },
+          {
+            "id": "d",
+            "text": "Compartirla inmediatamente"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué tipo de información puede ser incorrecta?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Fechas"
+          },
+          {
+            "id": "b",
+            "text": "Cifras"
+          },
+          {
+            "id": "c",
+            "text": "Procedimientos"
+          },
+          {
+            "id": "d",
+            "text": "Todas las anteriores"
+          }
+        ],
+        "correctOptionId": "d"
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué puede inventar la IA?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Datos financieros"
+          },
+          {
+            "id": "b",
+            "text": "Citas legales"
+          },
+          {
+            "id": "c",
+            "text": "Estudios académicos"
+          },
+          {
+            "id": "d",
+            "text": "Contraseñas reales"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué acciones ayudan a evitar errores?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verificar información"
+          },
+          {
+            "id": "b",
+            "text": "Revisar fuentes"
+          },
+          {
+            "id": "c",
+            "text": "Confiar ciegamente en la IA"
+          },
+          {
+            "id": "d",
+            "text": "Consultar documentos oficiales"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "d"
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Un empleado usa IA para preparar un análisis. La herramienta produce cifras que parecen correctas, pero ninguna coincide con los reportes oficiales.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Caso práctico"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso de las cifras que no coinciden, ¿qué ocurrió?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Un error de formato"
+          },
+          {
+            "id": "b",
+            "text": "Una alucinación de IA"
+          },
+          {
+            "id": "c",
+            "text": "Un problema de impresión"
+          },
+          {
+            "id": "d",
+            "text": "Un fallo del servidor"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso de las cifras que no coinciden, ¿qué debe hacer el empleado?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Usar las cifras generadas"
+          },
+          {
+            "id": "b",
+            "text": "Verificar los datos con reportes oficiales"
+          },
+          {
+            "id": "c",
+            "text": "Compartir el análisis sin revisar"
+          },
+          {
+            "id": "d",
+            "text": "Pedirle a la IA que invente más datos"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "La IA puede generar información falsa con total confianza.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Las fuentes generadas por IA siempre son reales.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "La verificación humana es obligatoria.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Las alucinaciones solo ocurren en herramientas gratuitas.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "La IA no entiende el contenido: solo predice patrones.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "ModuleHeader",
+      "points": 0,
+      "payload": {
+        "title": "Módulo 4 — Propiedad Intelectual y Derechos de Autor",
+        "subtitle": "Que la IA pueda generar un texto o una imagen no significa que se pueda usar sin restricciones."
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Lo que genera la IA puede tener dueño",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Libros, fotos, música, logos, diseños y textos de otros están protegidos por derechos de autor. La IA puede generar algo muy\n       parecido a una obra protegida, sin que lo busques.</p>\n       <ul><li>Una imagen generada puede parecerse demasiado a una foto con derechos.</li><li>Un texto puede repetir frases de un artículo protegido.</li><li>No todas las herramientas permiten usar lo generado en anuncios o productos.</li></ul>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Riesgos legales",
+        "layout": "band",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Usar sin revisar lo que genera la IA puede traer reclamaciones por derechos de autor, uso indebido de marcas o de la imagen\n       de una persona, y daño a la reputación.</p>\n       <p>Hay demandas de artistas y agencias de fotos contra las empresas que crean estas herramientas (por ejemplo, Getty Images contra\n       Stability AI, 2023). El tema legal no está resuelto: por eso se revisa antes de publicar algo generado con IA.</p>\n       <p><b>La IA no quita la responsabilidad legal de quien la usa.</b></p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué es material protegido?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Contenido público"
+          },
+          {
+            "id": "b",
+            "text": "Obras con derechos de autor"
+          },
+          {
+            "id": "c",
+            "text": "Información irrelevante"
+          },
+          {
+            "id": "d",
+            "text": "Contenido sin dueño"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué riesgo tiene el código generado por IA?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Siempre es seguro"
+          },
+          {
+            "id": "b",
+            "text": "Puede incluir código con licencias restrictivas"
+          },
+          {
+            "id": "c",
+            "text": "No requiere revisión"
+          },
+          {
+            "id": "d",
+            "text": "No puede usarse comercialmente"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué riesgo existe con imágenes generadas?",
+        "options": [
+          {
+            "id": "a",
+            "text": "No pueden parecerse a nada"
+          },
+          {
+            "id": "b",
+            "text": "Pueden imitar obras protegidas"
+          },
+          {
+            "id": "c",
+            "text": "Siempre son libres de derechos"
+          },
+          {
+            "id": "d",
+            "text": "No pueden usarse en redes sociales"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué implica el uso comercial?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Libertad total"
+          },
+          {
+            "id": "b",
+            "text": "Restricciones según la herramienta"
+          },
+          {
+            "id": "c",
+            "text": "No requiere revisión legal"
+          },
+          {
+            "id": "d",
+            "text": "No tiene riesgos"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué puede causar una violación de propiedad intelectual?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Aumento de productividad"
+          },
+          {
+            "id": "b",
+            "text": "Demandas y sanciones"
+          },
+          {
+            "id": "c",
+            "text": "Mejora de reputación"
+          },
+          {
+            "id": "d",
+            "text": "Reducción de riesgos"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué puede generar riesgos legales?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Código generado por IA"
+          },
+          {
+            "id": "b",
+            "text": "Imágenes generadas"
+          },
+          {
+            "id": "c",
+            "text": "Uso comercial sin revisión"
+          },
+          {
+            "id": "d",
+            "text": "Ideas generales"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué prácticas ayudan a evitar problemas legales?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Revisar licencias"
+          },
+          {
+            "id": "b",
+            "text": "Consultar al equipo legal"
+          },
+          {
+            "id": "c",
+            "text": "Usar contenido sin verificar"
+          },
+          {
+            "id": "d",
+            "text": "Validar derechos de uso"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "d"
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Un empleado usa IA para hacer la imagen del volante de una promoción. La imagen imita claramente el estilo de un artista famoso.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Caso práctico"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso del volante de la promoción, ¿qué riesgo existe?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Ninguno"
+          },
+          {
+            "id": "b",
+            "text": "Violación de derechos de autor"
+          },
+          {
+            "id": "c",
+            "text": "Mejora de creatividad"
+          },
+          {
+            "id": "d",
+            "text": "Uso permitido automáticamente"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "En el caso del volante de la promoción, ¿qué debió hacer el empleado?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Usar la imagen sin revisar"
+          },
+          {
+            "id": "b",
+            "text": "Consultar si el estilo está protegido"
+          },
+          {
+            "id": "c",
+            "text": "Publicarla inmediatamente"
+          },
+          {
+            "id": "d",
+            "text": "Ignorar riesgos legales"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "La IA puede generar contenido similar a obras protegidas.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "El código generado por IA siempre es seguro legalmente.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "El uso comercial requiere revisión legal.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Las imágenes generadas nunca imitan estilos protegidos.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "El usuario es responsable del contenido generado por IA.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "ModuleHeader",
+      "points": 0,
+      "payload": {
+        "title": "Módulo 5 — IA en la Toma de Decisiones",
+        "subtitle": "La IA puede analizar y recomendar, pero no entiende consecuencias, ética ni el impacto en las personas. La decisión la toma una persona."
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Sesgos y discriminación",
+        "layout": "split",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>La IA aprende de datos del pasado. Si esos datos tienen sesgos (de género, edad, origen o idioma), la IA los repite y los agranda.</p>\n       <p><b>Caso real:</b> en 2018, Amazon dejó de usar una herramienta de contratación que favorecía a los hombres porque había aprendido\n       de solicitudes de años anteriores (Reuters).</p>\n       <p>La IA puede discriminar sin intención, pero con un impacto real y consecuencias legales.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "La IA asiste, pero no decide",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Cuando la IA recomienda, evalúa personas, clasifica casos o sugiere acciones, una persona valida la información, corrige errores,\n       detecta sesgos y toma la decisión final.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Supervisión humana"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Responsabilidad final",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>La responsabilidad siempre es de quien usa la IA:</p>\n       <ul><li>Si la IA se equivoca, el responsable es quien la usó.</li><li>Si inventa información, el empleado debe detectarla.</li><li>Si recomienda algo, el empleado debe evaluarlo.</li></ul>\n       <p>La IA no puede ser demandada, disciplinada ni despedida.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué es un sesgo en IA?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Un error técnico"
+          },
+          {
+            "id": "b",
+            "text": "Un patrón injusto aprendido de los datos"
+          },
+          {
+            "id": "c",
+            "text": "Una falla de hardware"
+          },
+          {
+            "id": "d",
+            "text": "Un problema de conexión"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué es discriminación algorítmica?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Una decisión justa"
+          },
+          {
+            "id": "b",
+            "text": "Una decisión injusta basada en patrones sesgados"
+          },
+          {
+            "id": "c",
+            "text": "Un proceso manual"
+          },
+          {
+            "id": "d",
+            "text": "Un error de formato"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué rol tiene la supervisión humana?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Ninguno"
+          },
+          {
+            "id": "b",
+            "text": "Validar y corregir resultados de IA"
+          },
+          {
+            "id": "c",
+            "text": "Dejar que la IA decida"
+          },
+          {
+            "id": "d",
+            "text": "Ignorar recomendaciones"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Quién tiene la responsabilidad final?",
+        "options": [
+          {
+            "id": "a",
+            "text": "La IA"
+          },
+          {
+            "id": "b",
+            "text": "El empleado que la usa"
+          },
+          {
+            "id": "c",
+            "text": "El servidor"
+          },
+          {
+            "id": "d",
+            "text": "El modelo de lenguaje"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué puede causar un sesgo algorítmico?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Datos históricos injustos"
+          },
+          {
+            "id": "b",
+            "text": "Información equilibrada"
+          },
+          {
+            "id": "c",
+            "text": "Reglas éticas"
+          },
+          {
+            "id": "d",
+            "text": "Supervisión humana"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué decisiones NO deben delegarse a la IA?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Contratación"
+          },
+          {
+            "id": "b",
+            "text": "Evaluación de desempeño"
+          },
+          {
+            "id": "c",
+            "text": "Aprobación de préstamos"
+          },
+          {
+            "id": "d",
+            "text": "Generación de ideas creativas"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué acciones forman parte de la supervisión humana?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verificar información"
+          },
+          {
+            "id": "b",
+            "text": "Evaluar impacto"
+          },
+          {
+            "id": "c",
+            "text": "Tomar decisiones finales"
+          },
+          {
+            "id": "d",
+            "text": "Dejar que la IA decida sola"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Un sistema de IA recomienda rechazar a un candidato porque su universidad no aparece en los datos del modelo. El reclutador acepta la recomendación sin revisar.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Caso práctico"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso del candidato rechazado, ¿qué ocurrió?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Un proceso correcto"
+          },
+          {
+            "id": "b",
+            "text": "Discriminación algorítmica"
+          },
+          {
+            "id": "c",
+            "text": "Un error administrativo"
+          },
+          {
+            "id": "d",
+            "text": "Un caso sin impacto"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso del candidato rechazado, ¿qué debió hacer el reclutador?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Aceptar la recomendación sin revisar"
+          },
+          {
+            "id": "b",
+            "text": "Evaluar al candidato con criterios humanos"
+          },
+          {
+            "id": "c",
+            "text": "Dejar que la IA tome la decisión"
+          },
+          {
+            "id": "d",
+            "text": "Ignorar el proceso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "La IA puede discriminar sin intención.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "La supervisión humana es opcional.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "La responsabilidad final siempre es del empleado.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "La IA entiende ética y justicia.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Los sesgos pueden estar presentes en los datos de entrenamiento.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "ModuleHeader",
+      "points": 0,
+      "payload": {
+        "title": "Módulo 6 — Uso Responsable de IA en el Trabajo",
+        "subtitle": "La IA no reemplaza el criterio de una persona y no distingue entre información pública y confidencial. Estas son las reglas para usarla bien."
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Si lo puedes publicar en la página web de la empresa, lo puedes compartir con la IA.",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Preguntas generales, conceptos, ideas, ejercicios de redacción sin datos sensibles e información que la empresa ya publicó.\n       Nada que identifique personas, que sea interno o que esté protegido por un acuerdo de confidencialidad.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Qué se puede compartir"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Prompts seguros",
+        "layout": "split",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Un prompt (lo que le escribes a la IA) es seguro cuando no tiene nombres reales, datos de clientes, empleados o proveedores, ni documentos internos.</p>\n       <p><b>Sí:</b> «Redacta un aviso de retraso de entrega, amable y breve, sin nombres».</p>\n       <p><b>Sí:</b> «Dame ideas para organizar mejor el inventario de un almacén».</p>\n       <p><b>No:</b> «Resume este contrato con el cliente» o «Analiza esta lista de clientes con sus direcciones».</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Revisión humana y aprobaciones",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p><b>Todo lo que genera la IA lo revisa una persona</b> antes de enviarlo a un cliente, publicarlo, usarlo en un documento oficial o decidir con él:\n       que sea correcto, coherente, legal y profesional.</p>\n       <p><b>Necesita aprobación previa</b> lo que tenga que ver con contenido legal, financiero o médico, lo que se publica fuera de la empresa,\n       lo que afecta a clientes o proveedores y las automatizaciones de procesos. Pregunta a tu supervisor.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Dos errores comunes",
+        "layout": "cards",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ul>\n         <li><b>La lista de clientes</b><br>Un empleado pega en ChatGPT una hoja de Excel con nombres, correos y direcciones de clientes para pedir un análisis. Esos datos ya salieron de la empresa y no se pueden recuperar. Debió usar una herramienta aprobada o quitar los datos personales.</li>\n         <li><b>La queja del cliente</b><br>Otro pega el reclamo de un cliente, con su nombre y número de cuenta, para que la IA redacte la respuesta. Debió escribir el prompt sin datos personales y usar las plantillas de la empresa.</li>\n       </ul>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Qué pasó y qué debió hacerse"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué tipo de información puede compartirse con IA?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Información pública"
+          },
+          {
+            "id": "b",
+            "text": "Estados financieros internos"
+          },
+          {
+            "id": "c",
+            "text": "Datos de clientes"
+          },
+          {
+            "id": "d",
+            "text": "Código fuente real"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué información nunca debe compartirse?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Conceptos generales"
+          },
+          {
+            "id": "b",
+            "text": "Información confidencial"
+          },
+          {
+            "id": "c",
+            "text": "Ideas creativas"
+          },
+          {
+            "id": "d",
+            "text": "Ejemplos ficticios"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué es un prompt seguro?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Uno que incluye datos internos"
+          },
+          {
+            "id": "b",
+            "text": "Uno que no contiene información sensible"
+          },
+          {
+            "id": "c",
+            "text": "Uno que pega contratos reales"
+          },
+          {
+            "id": "d",
+            "text": "Uno que expone código interno"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué debe hacerse con contenido generado por IA?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Usarlo sin revisar"
+          },
+          {
+            "id": "b",
+            "text": "Revisarlo antes de usarlo"
+          },
+          {
+            "id": "c",
+            "text": "Publicarlo inmediatamente"
+          },
+          {
+            "id": "d",
+            "text": "Compartirlo con clientes"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué requiere aprobación?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Ideas creativas"
+          },
+          {
+            "id": "b",
+            "text": "Contenido legal o financiero"
+          },
+          {
+            "id": "c",
+            "text": "Preguntas generales"
+          },
+          {
+            "id": "d",
+            "text": "Ejemplos ficticios"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué información NO debe compartirse con IA?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Contratos"
+          },
+          {
+            "id": "b",
+            "text": "Código fuente"
+          },
+          {
+            "id": "c",
+            "text": "Datos de clientes"
+          },
+          {
+            "id": "d",
+            "text": "Conceptos generales"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué acciones forman parte del uso responsable?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Revisar contenido"
+          },
+          {
+            "id": "b",
+            "text": "Usar prompts seguros"
+          },
+          {
+            "id": "c",
+            "text": "Compartir datos internos"
+          },
+          {
+            "id": "d",
+            "text": "Solicitar aprobaciones cuando aplique"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "d"
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Un empleado copia y pega un archivo con datos de clientes en una IA pública para pedir un análisis. La herramienta genera un reporte detallado.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Caso práctico"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso del archivo de clientes, ¿qué ocurrió?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Un uso correcto"
+          },
+          {
+            "id": "b",
+            "text": "Una violación grave de seguridad"
+          },
+          {
+            "id": "c",
+            "text": "Un análisis permitido"
+          },
+          {
+            "id": "d",
+            "text": "Un proceso normal"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso del archivo de clientes, ¿qué debió hacer el empleado?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Usar una herramienta aprobada por la empresa"
+          },
+          {
+            "id": "b",
+            "text": "Compartir más datos para mejorar la respuesta"
+          },
+          {
+            "id": "c",
+            "text": "Publicar el análisis"
+          },
+          {
+            "id": "d",
+            "text": "Ignorar políticas"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Los prompts deben evitar información sensible.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Todo contenido generado por IA debe revisarse.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "La IA puede recibir estados financieros internos si es para análisis.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Algunas tareas requieren aprobación previa.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "La IA puede reemplazar el juicio humano.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué ocurrió en el caso de la base de datos?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Uso correcto"
+          },
+          {
+            "id": "b",
+            "text": "Filtración de datos personales"
+          },
+          {
+            "id": "c",
+            "text": "Mejora de productividad"
+          },
+          {
+            "id": "d",
+            "text": "Proceso autorizado"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué riesgo existe al generar contratos con IA pública?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Ninguno"
+          },
+          {
+            "id": "b",
+            "text": "Exposición de información legal interna"
+          },
+          {
+            "id": "c",
+            "text": "Aumento de eficiencia"
+          },
+          {
+            "id": "d",
+            "text": "Mejora de redacción"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué representa pegar código fuente en IA pública?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Una práctica recomendada"
+          },
+          {
+            "id": "b",
+            "text": "Exposición de propiedad intelectual"
+          },
+          {
+            "id": "c",
+            "text": "Un proceso seguro"
+          },
+          {
+            "id": "d",
+            "text": "Un análisis técnico válido"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué riesgo existe al compartir estados financieros internos?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Ninguno"
+          },
+          {
+            "id": "b",
+            "text": "Violación regulatoria"
+          },
+          {
+            "id": "c",
+            "text": "Mejora de análisis"
+          },
+          {
+            "id": "d",
+            "text": "Aumento de ventas"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué ocurrió en el caso de servicio al cliente?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Uso correcto"
+          },
+          {
+            "id": "b",
+            "text": "Violación de privacidad"
+          },
+          {
+            "id": "c",
+            "text": "Mejora de comunicación"
+          },
+          {
+            "id": "d",
+            "text": "Proceso autorizado"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué casos representan violaciones graves?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Pegar datos de clientes"
+          },
+          {
+            "id": "b",
+            "text": "Pegar contratos internos"
+          },
+          {
+            "id": "c",
+            "text": "Pegar código fuente"
+          },
+          {
+            "id": "d",
+            "text": "Pedir ideas creativas"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué acciones debieron tomarse?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Usar herramientas aprobadas"
+          },
+          {
+            "id": "b",
+            "text": "Anonimizar datos"
+          },
+          {
+            "id": "c",
+            "text": "Compartir más información"
+          },
+          {
+            "id": "d",
+            "text": "Consultar a legal o cumplimiento"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "d"
+        ]
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "En el caso del reporte financiero, ¿qué riesgo ocurrió?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Ninguno"
+          },
+          {
+            "id": "b",
+            "text": "Filtración de información estratégica"
+          },
+          {
+            "id": "c",
+            "text": "Mejora de productividad"
+          },
+          {
+            "id": "d",
+            "text": "Proceso autorizado"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "En el caso del reporte financiero, ¿qué debió hacer el empleado?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Usar datos públicos"
+          },
+          {
+            "id": "b",
+            "text": "Compartir más información"
+          },
+          {
+            "id": "c",
+            "text": "Publicar el resumen"
+          },
+          {
+            "id": "d",
+            "text": "Ignorar políticas"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Pegar código fuente en IA pública es seguro.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Los datos de clientes nunca deben compartirse.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Los estados financieros internos son información sensible.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Los contratos pueden pegarse si son cortos.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Los casos prácticos muestran riesgos reales.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "ModuleHeader",
+      "points": 0,
+      "payload": {
+        "title": "Módulo 8 — Reglas de la Empresa para Usar IA",
+        "subtitle": "Las reglas protegen a la empresa, a los clientes y a los empleados. Si tienes dudas, pregunta antes de usar la IA."
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Uso permitido",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>La IA se puede usar para tareas que no incluyen información sensible y no crean riesgos legales:</p>\n       <ul><li>Redactar textos generales.</li><li>Buscar ideas y explicaciones.</li><li>Resumir o traducir contenido público.</li><li>Tareas internas que la empresa aprobó.</li></ul>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Uso prohibido",
+        "layout": "cards",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ul>\n         <li><b>Evaluar personas</b><br>Empleados, candidatos o clientes.</li>\n         <li><b>Decidir sin supervisión</b><br>La decisión final es de una persona.</li>\n         <li><b>Contenido legal o financiero</b><br>Sin la aprobación que corresponde.</li>\n         <li><b>Automatizar procesos</b><br>Sin autorización de la empresa.</li>\n       </ul>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Además de compartir información sensible"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Herramientas autorizadas",
+        "layout": "band",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Usa solo las herramientas de IA que la empresa haya aprobado. Una herramienta aprobada cumple con controles de seguridad,\n       protección de datos y acuerdos de privacidad.</p>\n       <p>Si no sabes si una herramienta está aprobada, <b>pregunta a tu supervisor antes de usarla</b>.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Consecuencias del mal uso",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Usar mal la IA, por ejemplo filtrando datos de clientes o de la empresa, puede llevar a medidas disciplinarias según las\n       políticas de la empresa, además de las consecuencias legales para la empresa.</p>\n       <p><b>Cada empleado es responsable del uso que hace de la IA.</b></p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Tu compromiso",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Al completar este adiestramiento queda registrado en Aprendor que conoces estas reglas. Cúmplelas, reporta los usos indebidos\n       y, ante cualquier duda, consulta a tu supervisor o a Recursos Humanos.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Aceptación"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué es uso permitido?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Compartir datos internos"
+          },
+          {
+            "id": "b",
+            "text": "Usar IA con información pública"
+          },
+          {
+            "id": "c",
+            "text": "Pegar contratos"
+          },
+          {
+            "id": "d",
+            "text": "Compartir código fuente"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué está prohibido?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Ideas creativas"
+          },
+          {
+            "id": "b",
+            "text": "Información confidencial"
+          },
+          {
+            "id": "c",
+            "text": "Conceptos generales"
+          },
+          {
+            "id": "d",
+            "text": "Ejemplos ficticios"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué define una herramienta autorizada?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Que sea popular"
+          },
+          {
+            "id": "b",
+            "text": "Que cumpla con seguridad y privacidad"
+          },
+          {
+            "id": "c",
+            "text": "Que sea gratuita"
+          },
+          {
+            "id": "d",
+            "text": "Que no requiera aprobación"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué puede causar una violación de política?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Aumento de productividad"
+          },
+          {
+            "id": "b",
+            "text": "Consecuencias disciplinarias"
+          },
+          {
+            "id": "c",
+            "text": "Mejora de procesos"
+          },
+          {
+            "id": "d",
+            "text": "Innovación"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué deben hacer los empleados?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Ignorar la política"
+          },
+          {
+            "id": "b",
+            "text": "Aceptarla y cumplirla"
+          },
+          {
+            "id": "c",
+            "text": "Usar cualquier IA"
+          },
+          {
+            "id": "d",
+            "text": "Compartir información interna"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué acciones están prohibidas?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Compartir contratos"
+          },
+          {
+            "id": "b",
+            "text": "Compartir datos de clientes"
+          },
+          {
+            "id": "c",
+            "text": "Compartir código fuente"
+          },
+          {
+            "id": "d",
+            "text": "Pedir explicaciones conceptuales"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "type": "MultiSelect",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "¿Qué herramientas pueden usarse?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Herramientas aprobadas"
+          },
+          {
+            "id": "b",
+            "text": "IA corporativa"
+          },
+          {
+            "id": "c",
+            "text": "IA pública sin contrato"
+          },
+          {
+            "id": "d",
+            "text": "Sistemas internos autorizados"
+          }
+        ],
+        "correctOptionIds": [
+          "a",
+          "b",
+          "d"
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Un empleado usa ChatGPT público para resumir un contrato interno.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Caso práctico"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso del contrato en una IA pública, ¿qué ocurrió?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Uso permitido"
+          },
+          {
+            "id": "b",
+            "text": "Violación de política"
+          },
+          {
+            "id": "c",
+            "text": "Proceso autorizado"
+          },
+          {
+            "id": "d",
+            "text": "Mejora de productividad"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "En el caso del contrato en una IA pública, ¿qué debió hacer el empleado?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Usar plantillas internas"
+          },
+          {
+            "id": "b",
+            "text": "Compartir más información"
+          },
+          {
+            "id": "c",
+            "text": "Publicar el contrato"
+          },
+          {
+            "id": "d",
+            "text": "Ignorar la política"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Las herramientas públicas de IA están prohibidas si no hay contrato corporativo.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Los empleados deben aceptar la política de IA.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "Compartir estados financieros internos está permitido.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "La empresa puede disciplinar a empleados por mal uso de IA.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "active": false,
+      "payload": {
+        "question": "La política de IA protege a la empresa y a los empleados.",
+        "options": [
+          {
+            "id": "a",
+            "text": "Verdadero"
+          },
+          {
+            "id": "b",
+            "text": "Falso"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    }
+  ]
+}

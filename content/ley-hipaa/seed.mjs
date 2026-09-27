@@ -9,6 +9,9 @@
 //                                      recurrencia y certificado. No crea un Training
 //                                      nuevo ni duplica el curso.
 //   node seed.mjs ... --publish        publica la versión al terminar
+//   node seed.mjs ... --voz            graba la voz de cada lámina con Azure antes de
+//                                      publicar (training.voice o es-PR-KarinaNeural; el
+//                                      servidor necesita APRENDOR_Speech__Key/__Region)
 //   node seed.mjs ... --totp 123456    código de la app autenticadora si la cuenta lo
 //                                      pide (o TP_TOTP; sin él se pregunta). Contra el
 //                                      servidor, ejecútalo en él (http://localhost:8086)
@@ -29,6 +32,10 @@ import { iniciarSesion } from '../_shared/session.mjs';
 import { LAYOUTS, SPLIT_VARIANTS } from '../_shared/authoring.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+// Ítems desactivados (active: false; p. ej. preguntas del banco fuera del subconjunto):
+// se suben al borrador pero el empleado no los ve ni cuentan para la nota. La vista previa
+// y el resumen usan solo los activos.
+const ITEMS = course.items.filter(it => it.active !== false);
 const PLAYER_HTML = path.join(HERE, '..', '..', 'wwwroot', 'player.html');
 
 // ---- Argumentos -------------------------------------------------------------
@@ -46,6 +53,7 @@ const PUBLISH = flag('publish');
 const DRY = flag('dry-run');
 const PREVIEW = flag('preview');
 const UPDATE = flag('update');
+const VOZ = flag('voz');
 
 // ---- Validación del contenido (corre siempre, antes de tocar nada) ---------
 validate();
@@ -64,7 +72,7 @@ if (DRY) {
   const out = opt('out', path.join(HERE, 'course.json'));
   const payload = {
     training: course.training,
-    items: course.items.map(it => ({ type: it.type, points: it.points ?? 0, payload: it.payload })),
+    items: course.items.map(it => ({ type: it.type, points: it.points ?? 0, ...(it.active === false ? { active: false } : {}), payload: it.payload })),
   };
   fs.writeFileSync(out, JSON.stringify(payload, null, 2), 'utf8');
   summary();
@@ -103,7 +111,7 @@ async function uploadItems(trainingId) {
       payloadJson: JSON.stringify(it.payload),
       points: it.points ?? 0,
       required: true,
-      active: true,
+      active: it.active !== false,
     });
     n++;
     const label = it.payload.title || it.payload.question || '';
@@ -120,6 +128,23 @@ async function playerConfig(trainingId) {
   const pc = course.training.playerConfig;
   if (!pc) return;
   await api(`/trainings/${trainingId}/player-config`, 'PUT', { allowBack: true, ...pc });
+}
+
+// ---- Voz (--voz): POST /trainings/{id}/narration en bucle hasta grabar todas ----
+// El servidor graba unas pocas láminas por llamada; si Azure pide esperar (nivel
+// gratis), responde `wait` en segundos.
+async function grabarVoz(trainingId) {
+  if (!VOZ) return;
+  const voice = course.training.voice || 'es-PR-KarinaNeural';
+  console.log(`Grabando la voz (${voice})...`);
+  for (let vuelta = 0; vuelta < 200; vuelta++) {
+    const r = await api(`/trainings/${trainingId}/narration`, 'POST', { voice, max: 8 });
+    process.stdout.write(`  ${r.done}/${r.total} láminas con voz   `);
+    if (r.error) throw new Error(r.error);
+    if (!r.pending) { console.log(''); return; }
+    if (r.wait) await new Promise(ok => setTimeout(ok, r.wait * 1000));
+  }
+  throw new Error('La grabación de la voz no terminó; corre de nuevo con --voz para seguir donde quedó.');
 }
 
 // ---- Modo --update: reemplaza el contenido del curso YA EXISTENTE ----------
@@ -156,6 +181,7 @@ async function updateExisting() {
   console.log('Subiendo el contenido actualizado:');
   const n = await uploadItems(existing.id);
   console.log(`${n} ítems nuevos creados (reemplazan a los anteriores).`);
+  await grabarVoz(existing.id);
 
   if (PUBLISH) {
     const v = await api(`/trainings/${existing.id}/publish`, 'POST');
@@ -195,6 +221,7 @@ async function createNew() {
 
   const n = await uploadItems(training.id);
   console.log(`${n} ítems creados en el borrador.`);
+  await grabarVoz(training.id);
 
   if (PUBLISH) {
     const v = await api(`/trainings/${training.id}/publish`, 'POST');
@@ -222,8 +249,8 @@ async function main() {
 
 // ---- Resumen del contenido --------------------------------------------------
 function summary() {
-  const count = t => course.items.filter(i => i.type === t).length;
-  const questions = course.items.filter(i => i.points > 0);
+  const count = t => ITEMS.filter(i => i.type === t).length;
+  const questions = ITEMS.filter(i => i.points > 0);
   const points = questions.reduce((s, i) => s + i.points, 0);
   const pres = course.training.playerConfig?.presentation?.enabled;
   const entry = introOf();
@@ -234,6 +261,8 @@ function summary() {
   console.log(`  Preguntas: ${questions.length} (${count('MultipleChoice')} selección única, ` +
               `${count('MultiSelect')} selección múltiple, ${count('Matching')} pareo) — ${points} puntos`);
   console.log(`  Aprobación: 70% → ${Math.ceil(points * 0.7)} puntos`);
+  const off = course.items.length - ITEMS.length;
+  if (off) console.log(`  Desactivados: ${off} ítems (banco de preguntas fuera del subconjunto; se suben apagados)`);
 }
 
 // ---- Validación -------------------------------------------------------------
@@ -289,30 +318,46 @@ function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 // Pantalla de entrada (ítem Info con layout 'intro', siempre el primero) o null.
 function introOf() {
-  const first = course.items[0];
+  const first = ITEMS[0];
   return first && first.type === 'Info' && first.payload.layout === 'intro' ? first.payload : null;
 }
 // Réplica de introStats/introScreenHtml de player.html: mismos datos que calcula el
-// reproductor (láminas = Info sin el intro, preguntas, suma de puntos, aprobación y
-// minutos). La aprobación del reproductor sale de la configuración si la trae, y hoy
-// ni /config ni /take la envían: aquí se omite igual, para que la vista previa muestre
-// lo mismo que verá el empleado. Si cambia una, cambiar la otra.
+// reproductor (módulos con sus láminas y preguntas, láminas = Info sin el intro,
+// preguntas, suma de puntos, aprobación y minutos). La aprobación la manda /config
+// (TrainingVersion.PassPercent, 70 % al crear el curso). Si cambia una, cambiar la otra.
 function introDescHtml(d) { return /<[a-z][\s\S]*>/i.test(d || '') ? d : `<p>${esc(d || '')}</p>`; }
+function esPregunta(it) { return ['MultipleChoice', 'MultiSelect', 'Matching', 'OpenResponse'].includes(it.type); }
 function introStats(p) {
+  const modules = []; let cur = null;
+  for (const it of ITEMS) {
+    if (it.type === 'ModuleHeader') {
+      cur = { title: String(it.payload.title || '').replace(/^\s*m[oó]dulo\s*\d+\s*[—–:.-]\s*/i, '').trim() || 'Módulo', slides: 0, questions: 0 };
+      modules.push(cur);
+    } else if (cur) {
+      if (esPregunta(it)) cur.questions++;
+      else if (it.type === 'Info' && it.payload.layout !== 'intro') cur.slides++;
+    }
+  }
   return {
-    slides: course.items.filter(it => it.type === 'Info' && it.payload.layout !== 'intro').length,
-    questions: course.items.filter(it => ['MultipleChoice', 'MultiSelect', 'Matching', 'OpenResponse'].includes(it.type)).length,
-    points: course.items.reduce((s, it) => s + (Number(it.points) || 0), 0),
-    pass: null,
+    slides: ITEMS.filter(it => it.type === 'Info' && it.payload.layout !== 'intro').length,
+    questions: ITEMS.filter(esPregunta).length,
+    points: ITEMS.reduce((s, it) => s + (Number(it.points) || 0), 0),
+    pass: 70,
     minutes: Number(p.minutes) || 0,
+    modules,
   };
 }
 function introScreenHtml(p, st) {
   const pl = (n, uno, varios) => n === 1 ? uno : varios;
-  const cells = [[st.slides, pl(st.slides, 'lámina de contenido', 'láminas de contenido')], [st.questions, pl(st.questions, 'pregunta', 'preguntas')], [st.points, 'puntos']];
+  const cells = [];
+  if (st.modules.length) cells.push([st.modules.length, pl(st.modules.length, 'módulo', 'módulos')]);
+  cells.push([st.slides, pl(st.slides, 'lámina de contenido', 'láminas de contenido')], [st.questions, pl(st.questions, 'pregunta', 'preguntas')], [st.points, 'puntos']);
   if (st.pass != null) cells.push([st.pass + ' %', 'para aprobar']);
   if (st.minutes) cells.push([st.minutes + ' min', 'tiempo estimado']);
-  return `<div class="ps-rule"></div><div class="ps-desc">${introDescHtml(p.description)}</div>` +
+  const det = m => [m.slides ? `${m.slides} ${pl(m.slides, 'lámina', 'láminas')}` : '', m.questions ? `${m.questions} ${pl(m.questions, 'pregunta', 'preguntas')}` : ''].filter(Boolean).join(' · ');
+  const mods = st.modules.length
+    ? `<ol class="ps-mods">${st.modules.map((m, i) => `<li><b>${i + 1}</b><span>${esc(m.title)}</span><small>${det(m)}</small></li>`).join('')}</ol>` : '';
+  return `<div class="ps-rule"></div><div class="ps-desc">${introDescHtml(p.description)}</div>` + mods +
          `<div class="ps-stats">${cells.map(([v, l]) => `<div class="ps-stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>`;
 }
 
@@ -336,6 +381,26 @@ function playerCss() {
   return '';
 }
 
+// Cuerpo de una lámina como lo arma infoBody() del reproductor: dos bloques «half» seguidos
+// van lado a lado (.row2). Una foto subida a la plataforma (/media/…) no se puede cargar
+// aquí: va un recuadro gris de su tamaño máximo en la lámina (360 px), para que el aviso de
+// desborde siga siendo fiable.
+function bodyHtml(blocks) {
+  const one = b => b.type === 'media'
+    ? ((b.mediaUrl || '').startsWith('/media/')
+        ? '<div style="height:360px;margin:10px 0;background:#cbd5e1;color:#475569;display:flex;align-items:center;justify-content:center;font:600 20px system-ui,sans-serif;text-align:center">Imagen subida a la plataforma<br>(se ve en el curso real)</div>'
+        : `<img src="${b.mediaUrl || ''}" alt="" />`)
+    : (b.html || '');
+  let h = '';
+  for (let i = 0; i < blocks.length;) {
+    if (blocks[i].span === 'half' && blocks[i + 1]?.span === 'half') {
+      h += `<div class="row2" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div style="flex:1 1 220px;min-width:220px">${one(blocks[i])}</div><div style="flex:1 1 220px;min-width:220px">${one(blocks[i + 1])}</div></div>`;
+      i += 2;
+    } else { h += one(blocks[i]); i++; }
+  }
+  return h;
+}
+
 // Réplica en Node de presInfoSlide/presPageHtml de player.html (misma estructura de
 // clases, para que la CSS copiada aplique igual). Si cambia una, cambiar la otra.
 function slideHtml(it, ctx) {
@@ -347,7 +412,7 @@ function slideHtml(it, ctx) {
     return wrap('sl-dark sl-mod', `<h1 class="sl-kicker">${esc(p.title)}</h1><div class="sl-rule"></div>`, `<p>${esc(p.subtitle || '')}</p>`);
   if (it.type === 'Info') {
     const layout = p.layout || 'dark';
-    const body = (p.blocks || []).map(b => b.html || '').join('');
+    const body = bodyHtml(p.blocks || []);
     const tt = p.title ? `<h2>${esc(p.title)}</h2>` : '';
     if (layout === 'cover')
       return wrap('sl-cover', `<img class="cover-photo" src="${p.photo || ''}" alt="" /><div class="cover-band"><h1>${esc(p.title || '')}</h1></div>`, body);
@@ -390,21 +455,21 @@ function buildSlidePreview(pres) {
   // chequeo de desborde (no es una .sl), igual que en el reproductor.
   const entry = introOf();
   const entryHtml = entry ? (() => {
-    const ph = entry.photo || course.items.find(it => it.type === 'Info' && it.payload.layout === 'cover' && it.payload.photo)?.payload.photo;
+    const ph = entry.photo || ITEMS.find(it => it.type === 'Info' && it.payload.layout === 'cover' && it.payload.photo)?.payload.photo;
     return `<section><span class="tag">Pantalla de entrada · no cuenta como lámina</span>
       <div class="frame entry"><div class="pres-start intro">${ph ? `<img class="ps-photo" src="${ph}" alt="" /><div class="ps-shade"></div>` : ''}
         <div class="ps-inner"><h1>${entry.title}</h1>${introScreenHtml(entry, introStats(entry))}
           <button class="pbtn" type="button">Comenzar</button>
           <div class="ps-hint">Pantalla completa · avanza con → o Enter</div></div></div></div></section>`;
   })() : '';
-  const slides = course.items.filter(it => it.payload !== entry).map((it, i) => {
+  const slides = ITEMS.filter(it => it.payload !== entry).map((it, i) => {
     const label = it.type === 'Info' ? `Lámina ${i + 1} · ${it.payload.layout || 'dark'}${it.payload.variant ? ' / ' + it.payload.variant : ''}`
                 : it.type === 'ModuleHeader' ? `Lámina ${i + 1} · módulo`
                 : `Lámina ${i + 1} · ${it.type} · ${it.points} pts`;
     return `<section><span class="tag">${label}</span>
       <div class="frame"><div class="pstage"><div class="player"><div class="slide">${slideHtml(it, ctx)}</div></div></div></div></section>`;
   }).join('\n');
-  const questions = course.items.filter(i => i.points > 0);
+  const questions = ITEMS.filter(i => i.points > 0);
   const points = questions.reduce((s, i) => s + i.points, 0);
 
   return `<!doctype html><html lang="es"><head><meta charset="utf-8">
@@ -461,7 +526,7 @@ function buildSlidePreview(pres) {
 
 function buildClassicPreview() {
   let n = 0;
-  const body = course.items.map(it => {
+  const body = ITEMS.map(it => {
     const p = it.payload;
     if (it.type === 'ModuleHeader')
       return `<section class="mod"><h2>${esc(p.title)}</h2>${p.subtitle ? `<p>${esc(p.subtitle)}</p>` : ''}</section>`;
@@ -517,8 +582,8 @@ function buildClassicPreview() {
 </header>
 <main>
   <div class="note"><strong>Vista previa para revisión.</strong> Muestra todo el contenido en orden y las respuestas
-  correctas marcadas en verde — no es la pantalla que ve el learner. ${course.items.filter(i => i.points > 0).length}
-  preguntas · ${course.items.filter(i => i.points > 0).reduce((s, i) => s + i.points, 0)} puntos · aprueba con 70%.</div>
+  correctas marcadas en verde — no es la pantalla que ve el learner. ${ITEMS.filter(i => i.points > 0).length}
+  preguntas · ${ITEMS.filter(i => i.points > 0).reduce((s, i) => s + i.points, 0)} puntos · aprueba con 70%.</div>
   ${body}
 </main></body></html>`;
 }

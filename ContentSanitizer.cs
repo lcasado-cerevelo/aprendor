@@ -258,6 +258,7 @@ public static class ContentSanitizer
                 cambio |= HtmlCampo(b, "html");
                 cambio |= UrlCampo(b, "mediaUrl", MedioSeguro);
             }
+        cambio |= Narracion.Sanear(p);   // voz de la lámina: solo { url /media/{guid}, voice, hash }
         return cambio ? p.ToJsonString(Json) : payloadJson;
     }
 

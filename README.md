@@ -123,11 +123,35 @@ El curso de Hostigamiento ya lo trae en `content/hostigamiento-sexual/course.mjs
 rechaza un `intro` en otra posición) no es una lámina: en modo presentación el player lo saca de las
 páginas y del contador «n / N» (la portada sigue siendo la 1) y lo usa para la pantalla previa al
 botón «Comenzar»: foto de portada atenuada, título, descripción y los datos que calcula él mismo
-(láminas de contenido, preguntas, puntos, aprobación si `/config` trae `passPercent` —hoy no lo
-envía—, tiempo estimado). Si falta `photo`, usa la de la primera lámina `cover`. Sólo en cursos
+(la lista de módulos con las láminas y preguntas de cada uno, láminas de contenido, preguntas,
+puntos, aprobación —`/config` trae `passPercent` de la versión—, tiempo estimado). Si falta
+`photo`, usa la de la primera lámina `cover`. Sólo en cursos
 con `intro`, al retomar un intento el botón dice «Continuar» e indica la lámina donde iba (sin
 `intro` la entrada y el arranque quedan como antes). En modo clásico el `intro` se ve como primera
 página con una caja de resumen; no se lista en el resumen final.
+
+**Tema claro (`theme.mode: "light"`).** Fondo blanco, texto oscuro y adornos del color de acento:
+el estilo de los cursos de Adiestramiento (los de Cumplimiento van en `dark`, el de siempre). En
+claro, las láminas oscuras pasan a blanco con una barra de acento, el panel diagonal se pinta con el
+acento y las listas `<ol>` salen como pasos en círculos. Composiciones nuevas para los dos temas:
+`band` (franja con el título), `cards` (cada viñeta es una tarjeta) y `callout` (idea destacada).
+
+### Voz de las láminas (Azure AI Speech)
+Cada lámina y pregunta se graba **una vez** con una voz neuronal de Puerto Rico
+(`es-PR-KarinaNeural` o `es-PR-VictorNeural`) y el MP3 se guarda como archivo del curso
+(`MediaAsset`). El ítem lo enlaza en su payload: `narration { url: "/media/{id}", voice, hash }`.
+`hash` es la huella de voz + texto: si el texto cambia, `PUT /items` quita la narración vieja y la
+siguiente grabación solo rehace esa lámina. En el reproductor aparece «▶ Escuchar»: una vez
+encendida, cada lámina nueva se lee sola hasta pulsar «Pausar» (nunca avanza sola).
+- Variables: `APRENDOR_Speech__Key` (clave del recurso Speech de Azure) y `APRENDOR_Speech__Region`
+  (p. ej. `eastus`). Sin ellas la función queda apagada y el botón no aparece.
+- Grabar: ficha del curso → Presentación → «Grabar voz», o al sembrar con `seed.mjs --voz` /
+  `Seed-Curso.ps1 -Voz`. `POST /trainings/{id}/narration { voice, max }` graba unas pocas por
+  llamada y responde `pending` (y `wait` si Azure pide esperar); `GET` da el estado. Se graba sobre
+  el borrador o, si no hay, sobre la versión publicada (no cambia su contenido).
+- Costo: Azure cobra por carácter; el nivel gratis (F0) trae 500 mil al mes. Los seis cursos de
+  `content/` suman unos 67 mil. `dotnet TrainingPlatform.dll voz-texto content/<curso>/course.json`
+  muestra lo que se leerá en cada lámina y el total, sin tocar la base ni Azure.
 
 ### Reglas de cumplimiento por compañía (`Tenant.ComplianceConfigJson`)
 JSON tolerante (`ComplianceConfig` en `Catalog.cs`), editable con `GET/PUT /company/compliance`

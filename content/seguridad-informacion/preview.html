@@ -1,0 +1,638 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seguridad de la Información para Empleados — vista previa</title>
+<style>
+  :root{color-scheme:light}
+  body{margin:0;background:#1a1a1a;color:#e5e5e5;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.5}
+  header{background:#000;color:#fff;padding:22px 20px;border-bottom:2px solid #059669}
+  header h1{margin:0 0 6px;font-size:20px}
+  header p{margin:0;opacity:.8;font-size:14px;max-width:900px}
+  main{max-width:1000px;margin:0 auto;padding:20px}
+  section{margin:22px 0}
+  .tag{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#9a9a9a;margin-bottom:6px}
+  .frame{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#ffffff;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+  .note{background:#fef9c3;color:#713f12;border-radius:10px;padding:12px 16px;font-size:14px}
+  /* Estilos del reproductor (copiados de wwwroot/player.html) */
+  
+  :root{--pbg:#0d0d0d;--pacc:#f97316;}
+  body.pres{overflow:hidden;background:var(--pbg);}
+  body.pres>header,body.pres>.progress,body.pres>main,body.pres>.nav{display:none !important;}
+  #presRoot{display:none;}
+  body.pres #presRoot{display:block;position:fixed;inset:0;background:var(--pbg);}
+  /* El escenario se coloca en píxeles enteros (--px/--py, ver presFit): con left:50% y
+     translate(-50%) una ventana de ancho impar dejaba la lámina en medio píxel y el texto
+     se veía borroso. */
+  .pstage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;transform:translate(var(--px,0px),var(--py,0px)) scale(var(--pk,1));overflow:hidden;background:var(--pbg);}
+  .player{position:absolute;inset:0;}
+  /* Transiciones cortas (~320 ms). Al terminar se quitan las clases: la lámina queda sin
+     transform y la saliente se retira siempre (transitionend con respaldo por tiempo).
+     isolation:isolate: cada lámina encierra sus z-index (el título del panel en split lleva
+     z-index:2). Sin esto la saliente, que ya no tiene transform, no crea contexto de
+     apilamiento y su título se pintaba ENCIMA de la entrante durante la transición (la
+     sombra o el título doble). Así el orden lo decide el DOM: la que va después, encima. */
+  .slide{position:absolute;inset:0;isolation:isolate;transition:transform .32s cubic-bezier(.2,.7,.2,1),opacity .28s ease;}
+  .slide.from-right{transform:translateX(100%);box-shadow:-16px 0 32px rgba(0,0,0,.35);}
+  .slide.from-right.in{transform:translateX(0);}
+  .slide.to-right{transform:translateX(100%);box-shadow:-16px 0 32px rgba(0,0,0,.35);}
+  .slide.fade-in{opacity:0;} .slide.fade-in.in{opacity:1;}
+  .slide.fade-out{opacity:0;}
+  /* Misma lámina de fondo (mismo layout, variante y título del panel o del encabezado): el
+     marco queda fijo y solo entra el contenido, sin arrastrar una copia del título. */
+  .slide.keep .sl-body{animation:slBodyIn .3s cubic-bezier(.2,.7,.2,1) both;}
+  @keyframes slBodyIn{from{opacity:0;transform:translateX(calc(var(--dx,1) * 28px));}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){ .slide{transition:none !important;} .slide.keep .sl-body{animation:none !important;} }
+
+  /* --- lámina: base --- */
+  .sl{position:absolute;inset:0;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:#fff;background:var(--pbg);line-height:1.25;}
+  .sl *{box-sizing:border-box;}
+  .sl-body{position:absolute;overflow:hidden;}
+  .sl-fit{transform-origin:top left;}
+  .sl-body p{margin:0 0 14px;}
+  .sl-body ul{margin:0 0 10px;padding-left:32px;} .sl-body li{margin:0 0 10px;}
+  .sl-body ul ul{margin:8px 0 0;list-style:disc;} .sl-body li li{margin:0 0 6px;font-size:.92em;}
+  .sl-body h2{font-size:30px;font-weight:700;margin:0 0 16px;line-height:1.15;}
+  .sl-body h3{font-size:28px;font-weight:700;text-transform:uppercase;margin:0 0 12px;line-height:1.2;}
+  .sl-body a{color:var(--pacc);}
+  .sl-body img,.sl-body video{max-width:100%;max-height:360px;border-radius:0;margin:10px 0;}
+  .sl-body .row2{margin:0;}
+  .sl-over{position:absolute;top:14px;right:14px;z-index:5;background:#dc2626;color:#fff;font:700 14px/1 system-ui,sans-serif;padding:8px 12px;border-radius:8px;}
+  .sl-kicker{margin:0;}
+
+  /* --- cover: foto a sangre + banda de título --- */
+  .sl-cover .cover-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .sl-cover .cover-band{position:absolute;left:0;right:0;top:548px;height:96px;background:rgba(255,255,255,.86);border-top:2px solid #2a2a2a;border-bottom:2px solid #2a2a2a;box-shadow:0 -5px 0 rgba(255,255,255,.75),0 5px 0 rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;text-align:center;padding:0 60px;}
+  .sl-cover .cover-band h1{margin:0;font-size:44px;font-weight:700;color:#111;line-height:1.1;}
+  .sl-cover .sl-body{left:90px;right:90px;top:660px;bottom:0;font-size:18px;}
+
+  /* --- dark: kicker en mayúsculas arriba, línea de acento, cuerpo --- */
+  .sl-dark .sl-kicker{position:absolute;left:100px;right:90px;top:44px;font-size:52px;font-weight:700;text-transform:uppercase;line-height:1.08;}
+  .sl-dark .sl-rule{position:absolute;left:88px;right:88px;top:190px;border-top:2px solid var(--pacc);}
+  .sl-dark .sl-body{left:96px;right:88px;top:216px;bottom:36px;font-size:24px;}
+  .sl-dark .sl-body h3{border-bottom:2px solid rgba(255,255,255,.45);padding-bottom:4px;margin-bottom:14px;}
+  .sl-dark.sl-mod .sl-kicker{top:250px;font-size:56px;} .sl-dark.sl-mod .sl-rule{top:400px;} .sl-dark.sl-mod .sl-body{top:420px;font-size:26px;color:#cfcfcf;}
+
+  /* --- pregunta: dark con marco de acento y opciones clicables --- */
+  .sl-q .sl-frame{position:absolute;inset:12px;border:2px solid var(--pacc);pointer-events:none;}
+  .sl-q .sl-kicker{position:absolute;left:100px;top:118px;font-size:64px;font-weight:400;text-transform:uppercase;line-height:1;}
+  .sl-q .sl-rule{position:absolute;left:14px;width:550px;top:212px;border-top:2px solid var(--pacc);}
+  .sl-q .sl-body{left:160px;right:90px;top:250px;bottom:36px;font-size:30px;}
+  .sl-q .qwrap{counter-reset:opt;}
+  .sl-q .qwrap+.qwrap{border-top:1px solid #333;margin-top:18px;padding-top:18px;}
+  .sl-q .qwrap>b{display:block;font-size:30px;font-weight:700;margin-bottom:26px;}
+  .sl-q .opt{counter-increment:opt;position:relative;display:flex;align-items:center;background:none;border:0;border-radius:8px;padding:6px 12px;margin:2px 0;font-size:30px;line-height:1.25;color:#fff;cursor:pointer;gap:0;}
+  .sl-q .opt::before{content:counter(opt,lower-alpha) ".";flex:none;width:46px;}
+  .sl-q .opt:hover{background:rgba(255,255,255,.08);}
+  .sl-q .opt:has(input:checked){background:color-mix(in srgb,var(--pacc) 18%,transparent);outline:2px solid var(--pacc);}
+  .sl-q .opt.correct{background:rgba(22,163,74,.25);} .sl-q .opt.wrong{background:rgba(220,38,38,.25);}
+  .sl-q .opt input{position:absolute;opacity:0;width:0;height:0;margin:0;}
+  .sl-q .opt .mk{margin-left:auto;color:#cfcfcf;font-size:16px;}
+  .sl-q .qwrap>.mk{color:#bbb;font-size:18px;}
+  .sl-q .matchrow{display:flex;gap:12px;align-items:center;margin:8px 0;} .sl-q .matchrow .mp{flex:1;font-size:24px;font-weight:600;}
+  .sl-q .matchrow select,.sl-q .opentext{background:#1c1c1c;color:#fff;border:1px solid #4a4a4a;font-size:22px;}
+  .sl-q .opentext{min-height:170px;} .sl-q .opentext-ro{background:#1c1c1c;border-color:#4a4a4a;font-size:22px;}
+  .sl-q .hintbox{font-size:18px;}
+
+  /* --- split: panel diagonal oscuro + contenido sobre blanco --- */
+  .sl-split{background:#fff;color:#111;}
+  .sl-split .panel{position:absolute;left:0;top:0;width:494px;height:720px;background:#1f1f1f;overflow:hidden;}
+  .sl-split .panel::before{content:"";position:absolute;inset:0;background:#2e2e2e;clip-path:polygon(18% 0,100% 0,100% 100%,69% 100%);}
+  /* centrado vertical con flex (no translateY(-50%), que deja medio píxel y texto borroso) */
+  .sl-split .ptitle{position:absolute;left:98px;width:340px;top:0;bottom:0;display:flex;align-items:center;margin:0;font-size:34px;font-weight:700;text-transform:uppercase;color:#fff;line-height:1.15;z-index:2;}
+  .sl-split .sl-body{left:575px;right:80px;top:50px;bottom:36px;font-size:24px;display:flex;flex-direction:column;}
+  .sl-split .sl-fit{margin:auto 0;}   /* centrado vertical seguro: si desborda, queda arriba */
+  .sl-split .sl-body p{margin-bottom:10px;} .sl-split .sl-body li{margin-bottom:8px;}
+  .sl-split .sl-body h2{font-size:30px;margin-bottom:14px;}
+  .sl-split .sl-body h3{font-size:26px;text-transform:none;margin:4px 0 8px;}
+  /* variante right: panel blanco a la izquierda con el título en negro, contenido sobre oscuro */
+  .sl-split.right .panel{left:auto;right:0;width:960px;background:transparent;}
+  .sl-split.right .panel::before{background:#6a6a6a;clip-path:polygon(31% 0,100% 0,100% 100%,0 100%);}
+  .sl-split.right .panel::after{content:"";position:absolute;inset:0;background:#262626;clip-path:polygon(34.5% 0,100% 0,100% 100%,3.6% 100%);}
+  .sl-split.right .ptitle{color:#111;width:380px;left:100px;}
+  .sl-split.right .sl-body{left:655px;right:50px;top:36px;bottom:24px;color:#fff;font-size:23px;}
+  .sl-split.right .sl-body li{margin-bottom:6px;}
+  /* variante lines: fondo oscuro, título del panel entre dos líneas de acento */
+  .sl-split.lines{background:var(--pbg);color:#fff;}
+  .sl-split.lines .panel{width:520px;background:transparent;}
+  .sl-split.lines .panel::before{background:transparent;clip-path:none;left:105px;right:0;top:150px;bottom:150px;border-top:2px solid var(--pacc);border-bottom:2px solid var(--pacc);}
+  .sl-split.lines .ptitle{left:118px;width:400px;font-size:40px;}
+  .sl-split.lines .sl-body{left:655px;right:80px;font-size:30px;}
+  .sl-split.lines .sl-body h2{font-size:38px;}
+  /* theme.panel=false: sin panel diagonal, contenido a lo ancho con el título del panel pequeño arriba */
+  .sl-split.no-panel .panel,.sl-split.no-panel .ptitle{display:none;}
+  .sl-split.no-panel .sl-body{left:90px;right:90px;top:70px;}
+  .sl-split.no-panel .sl-kicker{position:absolute;left:90px;top:28px;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;}
+
+  /* --- photo-left: foto a la izquierda, contenido a la derecha sobre blanco --- */
+  .sl-photo{background:#fff;color:#111;}
+  .sl-photo .photo{position:absolute;left:0;top:0;width:486px;height:720px;object-fit:cover;object-position:var(--ppos,50% 50%);}
+  .sl-photo .sl-kicker{position:absolute;left:535px;right:85px;top:100px;font-size:34px;font-weight:700;text-transform:uppercase;line-height:1.15;}
+  .sl-photo .sl-rule{position:absolute;left:535px;right:85px;top:218px;border-top:3px solid var(--pacc);}
+  .sl-photo .sl-body{left:535px;right:85px;top:255px;bottom:40px;font-size:24px;}
+  .sl-photo .sl-body h2{font-size:30px;}
+
+  /* --- resumen y resultado como láminas --- */
+  .sl-sum .sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 40px;}
+  .sl-sum .sumrow{display:flex;gap:10px;border-bottom:1px solid #333;font-size:19px;padding:8px 2px;} .sl-sum .sumrow .st{margin-left:auto;}
+  .sl .res{font-size:30px;font-weight:700;text-align:center;padding:12px;margin-top:14px;border-radius:12px;}
+  .sl .res.pass{background:transparent;color:#4ade80;} .sl .res.fail{background:transparent;color:#f87171;}
+  .sl .actions{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:24px;}
+  .sl-sum .actions{margin-top:14px;}   /* el resumen va justo de alto: que el aviso y los botones quepan */
+  .sl .tiempo{color:#bbb !important;font-size:18px !important;text-align:center;}
+  .sl .center{margin:20px 0 0;padding:0;color:#bbb;}
+  /* Lámina de resultado: todo centrado, con márgenes iguales a los dos lados. */
+  .sl-final .sl-kicker{left:90px;right:90px;text-align:center;}
+  .sl-final .sl-rule{left:90px;right:90px;}
+  .sl-final .sl-body{left:90px;right:90px;display:flex;flex-direction:column;}
+  .sl-final .sl-fit{margin:auto 0;text-align:center;}
+  .sl .hintbox{background:rgba(254,249,195,.12);border-color:#a16207;color:#fde68a;font-size:16px;}
+  .sl .btn,.pbtn{padding:13px 30px;border:0;border-radius:10px;background:var(--pacc);color:#fff;font:700 17px system-ui,sans-serif;cursor:pointer;text-decoration:none;display:inline-block;}
+  .sl .btn.ghost,.pbtn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);}
+  .sl .btn:disabled,.pbtn:disabled{opacity:.45;cursor:not-allowed;}
+
+  /* --- cromo del reproductor: contador, flechas, pantalla de inicio, aviso --- */
+  /* Contador «n / N»: va sobre una pastilla oscura translúcida para que se lea igual
+     sobre las láminas oscuras que sobre las de fondo blanco (split, photo-left). */
+  .pres-counter{position:fixed;right:16px;bottom:12px;color:#fff;background:rgba(15,15,15,.55);padding:3px 10px;border-radius:999px;font:600 13px system-ui,sans-serif;letter-spacing:.04em;pointer-events:none;z-index:20;}
+  .pres-counter:empty{display:none;}
+  .pres-arrow{position:fixed;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.5);color:#fff;font-size:22px;line-height:1;cursor:pointer;z-index:20;transition:opacity .4s;display:flex;align-items:center;justify-content:center;padding:0;}
+  .pres-arrow.l{left:14px;} .pres-arrow.r{right:14px;}
+  .pres-arrow:hover{background:rgba(0,0,0,.75);}
+  #presRoot.idle .pres-arrow{opacity:0;}
+  .pres-start{position:fixed;inset:0;z-index:30;background:var(--pbg);color:#fff;display:flex;flex-direction:column;overflow-y:auto;text-align:center;padding:20px;font-family:Arial,Helvetica,sans-serif;container-type:inline-size;}
+  .pres-start .ps-inner{position:relative;z-index:1;margin:auto;display:flex;flex-direction:column;align-items:center;width:100%;max-width:980px;}   /* margin:auto centra sin recortar arriba si no cabe */
+  .pres-start h1{font-size:34px;margin:0 0 12px;text-transform:uppercase;max-width:800px;}
+  .pres-start p{color:#a3a3a3;margin:0 0 28px;font-size:15px;max-width:520px;line-height:1.5;}
+  .pres-start .ps-resume{margin-top:14px;color:#e5e5e5;font-size:15px;}
+  /* pantalla de entrada del curso (ítem Info con layout 'intro'): foto atenuada, título,
+     descripción y fila de datos. Tamaños en cqw: se ajustan al ancho de la pantalla de
+     entrada (y al del marco en la vista previa de seed.mjs). */
+  .pres-start .ps-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.3;pointer-events:none;}
+  .pres-start .ps-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,color-mix(in srgb,var(--pbg) 78%,transparent) 55%,var(--pbg) 100%);pointer-events:none;}
+  .pres-start.intro h1{font-size:44px;font-size:clamp(28px,5cqw,62px);line-height:1.08;text-transform:none;max-width:none;margin:0 0 18px;}
+  .pres-start .ps-rule{width:120px;border-top:3px solid var(--pacc);margin:0 auto 22px;}
+  .pres-start .ps-desc{color:#e5e5e5;font-size:18px;font-size:clamp(15px,1.7cqw,21px);line-height:1.55;max-width:760px;margin:0 0 24px;}
+  .pres-start .ps-desc p{color:inherit;font-size:inherit;line-height:inherit;max-width:none;margin:0 0 10px;}
+  .pres-start .ps-desc b{color:#fff;}
+  .pres-start .ps-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 34px;padding:14px 10px;margin:0 0 28px;border-top:1px solid rgba(255,255,255,.2);border-bottom:1px solid rgba(255,255,255,.2);}
+  .pres-start .ps-stat b{display:block;font-size:30px;font-size:clamp(22px,2.7cqw,34px);font-weight:700;color:var(--pacc);line-height:1.1;}
+  .pres-start .ps-stat span{display:block;margin-top:4px;font:600 12px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#bdbdbd;}
+  .pres-start.intro .pbtn{font-size:19px;padding:15px 46px;}
+  .pres-start .ps-hint{margin-top:12px;font:13px system-ui,sans-serif;color:#9a9a9a;letter-spacing:.02em;}
+  .pres-toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:10px;font:600 14px system-ui,sans-serif;z-index:25;opacity:0;transition:opacity .25s;pointer-events:none;max-width:min(90vw,640px);text-align:center;}
+  .pres-toast.show{opacity:1;}
+
+  /* lista de módulos en la pantalla de entrada: número, título y qué trae cada uno */
+  .pres-start .ps-mods{list-style:none;margin:0 0 22px;padding:0;width:100%;max-width:900px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:0 28px;text-align:left;font-size:15px;font-size:clamp(13px,1.35cqw,16px);}
+  .pres-start .ps-mods li{display:flex;align-items:baseline;gap:10px;padding:7px 2px;border-bottom:1px solid rgba(255,255,255,.14);}
+  .pres-start .ps-mods b{flex:none;width:1.6em;color:var(--pacc);font-weight:700;}
+  .pres-start .ps-mods span{flex:1;color:#f1f1f1;}
+  .pres-start .ps-mods small{flex:none;color:#a8a8a8;font-size:.85em;white-space:nowrap;}
+  .plight .pres-start .ps-mods li{border-bottom-color:rgba(0,0,0,.1);}
+  .plight .pres-start .ps-mods b{color:var(--pacc-d);}
+  .plight .pres-start .ps-mods span{color:#1f2937;}
+  .plight .pres-start .ps-mods small{color:#6b7280;}
+
+  /* botón «Escuchar»: solo en las láminas que tienen voz grabada (payload.narration) */
+  .pres-voice{position:fixed;left:16px;bottom:12px;z-index:20;display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:rgba(15,15,15,.62);color:#fff;font:600 14px system-ui,sans-serif;cursor:pointer;}
+  .pres-voice:hover{background:rgba(15,15,15,.8);}
+  .pres-voice:focus-visible{outline:2px solid var(--pacc);outline-offset:2px;}
+  .pres-voice.on{background:var(--pacc-d,var(--pacc));border-color:transparent;}
+  .pres-voice .ic{font-size:12px;line-height:1;}
+
+  /* --- colores derivados del acento: --pacc-d (fuerte, para fondos con texto blanco) y
+     --pacc-t (tinte suave, para cajas y tarjetas). En tema claro, el fuerte se oscurece
+     para que el texto blanco encima y el texto de acento sobre blanco se lean. --- */
+  :root{--pacc-d:var(--pacc);--pacc-t:color-mix(in srgb,var(--pacc) 16%,var(--pbg));}
+
+  /* --- band: franja de acento arriba con rótulo y título, contenido debajo --- */
+  .sl-band .band{position:absolute;left:0;right:0;top:0;height:196px;background:var(--pacc-d);}
+  .sl-band .band::after{content:"";position:absolute;left:0;bottom:-12px;width:300px;height:12px;background:var(--pacc);}
+  .sl-band .sl-kicker{position:absolute;left:90px;right:90px;top:40px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.82);}
+  .sl-band .sl-title{position:absolute;left:90px;right:90px;top:72px;height:100px;display:flex;align-items:center;margin:0;font-size:42px;font-weight:700;line-height:1.1;color:#fff;}
+  .sl-band .sl-body{left:90px;right:90px;top:240px;bottom:36px;font-size:24px;}
+
+  /* --- cards: título arriba con barra corta de acento; cada viñeta de la lista es una tarjeta --- */
+  .sl-cards .sl-kicker{position:absolute;left:90px;right:90px;top:40px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--pacc);}
+  .sl-cards .sl-title{position:absolute;left:90px;right:90px;top:70px;margin:0;font-size:40px;font-weight:700;line-height:1.1;}
+  .sl-cards .sl-rule{position:absolute;left:90px;width:120px;top:150px;border-top:6px solid var(--pacc);}
+  .sl-cards .sl-body{left:90px;right:90px;top:184px;bottom:36px;font-size:22px;}
+  .sl-cards .sl-body ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;list-style:none;padding:0;margin:6px 0 14px;}
+  .sl-cards .sl-body ul>li{margin:0;padding:18px 22px;background:var(--pacc-t);border-top:5px solid var(--pacc);border-radius:12px;line-height:1.3;}
+  .sl-cards .sl-body li ul{display:block;list-style:disc;padding-left:26px;margin:8px 0 0;}
+  .sl-cards .sl-body li li{padding:0;background:none;border:0;border-radius:0;margin:0 0 4px;}
+
+  /* --- callout: una idea destacada en caja de acento, centrada en la lámina --- */
+  .sl-callout .sl-kicker{position:absolute;left:140px;right:140px;top:54px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--pacc);}
+  .sl-callout .sl-body{left:140px;right:140px;top:100px;bottom:70px;display:flex;flex-direction:column;}
+  .sl-callout .sl-fit{margin:auto 0;background:var(--pacc-t);border-left:14px solid var(--pacc);border-radius:0 18px 18px 0;padding:40px 52px;font-size:32px;line-height:1.3;}
+  .sl-callout .sl-body h2{font-size:38px;color:var(--pacc);margin-bottom:18px;}
+  .sl-callout .sl-body p:last-child,.sl-callout .sl-body ul:last-child{margin-bottom:0;}
+
+  /* --- tema claro (theme.mode 'light'): fondo blanco, texto oscuro, adornos de acento.
+     Clase .plight en <body>. Las láminas oscuras (dark, pregunta, resumen) pasan a
+     blanco; el panel diagonal se pinta con el acento. Pasos numerados en círculos. --- */
+  .plight{--pacc-d:color-mix(in srgb,var(--pacc) 72%,#000);--pacc-t:color-mix(in srgb,var(--pacc) 11%,#fff);}
+  .plight .sl{color:#1f2937;}
+  .plight .sl-body li::marker{color:var(--pacc);}
+  .plight .sl-body a{color:var(--pacc-d);}
+  .plight .sl-body ol{list-style:none;counter-reset:st;padding-left:0;margin:0 0 10px;}
+  .plight .sl-body ol>li{counter-increment:st;position:relative;padding-left:62px;min-height:44px;margin-bottom:14px;}
+  .plight .sl-body ol>li::before{content:counter(st);position:absolute;left:0;top:-5px;width:44px;height:44px;border-radius:50%;background:var(--pacc-d);color:#fff;font-weight:700;font-size:22px;display:flex;align-items:center;justify-content:center;}
+  .plight .sl-cover .cover-band{border-color:var(--pacc);box-shadow:0 -5px 0 rgba(255,255,255,.75),0 5px 0 rgba(255,255,255,.75);}
+  .plight .sl-dark::before{content:"";position:absolute;left:0;top:44px;width:16px;height:128px;background:var(--pacc);}
+  .plight .sl-dark .sl-kicker{color:#111;}
+  .plight .sl-dark .sl-body h3{border-bottom-color:#d1d5db;}
+  .plight .sl-dark.sl-mod .sl-body{color:#4b5563;}
+  .plight .sl-cards .sl-kicker,.plight .sl-callout .sl-kicker,.plight .sl-callout .sl-body h2{color:var(--pacc-d);}
+  .plight .sl-cards .sl-title{color:#111;}
+  .plight .sl-q .sl-kicker{color:#111;}
+  .plight .sl-q::before,.plight .sl-final::before{display:none;}
+  .plight .sl-dark.sl-mod::before{top:250px;height:140px;}
+  .plight .sl-q .qwrap+.qwrap{border-top-color:#e5e7eb;}
+  .plight .sl-q .opt{color:#1f2937;}
+  .plight .sl-q .opt:hover{background:rgba(0,0,0,.05);}
+  .plight .sl-q .opt:has(input:checked){background:var(--pacc-t);outline-color:var(--pacc-d);}
+  .plight .sl-q .opt.correct{background:#dcfce7;} .plight .sl-q .opt.wrong{background:#fee2e2;}
+  .plight .sl-q .opt .mk,.plight .sl-q .qwrap>.mk{color:#6b7280;}
+  .plight .sl-q .matchrow select,.plight .sl-q .opentext,.plight .sl-q .opentext-ro{background:#fff;color:#111;border-color:#cbd5e1;}
+  .plight .sl-split .panel{background:var(--pacc-d);}
+  .plight .sl-split .panel::before{background:var(--pacc);}
+  .plight .sl-split.right .panel{background:transparent;}
+  .plight .sl-split.right .panel::before{background:var(--pacc);}
+  .plight .sl-split.right .panel::after{background:var(--pacc-d);}
+  .plight .sl-split.lines{color:#1f2937;}
+  .plight .sl-split.lines .ptitle{color:#111;}
+  .plight .sl-split.no-panel .sl-kicker{color:var(--pacc-d);}
+  .plight .sl-photo .sl-kicker{color:#111;}
+  .plight .sl-sum .sumrow{border-bottom-color:#e5e7eb;}
+  .plight .sl .res.pass{color:#15803d;} .plight .sl .res.fail{color:#b91c1c;}
+  .plight .sl .tiempo{color:#6b7280 !important;} .plight .sl .center{color:#6b7280;}
+  .plight .sl .hintbox{background:#fef9c3;border-color:#fde68a;color:#854d0e;}
+  .plight .sl .btn,.plight .pbtn{background:var(--pacc-d);}
+  .plight .sl .btn.ghost,.plight .pbtn.ghost{background:transparent;color:#1f2937;border-color:rgba(0,0,0,.25);}
+  .plight .pres-start{color:#111;}
+  .plight .pres-start p{color:#4b5563;}
+  .plight .pres-start .ps-resume,.plight .pres-start .ps-desc{color:#374151;}
+  .plight .pres-start .ps-desc b{color:#111;}
+  .plight .pres-start .ps-photo{opacity:.22;}
+  .plight .pres-start .ps-shade{background:linear-gradient(180deg,rgba(255,255,255,.2) 0%,color-mix(in srgb,var(--pbg) 80%,transparent) 55%,var(--pbg) 100%);}
+  .plight .pres-start .ps-stats{border-color:rgba(0,0,0,.12);}
+  .plight .pres-start .ps-stat b{color:var(--pacc-d);}
+  .plight .pres-start .ps-stat span,.plight .pres-start .ps-hint{color:#6b7280;}
+  
+  /* La vista previa escala cada escenario al ancho de su marco, no a la ventana */
+  .frame .pstage{left:0;top:0;transform:scale(var(--pk,1));transform-origin:top left}
+  /* La pantalla de entrada ocupa el marco (en el reproductor cubre la ventana) */
+  .frame.entry .pres-start{position:absolute;overflow:hidden}
+</style></head><body class="plight">
+<header>
+  <h1>Seguridad de la Información para Empleados</h1>
+  <p>Prácticas esenciales de seguridad de la información: cómo reconocer el phishing y el malware, proteger contraseñas y datos de la empresa y de los clientes, trabajar de forma segura fuera de la oficina y reportar un incidente a tiempo.</p>
+</header>
+<main>
+  <div class="note"><strong>Vista previa para revisión (modo presentación).</strong> Cada lámina se ve como en el
+  reproductor, con la respuesta correcta marcada en verde. Si el cuerpo de una lámina no cabe, aparece el aviso
+  <b>«Excede la lámina»</b> — hay que recortar el texto o repartirlo. 32 preguntas · 32 puntos · aprueba con 70%.</div>
+  <section><span class="tag">Pantalla de entrada · no cuenta como lámina</span>
+      <div class="frame entry"><div class="pres-start intro"><img class="ps-photo" src="/media/2f9fc393-23f7-464e-ba98-711be70b356d" alt="" /><div class="ps-shade"></div>
+        <div class="ps-inner"><h1>Seguridad de la Información para Empleados</h1><div class="ps-rule"></div><div class="ps-desc"><p>«El mayor riesgo para una organización no siempre está en la tecnología. Muchas veces comienza con una decisión humana: abrir un archivo, compartir una contraseña o ignorar una alerta.»</p><p>En este adiestramiento aprenderás a reconocer las amenazas más comunes, a proteger tus contraseñas y la información de la empresa y de los clientes, y a <b>reportar a tiempo</b> cuando algo no se ve bien.</p></div><ol class="ps-mods"><li><b>1</b><span>Introducción a la Seguridad de la Información</span><small>6 láminas · 4 preguntas</small></li><li><b>2</b><span>Uso Aceptable de los Sistemas</span><small>7 láminas · 4 preguntas</small></li><li><b>3</b><span>Contraseñas y Autenticación</span><small>6 láminas · 4 preguntas</small></li><li><b>4</b><span>Phishing e Ingeniería Social</span><small>6 láminas · 4 preguntas</small></li><li><b>5</b><span>Malware y Amenazas Comunes</span><small>4 láminas · 4 preguntas</small></li><li><b>6</b><span>Trabajo Remoto y Dispositivos Personales</span><small>5 láminas · 4 preguntas</small></li><li><b>7</b><span>Manejo de Información Sensible</span><small>6 láminas · 4 preguntas</small></li><li><b>8</b><span>Reporte y Respuesta a Incidentes</span><small>9 láminas · 4 preguntas</small></li></ol><div class="ps-stats"><div class="ps-stat"><b>8</b><span>módulos</span></div><div class="ps-stat"><b>51</b><span>láminas de contenido</span></div><div class="ps-stat"><b>32</b><span>preguntas</span></div><div class="ps-stat"><b>32</b><span>puntos</span></div><div class="ps-stat"><b>70 %</b><span>para aprobar</span></div><div class="ps-stat"><b>30 min</b><span>tiempo estimado</span></div></div>
+          <button class="pbtn" type="button">Comenzar</button>
+          <div class="ps-hint">Pantalla completa · avanza con → o Enter</div></div></div></div></section>
+  <section><span class="tag">Lámina 1 · cover</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cover"><img class="cover-photo" src="/media/2f9fc393-23f7-464e-ba98-711be70b356d" alt="" /><div class="cover-band"><h1>Seguridad de la Información para Empleados</h1></div><div class="sl-body"><div class="sl-fit"></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 2 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Al terminar este curso podrás</div><h1 class="sl-title">Objetivos de aprendizaje</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Identificar los principios básicos</b> de la seguridad de la información y por qué importan en el trabajo.</li>
+         <li><b>Reconocer amenazas comunes</b> como phishing, malware, ingeniería social y fugas de datos.</li>
+         <li><b>Aplicar buenas prácticas</b> para proteger la información digital y física.</li>
+         <li><b>Detectar correos sospechosos</b> y responder de forma adecuada.</li>
+         <li><b>Proteger tus credenciales</b> con contraseñas seguras y verificación en dos pasos.</li>
+         <li><b>Actuar correctamente ante un incidente</b> siguiendo los pasos de la empresa.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 3 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 1 — Introducción a la Seguridad de la Información</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>No se trata solo de proteger computadoras o redes: se trata de que los datos, el activo más valioso de la empresa, se mantengan seguros, correctos y disponibles.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 4 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>¿Qué es la seguridad de la información?</h3><div class="row2" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div style="flex:1 1 220px;min-width:220px"><p>Se basa en tres principios, conocidos como el <a href="https://www.youtube.com/watch?v=fkrsaWn5tjo" target="_blank" rel="noopener">triángulo CIA</a>:</p>
+       <ul><li><b>Confidencialidad:</b> solo la ven quienes están autorizados.</li><li><b>Integridad:</b> los datos se mantienen correctos, sin cambios no autorizados.</li><li><b>Disponibilidad:</b> la información está ahí cuando se necesita.</li></ul>
+       <p>Si uno falla, la seguridad se compromete: un ransomware afecta la disponibilidad y una filtración, la confidencialidad.</p></div><div style="flex:1 1 220px;min-width:220px"><div style="height:360px;margin:10px 0;background:#cbd5e1;color:#475569;display:flex;align-items:center;justify-content:center;font:600 20px system-ui,sans-serif;text-align:center">Imagen subida a la plataforma<br>(se ve en el curso real)</div></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 5 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Clasificación de la información</h3><div class="row2" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div style="flex:1 1 220px;min-width:220px"><p>Clasificar la información según qué tan sensible es permite protegerla como corresponde:</p>
+       <ul><li><b>Público:</b> se puede compartir sin riesgo. Manuales publicados, el sitio web.</li><li><b>Interno:</b> solo para empleados. Políticas internas, organigramas.</li><li><b>Confidencial:</b> causa daño si se divulga. Datos personales, información financiera.</li><li><b>Altamente confidencial:</b> limitada a ciertos puestos. Contraseñas, planes estratégicos.</li></ul></div><div style="flex:1 1 220px;min-width:220px"><div style="height:360px;margin:10px 0;background:#cbd5e1;color:#475569;display:flex;align-items:center;justify-content:center;font:600 20px system-ui,sans-serif;text-align:center">Imagen subida a la plataforma<br>(se ve en el curso real)</div></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 6 · split</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-split"><div class="panel"></div><h1 class="ptitle">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-body"><div class="sl-fit"><h2>¿Qué es información confidencial?</h2><p>Es cualquier dato que, si se divulga sin autorización, puede causar daño económico, legal o a la reputación de la empresa.</p>
+       <p>Un error común es pensar «yo no manejo información importante». Cualquier empleado puede ser la puerta de entrada de un
+       atacante, aunque solo maneje datos de la operación: una dirección de entrega, una factura, una contraseña.</p>
+       <p>Video: <a href="https://www.youtube.com/watch?v=g6tO3ObVvEc" target="_blank" rel="noopener">El factor humano en la seguridad informática</a></p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 7 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</div><h1 class="sl-title">¿Por qué ocurren los ataques?</h1><div class="sl-body"><div class="sl-fit"><p>Los atacantes buscan un beneficio. Lo más común:</p>
+       <ul><li>Dinero, por ejemplo extorsionando con ransomware.</li><li>Información valiosa para venderla.</li><li>Espionaje entre empresas de la competencia.</li><li>Sabotaje, para afectar la operación o la reputación.</li></ul>
+       <p><b>Alrededor de 2 de cada 3 incidentes involucran un error o una decisión humana</b> (68 % según el informe
+       Verizon DBIR 2024). El ejemplo más común es el <a href="https://www.youtube.com/watch?v=s6xbg6jbTKo" target="_blank" rel="noopener">phishing</a>.
+       Por eso la capacitación es una de las mejores defensas.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 8 · photo-left</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-photo"><img class="photo" src="/media/98930468-a76e-4f4b-8a7e-cdc31e047314" alt="" /><h1 class="sl-kicker">Casos reales</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h2>Casos reales de empresas afectadas</h2><ul><li><b>Equifax (2017):</b> una vulnerabilidad sin corregir expuso los datos de 147 millones de personas.</li><li><b>Colonial Pipeline (2021):</b> un ransomware detuvo el suministro de combustible en la costa este de EE. UU.</li><li><b>Uber (2022):</b> un atacante entró a sistemas internos engañando a un empleado.</li></ul>
+       <p>Además de reparar los sistemas, un incidente trae multas, demandas, pérdida de clientes y daño a la marca.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 9 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un empleado descargó información de clientes en un USB personal para «trabajar desde casa». El USB no está cifrado y se perdió en un taxi.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 10 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 1</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>El manual de usuario publicado en la página web de la empresa es…</b><div><label class="opt ">Confidencial</label><label class="opt ">Interno</label><label class="opt correct">Público<span class="mk">✔ correcta</span></label><label class="opt ">Altamente confidencial</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 11 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 2</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>El número de cuenta bancaria de un cliente es…</b><div><label class="opt ">Público</label><label class="opt correct">Confidencial<span class="mk">✔ correcta</span></label><label class="opt ">Interno</label><label class="opt ">No clasificado</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 12 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 3</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del USB perdido, ¿qué tipo de información está comprometida?</b><div><label class="opt ">Información pública</label><label class="opt correct">Información de clientes<span class="mk">✔ correcta</span></label><label class="opt ">Información irrelevante</label><label class="opt ">Información de marketing</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 13 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 4</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del USB perdido, ¿qué principio del triángulo CIA se violó?</b><div><label class="opt ">Integridad</label><label class="opt ">Disponibilidad</label><label class="opt correct">Confidencialidad<span class="mk">✔ correcta</span></label><label class="opt ">Ninguno</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 14 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 2 — Uso Aceptable de los Sistemas</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>Cada equipo, red o aplicación del trabajo puede ser una puerta de entrada para un atacante si no se usa como indica la empresa.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 15 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Uso de computadoras de la empresa</h3><p>Las computadoras de la empresa vienen con antivirus, permisos y controles que te protegen a ti y a la empresa.</p>
+       <ul><li>Mantén el equipo actualizado.</li><li>No desactives el antivirus ni el firewall, ni «por unos minutos».</li><li>No instales programas sin aprobación.</li><li>Evita el uso personal excesivo.</li></ul>
+       <p><b>Firewall:</b> filtra lo que entra y sale del equipo y bloquea conexiones no autorizadas.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 16 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</div><h1 class="sl-title">Uso de internet</h1><div class="sl-body"><div class="sl-fit"><p>Internet es una de las principales fuentes de amenazas: un sitio malicioso o una descarga insegura pueden comprometer un equipo en segundos.</p>
+       <ul><li>Evita páginas que no tienen que ver con el trabajo.</li><li>No descargues archivos de fuentes desconocidas.</li><li>No compartas información del trabajo en redes sociales.</li></ul>
+       <p><b>HTTPS</b> (el candado del navegador) indica que la conexión va cifrada. No garantiza que el sitio sea legítimo,
+       pero un sitio sin HTTPS que te pide tu contraseña es una mala señal.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 17 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">El medio preferido de los atacantes</div><h1 class="sl-title">Uso del correo electrónico</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Verifica el remitente</b> antes de abrir un mensaje.</li>
+         <li><b>No abras adjuntos</b> que no esperabas.</li>
+         <li><b>No reenvíes</b> cadenas ni correos personales.</li>
+         <li><b>Reporta</b> los correos sospechosos.</li>
+       </ul>
+       <p><b>Enlaces acortados</b> (bit.ly, tinyurl…): esconden el destino real. Si no puedes ver a qué dominio lleva, no hagas clic.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 18 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Uso de dispositivos móviles</h3><p>El celular y la tableta se pierden con facilidad y se conectan a redes que no controlamos.</p>
+       <ul><li>Mantén el sistema actualizado.</li><li>Usa bloqueo de pantalla con PIN, huella o rostro.</li><li>No guardes información sensible sin cifrar.</li><li>Si lo pierdes o te lo roban, repórtalo de inmediato.</li></ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 19 · split</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-split"><div class="panel"></div><h1 class="ptitle">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-body"><div class="sl-fit"><h2>Programas y memorias USB</h2><p><b>Programas sin autorización.</b> Pueden traer malware, abrir puertas traseras o recopilar datos sin permiso. Muchos
+       instaladores gratuitos incluyen programas no deseados que muestran anuncios o espían la actividad.</p>
+       <p><b>Memorias USB.</b> Son una de las fuentes de infección más comunes. Usa solo las aprobadas por la empresa y no
+       conectes una que te encontraste: los atacantes dejan USB infectados a propósito para que alguien los pruebe.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 20 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</div><h1 class="sl-title">Nubes personales y sincronización</h1><div class="sl-body"><div class="sl-fit"><p>Subir documentos de la empresa a tu Google Drive, Dropbox o iCloud personal es un riesgo grave: la empresa pierde el control
+       de esa información y no puede protegerla.</p>
+       <p>Ojo con la <b>sincronización automática</b>: muchos teléfonos y computadoras copian solos los archivos a la nube personal.
+       Guarda los documentos del trabajo solo en las plataformas que aprobó la empresa.</p>
+       <p>Cuando información de la empresa termina donde no debe, eso es una <b>fuga de datos</b>.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 21 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un empleado descarga un programa gratuito de internet para «trabajar más rápido». Después de instalarlo, la computadora empieza a comportarse de forma extraña.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 22 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 5</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué acción representa un riesgo al usar internet en el trabajo?</b><div><label class="opt ">Acceder al portal interno de la empresa</label><label class="opt correct">Descargar archivos de sitios desconocidos<span class="mk">✔ correcta</span></label><label class="opt ">Revisar manuales corporativos</label><label class="opt ">Usar la intranet</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 23 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 6</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué debes hacer si recibes un correo sospechoso?</b><div><label class="opt ">Abrirlo para verificar su contenido</label><label class="opt ">Reenviarlo a compañeros</label><label class="opt correct">Reportarlo al equipo de seguridad<span class="mk">✔ correcta</span></label><label class="opt ">Ignorarlo y borrarlo</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 24 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 7</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué práctica es segura en dispositivos móviles de la empresa?</b><div><label class="opt ">No usar bloqueo de pantalla</label><label class="opt ">Conectarse a cualquier red WiFi pública</label><label class="opt correct">Mantener el sistema operativo actualizado<span class="mk">✔ correcta</span></label><label class="opt ">Instalar apps personales sin revisión</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 25 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 8</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del programa gratuito, ¿qué debió hacer el empleado antes de instalarlo?</b><div><label class="opt correct">Consultar con TI<span class="mk">✔ correcta</span></label><label class="opt ">Instalarlo sin preguntar</label><label class="opt ">Descargarlo en su celular</label><label class="opt ">Ignorar la necesidad</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 26 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 3 — Contraseñas y Autenticación</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>La mayoría de los ataques que funcionan usan contraseñas débiles, fáciles de adivinar o repetidas.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 27 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>¿Qué hace que una contraseña sea segura?</h3><p>Los atacantes usan programas que prueban millones de combinaciones por segundo. Una contraseña segura es difícil de adivinar, no fácil de recordar.</p>
+       <ol>
+         <li><b>Que sea larga:</b> 12 caracteres o más. Una frase es más fácil de recordar y más difícil de adivinar.</li>
+         <li><b>Que no tenga datos personales:</b> nada de fechas, nombres ni direcciones.</li>
+         <li><b>Que no sea una palabra del diccionario.</b></li>
+         <li><b>Que no se repita</b> en otras cuentas.</li>
+       </ol>
+       <p>Mezclar mayúsculas, números y símbolos ayuda, pero el largo es lo que más cuenta.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 28 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">El riesgo de reutilizar contraseñas</div><div class="sl-body"><div class="sl-fit"><h2>Una contraseña = una cuenta</h2><p>Cuando una página sufre una filtración, los atacantes prueban esas mismas contraseñas en otros servicios. Si usas la misma
+       en tu correo personal, tus redes sociales y el trabajo, una sola filtración les abre todas las puertas.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 29 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</div><h1 class="sl-title">Gestores de contraseñas</h1><div class="sl-body"><div class="sl-fit"><p>Recordar decenas de contraseñas largas y distintas es casi imposible. Un gestor de contraseñas las guarda por ti:</p>
+       <ul><li>Guarda todas tus contraseñas cifradas.</li><li>Crea contraseñas largas y únicas.</li><li>Solo tienes que recordar una contraseña maestra.</li></ul>
+       <p>Pregunta a tu supervisor si la empresa tiene uno aprobado.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 30 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Dos o más de estos elementos</div><h1 class="sl-title">Verificación en dos pasos (MFA)</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Algo que sabes</b><br>Tu contraseña.</li>
+         <li><b>Algo que tienes</b><br>Tu celular o una app autenticadora.</li>
+         <li><b>Algo que eres</b><br>Tu huella o tu rostro.</li>
+       </ul>
+       <p>Aunque un atacante consiga tu contraseña, no podrá entrar sin el segundo paso. Es uno de los controles más efectivos.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 31 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Riesgos de compartir contraseñas</h3><p>Compartir tu contraseña, aunque sea con un compañero de confianza, es una falta grave. Cuando varias personas usan la misma cuenta:</p>
+       <ul><li>No se puede saber quién hizo qué.</li><li>Se abren puertas a accesos no autorizados.</li><li>Se incumplen las políticas de la empresa.</li></ul>
+       <p><b>Cada persona tiene su propia cuenta y su propia contraseña.</b></p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 32 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un empleado usa la misma contraseña para su correo personal y para su cuenta del trabajo. Su correo personal apareció en una filtración masiva.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 33 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 9</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué elemento forma parte de la verificación en dos pasos (MFA)?</b><div><label class="opt ">Tu color favorito</label><label class="opt correct">Tu contraseña<span class="mk">✔ correcta</span></label><label class="opt ">Tu historial de navegación</label><label class="opt ">Tu dirección de correo</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 34 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 10</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué ocurre al compartir credenciales?</b><div><label class="opt ">Se mejora la seguridad</label><label class="opt correct">Se pierde trazabilidad<span class="mk">✔ correcta</span></label><label class="opt ">Se acelera el trabajo</label><label class="opt ">Se reduce el riesgo</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 35 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 11</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso de la contraseña repetida, ¿qué debió hacer el empleado?</b><div><label class="opt ">Usar la misma contraseña</label><label class="opt correct">Usar contraseñas únicas<span class="mk">✔ correcta</span></label><label class="opt ">Compartir la contraseña</label><label class="opt ">Guardarla en un papel</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 36 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 12</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso de la contraseña repetida, ¿qué debe hacer ahora?</b><div><label class="opt ">Ignorar el incidente</label><label class="opt correct">Cambiar la contraseña<span class="mk">✔ correcta</span></label><label class="opt ">Desactivar MFA</label><label class="opt ">Compartir la contraseña</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 37 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 4 — Phishing e Ingeniería Social</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>En vez de atacar sistemas complicados, los atacantes van por el eslabón más fácil: las personas.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 38 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>¿Qué es el phishing?</h3><p>Un intento de engañarte para que entregues información haciéndose pasar por alguien de confianza. Casi siempre llega por correo. Suele:</p>
+       <ul><li>Meter prisa: «Tu cuenta será suspendida hoy».</li><li>Traer enlaces a páginas falsas que imitan las reales.</li><li>Tener errores de ortografía.</li><li>Pedir contraseñas, pagos o datos personales.</li><li>Usar logos de empresas conocidas.</li></ul>
+       <p>Hay versiones dirigidas: el atacante investiga a la víctima y usa su nombre, su puesto o sus proyectos para que el mensaje parezca real.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 39 · split</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-split"><div class="panel"></div><h1 class="ptitle">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-body"><div class="sl-fit"><h2>Smishing: phishing por mensaje de texto</h2><p>Llega por SMS, WhatsApp o Telegram, con un enlace o un mensaje que asusta:</p>
+       <p><b>«Su paquete no pudo ser entregado. Verifique aquí.»</b></p>
+       <p>«Su cuenta será bloqueada. Actualice su información.»</p>
+       <p>Los mensajes de texto inspiran más confianza que el correo, y por eso funcionan. Si no esperabas el mensaje, no toques el enlace.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 40 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</div><h1 class="sl-title">Vishing: phishing por llamada telefónica</h1><div class="sl-body"><div class="sl-fit"><p>El atacante llama haciéndose pasar por soporte técnico, un banco, un supervisor o un proveedor, con prisa y tono de autoridad.
+       Busca datos o que instales un programa.</p>
+       <p><b>El número que ves en pantalla se puede falsificar:</b> puede parecer de tu banco o una extensión interna. Cuelga y llama tú al número oficial.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 41 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Ingeniería social en redes sociales</h3><p>Antes de atacar, los criminales investigan: publicaciones, fotos, amigos, lugares y datos de tu trabajo. Con eso crean perfiles falsos,
+       mandan enlaces o se hacen pasar por alguien que conoces.</p>
+       <p><b>Cuanta más información compartes, más fácil es atacarte.</b></p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 42 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Si algo parece extraño, probablemente lo es</div><h1 class="sl-title">Señales de alerta</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li>Te piden información que no esperabas.</li>
+         <li>El mensaje apela al miedo o a la prisa.</li>
+         <li>El enlace no coincide con el dominio oficial.</li>
+         <li>Trae un adjunto que no pediste.</li>
+       </ul>
+       <p><b>Dominios falsos:</b> micr0soft.com, paypa1.com, amaz0n-support.com. Una sola letra hace la diferencia.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 43 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Recibes un correo que dice: «Tu cuenta será suspendida hoy. Haz clic aquí para verificar tu identidad». El remitente parece legítimo, pero no habías pedido nada.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 44 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 13</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Cuál de las siguientes es una señal común de un correo de phishing?</b><div><label class="opt ">Un saludo personalizado</label><label class="opt correct">Errores ortográficos<span class="mk">✔ correcta</span></label><label class="opt ">Un mensaje interno de la empresa</label><label class="opt ">Un adjunto esperado</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 45 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 14</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué es smishing?</b><div><label class="opt ">Phishing por correo</label><label class="opt correct">Phishing por mensaje de texto<span class="mk">✔ correcta</span></label><label class="opt ">Phishing por llamada</label><label class="opt ">Phishing por redes sociales</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 46 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 15</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué es vishing?</b><div><label class="opt correct">Phishing por llamada telefónica<span class="mk">✔ correcta</span></label><label class="opt ">Phishing por redes sociales</label><label class="opt ">Phishing por correo</label><label class="opt ">Phishing por USB</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 47 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 16</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso de la «cuenta suspendida», ¿qué control ayuda a prevenir daño si caes en el enlace?</b><div><label class="opt ">Antivirus</label><label class="opt correct">MFA<span class="mk">✔ correcta</span></label><label class="opt ">Redes sociales</label><label class="opt ">USB cifrado</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 48 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 5 — Malware y Amenazas Comunes</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>El malware es un programa hecho para meterse en un equipo, dañarlo o tomar control de él sin permiso.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 49 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</div><h1 class="sl-title">Ransomware</h1><div class="sl-body"><div class="sl-fit"><p>Cifra los archivos y pide un pago, casi siempre en criptomonedas, para devolverlos. <b>Aunque se pague, no hay garantía de recuperarlos.</b></p>
+       <p>Suele entrar por:</p>
+       <ul><li>Correos de phishing.</li><li>Archivos adjuntos maliciosos.</li><li>Equipos y programas sin actualizar.</li></ul>
+       <p>Puede paralizar una empresa entera, como pasó con Colonial Pipeline.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 50 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Lo que conviene reconocer</div><h1 class="sl-title">Otros tipos de malware</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Virus</b><br>Se copia en archivos y programas; se activa al abrirlos.</li>
+         <li><b>Spyware</b><br>Espía lo que escribes y ves para robar contraseñas.</li>
+         <li><b>Troyano</b><br>Parece un programa legítimo y deja entrar al atacante.</li>
+         <li><b>Gusano</b><br>Se propaga solo por la red, sin que nadie lo abra.</li>
+         <li><b>Rootkit</b><br>Se esconde para que el antivirus no lo vea.</li>
+         <li><b>Botnet</b><br>Usa tu equipo, sin que lo notes, para atacar a otros.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 51 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Descargas peligrosas</h3><p>Una de las formas más comunes de infectarse es descargar archivos de:</p>
+       <ul><li>Sitios piratas.</li><li>Páginas de descarga que no son las oficiales.</li><li>Correos desconocidos.</li><li>Enlaces acortados sospechosos.</li></ul>
+       <p>Los atacantes disfrazan el malware de documentos, instaladores o actualizaciones falsas.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 52 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un empleado recibe un correo con un adjunto llamado «Factura_2024.zip». No conoce al remitente, pero lo abre. La computadora se bloquea y aparece un mensaje: sus archivos fueron cifrados.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 53 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 17</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué acción puede causar una infección?</b><div><label class="opt correct">Descargar software pirata<span class="mk">✔ correcta</span></label><label class="opt ">Actualizar el sistema</label><label class="opt ">Usar VPN</label><label class="opt ">Cerrar sesión</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 54 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 18</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué característica suele tener un sitio fraudulento?</b><div><label class="opt ">Certificado válido</label><label class="opt correct">Dominio extraño o similar al original<span class="mk">✔ correcta</span></label><label class="opt ">Contenido corporativo</label><label class="opt ">Navegación segura</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 55 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 19</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso de la factura .zip, ¿qué debió hacer el empleado?</b><div><label class="opt ">Abrirlo para verificar</label><label class="opt correct">Reportarlo inmediatamente<span class="mk">✔ correcta</span></label><label class="opt ">Reenviarlo a compañeros</label><label class="opt ">Ignorarlo</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 56 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 20</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso de la factura .zip, ¿qué NO debe hacer el empleado ahora?</b><div><label class="opt ">Reportar el incidente</label><label class="opt ">Apagar el equipo</label><label class="opt correct">Pagar el rescate<span class="mk">✔ correcta</span></label><label class="opt ">Contactar a TI</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 57 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 6 — Trabajo Remoto y Dispositivos Personales</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>Fuera de la oficina no están los controles de la red de la empresa: los riesgos cambian y las precauciones también.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 58 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</div><h1 class="sl-title">Riesgos del WiFi público</h1><div class="sl-body"><div class="sl-fit"><p>Las redes de aeropuertos, cafés, hoteles o centros comerciales suelen ser inseguras: cualquiera conectado a la misma red puede
+       intentar ver lo que envías o robar contraseñas.</p>
+       <p>Evítalas para el trabajo. Si no hay otra red, es mejor el <b>hotspot de tu celular</b>: tú controlas quién se conecta.
+       Si la empresa te dio una <b>VPN</b>, actívala: cifra la conexión con la red de la empresa.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 59 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Computadoras compartidas</h3><p>Las computadoras de hoteles, bibliotecas o de familiares pueden tener malware, programas que graban lo que escribes o
+       historial de otros usuarios.</p>
+       <p><b>No las uses para entrar a los sistemas ni al correo del trabajo.</b> El modo incógnito no basta: el equipo puede guardar
+       igual contraseñas y archivos temporales.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 60 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Simple y muy efectivo</div><h1 class="sl-title">Bloqueo de pantalla</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Bloquea siempre</b><br>Cada vez que te levantas, aunque sea un momento: Windows + L.</li>
+         <li><b>Bloqueo automático</b><br>Que el equipo se bloquee solo a los pocos minutos.</li>
+         <li><b>Miradas ajenas</b><br>En lugares públicos, cuida quién ve tu pantalla.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 61 · split</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-split"><div class="panel"></div><h1 class="ptitle">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-body"><div class="sl-fit"><h2>Dispositivos personales y cifrado</h2><p>Si la empresa permite usar tu teléfono o computadora personal para el trabajo, ese equipo necesita lo mínimo:</p>
+       <ul><li>Bloqueo con PIN, huella o rostro.</li><li>Actualizaciones automáticas.</li><li>Disco cifrado: si se pierde, nadie puede leer lo que tiene.</li><li>Datos del trabajo separados de los personales.</li></ul>
+       <p>Un equipo sin antivirus, sin actualizar o con aplicaciones no autorizadas pone en riesgo a toda la empresa.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 62 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Estás trabajando desde un café y necesitas enviar un documento de la empresa con urgencia. El WiFi del lugar está disponible y es gratis.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 63 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 21</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué red es más segura para trabajar?</b><div><label class="opt ">WiFi público</label><label class="opt ">Hotspot desconocido</label><label class="opt correct">Red corporativa o VPN<span class="mk">✔ correcta</span></label><label class="opt ">Red abierta de un café</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 64 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 22</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué dispositivo NO debe usarse para acceder a los sistemas de la empresa?</b><div><label class="opt ">Laptop corporativa</label><label class="opt correct">Computadora personal sin controles<span class="mk">✔ correcta</span></label><label class="opt ">Dispositivo con VPN</label><label class="opt ">Equipo aprobado por TI</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 65 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 23</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del café, ¿qué debes hacer primero?</b><div><label class="opt ">Conectarte al WiFi del café</label><label class="opt correct">Usar tu hotspot personal o activar la VPN<span class="mk">✔ correcta</span></label><label class="opt ">Enviarlo sin revisar</label><label class="opt ">Guardarlo en tu USB</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 66 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 24</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del café, ¿qué riesgo tiene el WiFi público?</b><div><label class="opt ">Velocidad lenta</label><label class="opt correct">Intercepción de datos<span class="mk">✔ correcta</span></label><label class="opt ">Falta de señal</label><label class="opt ">Consumo de batería</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 67 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 7 — Manejo de Información Sensible</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>Proteger la información sensible no depende solo de la tecnología: depende de cómo la maneja cada empleado.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 68 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>¿Qué es información sensible?</h3><p>Cualquier dato que cause daño si se divulga, se cambia o se destruye sin autorización: personal, financiero, de clientes, de la operación o de los sistemas.</p>
+       <ul><li><b>Información personal:</b> identifica a una persona. Nombre, dirección, teléfono.</li><li><b>Información personal sensible:</b> la que más daño hace si se filtra. Seguro social, números de cuenta, historial médico. Lleva controles más estrictos.</li></ul>
+       <p>En Puerto Rico, la Ley Núm. 111-2005 obliga a avisar cuando se filtra información personal, y HIPAA protege la información de salud.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 69 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Información sensible</div><h1 class="sl-title">Tres tipos que manejamos a diario</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Personal</b><br>De empleados, clientes o proveedores: nombre, dirección, fecha de nacimiento, identificación. Recoge y guarda solo lo necesario.</li>
+         <li><b>Financiera</b><br>Números de cuenta, tarjetas, transacciones, reportes. Si se filtra, hay pérdidas y multas.</li>
+         <li><b>De clientes</b><br>Contactos, pedidos, documentos y reclamaciones. Muchos contratos exigen protegerla.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 70 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Solo lo que necesitas</div><div class="sl-body"><div class="sl-fit"><h2>Principio de mínimo privilegio</h2><p>Cada persona tiene acceso solo a lo que necesita para su trabajo. Los accesos se dan por puesto, no por confianza ni por
+       conveniencia, y se revisan de vez en cuando.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 71 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</div><h1 class="sl-title">Dónde guardar y cómo enviar</h1><div class="sl-body"><div class="sl-fit"><p><b>Guárdala solo en</b> los sistemas y carpetas de la empresa, con permisos controlados. Nunca en un USB personal, una nube
+       personal, un equipo no autorizado o tu correo personal.</p>
+       <p><b>Envíala solo por</b> los canales que aprobó la empresa: el correo de la empresa y sus plataformas internas. No por redes
+       sociales ni por correo o mensajería personal.</p>
+       <p>Cifrar protege los datos guardados, aunque roben el equipo, y los que viajan por la red.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 72 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Eliminación segura</h3><p>La información sensible no se guarda más tiempo del necesario. Cuando ya no hace falta:</p>
+       <ol>
+         <li>Tritura los documentos en papel.</li>
+         <li>Borra los archivos con las herramientas que aprobó la empresa.</li>
+         <li>Recuerda: arrastrar un archivo a la papelera no es suficiente.</li>
+       </ol></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 73 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un empleado entra a información de clientes que no necesita para su trabajo. Lo hace «por curiosidad», sin mala intención.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 74 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 25</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué tipo de información protegen las leyes de privacidad?</b><div><label class="opt ">Información pública</label><label class="opt correct">Información personal<span class="mk">✔ correcta</span></label><label class="opt ">Información de marketing</label><label class="opt ">Información irrelevante</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 75 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 26</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué tipo de información requiere cifrado y controles estrictos?</b><div><label class="opt ">Información pública</label><label class="opt correct">Información financiera<span class="mk">✔ correcta</span></label><label class="opt ">Información general</label><label class="opt ">Información de redes sociales</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 76 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 27</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del acceso «por curiosidad», ¿qué riesgo existe?</b><div><label class="opt ">Pérdida de señal</label><label class="opt correct">Acceso no autorizado<span class="mk">✔ correcta</span></label><label class="opt ">Falta de espacio</label><label class="opt ">Error de impresión</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 77 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 28</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del acceso «por curiosidad», ¿qué debe hacer el empleado ahora?</b><div><label class="opt ">Ignorar el incidente</label><label class="opt correct">Reportarlo<span class="mk">✔ correcta</span></label><label class="opt ">Compartirlo con compañeros</label><label class="opt ">Guardarlo en su USB</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 78 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 8 — Reporte y Respuesta a Incidentes</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>Lo que más reduce el daño de un incidente es la rapidez con que se reporta. Reporta aunque no estés seguro de lo que pasó.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 79 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>¿Qué es un incidente de seguridad?</h3><p>Cualquier evento que pone en riesgo la información, los equipos o las cuentas de la empresa, o que parece sospechoso. Por ejemplo:</p>
+       <ul><li>Hacer clic en un enlace sospechoso o descargar un archivo malicioso.</li><li>Perder un equipo o que te lo roben.</li><li>Un acceso que no reconoces.</li><li>Archivos que desaparecen o aparecen cifrados.</li><li>Mensajes inesperados que piden tu contraseña.</li></ul>
+       <p><b>No hace falta confirmar que fue un ataque.</b> Si algo parece extraño, se reporta.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 80 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Incluso si no estás seguro, repórtalo</div><h1 class="sl-title">Señales de que algo no está bien</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li>Ventanas que aparecen solas.</li>
+         <li>Programas que se abren sin que los abras.</li>
+         <li>Te piden la contraseña cuando no es normal.</li>
+         <li>Archivos renombrados o cifrados.</li>
+         <li>El equipo se pone muy lento.</li>
+         <li>Alertas del antivirus.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 81 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</div><h1 class="sl-title">¿Hiciste clic en un enlace sospechoso?</h1><div class="sl-body"><div class="sl-fit"><p>Mucha gente no lo reporta por vergüenza, pero el tiempo es clave:</p>
+       <ol>
+         <li>No escribas tu contraseña ni tus datos.</li>
+         <li>Cierra la página y no descargues nada.</li>
+         <li>No intentes arreglarlo por tu cuenta.</li>
+         <li>Repórtalo enseguida.</li>
+         <li>Si llegaste a escribir tu contraseña, cámbiala.</li>
+       </ol></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 82 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</div><h1 class="sl-title">¿Abriste un archivo malicioso?</h1><div class="sl-body"><div class="sl-fit"><ol>
+         <li>Desconéctate de internet si puedes.</li>
+         <li>No reinicies el equipo: se puede perder evidencia.</li>
+         <li>No borres el archivo.</li>
+         <li>Repórtalo de inmediato y espera instrucciones de sistemas.</li>
+       </ol>
+       <p>Muchos programas maliciosos se propagan rápido. El tiempo importa.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 83 · split</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-split"><div class="panel"></div><h1 class="ptitle">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-body"><div class="sl-fit"><h2>Pérdida o robo de un equipo</h2><p>Si pierdes o te roban la laptop, el teléfono de la empresa, una memoria USB autorizada o cualquier equipo con acceso a información,
+       repórtalo de inmediato. Así sistemas puede:</p>
+       <ul><li>Quitarle el acceso a las cuentas.</li><li>Bloquear el equipo.</li><li>Borrarlo a distancia, si se puede.</li><li>Vigilar actividad sospechosa.</li></ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 84 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Reporta rápido</div><div class="sl-body"><div class="sl-fit"><h2>¿A quién reportar?</h2><p>Repórtalo a <b>tu supervisor</b> o al <b>departamento de sistemas</b> de la empresa, por teléfono o en persona si es urgente.</p>
+       <p>No esperes a estar seguro de que es un incidente real.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 85 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DE LA INFORMACIÓN</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>El reporte y lo que pasa después</h3><p><b>No necesitas un reporte técnico.</b> Basta con decir qué pasó, qué estabas haciendo, qué viste en pantalla y si hiciste clic,
+       escribiste tu contraseña, descargaste algo o perdiste un equipo.</p>
+       <p><b>Después</b>, sistemas analiza lo que pasó, revisa los registros, aísla el equipo si hace falta, cambia contraseñas o bloquea accesos.</p>
+       <p>Reportar no es un castigo: es lo que protege a toda la empresa.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 86 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Cultura de reporte</div><div class="sl-body"><div class="sl-fit"><h2>No existe el error tonto</h2><p>Ni el «no es nada», ni el «mejor no digo nada». Reportar es parte del trabajo y una de las formas más efectivas de evitar un daño mayor.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 87 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un empleado recibe un correo que parece legítimo, hace clic en el enlace y la página le pide su usuario y contraseña. Sospecha que algo no está bien.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 88 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 29</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Cuál de los siguientes es un incidente de seguridad?</b><div><label class="opt ">Abrir un documento interno</label><label class="opt correct">Perder un equipo corporativo<span class="mk">✔ correcta</span></label><label class="opt ">Revisar el correo laboral</label><label class="opt ">Usar la VPN</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 89 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 30</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿A quién debes reportar un incidente?</b><div><label class="opt ">Redes sociales</label><label class="opt correct">A tu supervisor o al departamento de sistemas<span class="mk">✔ correcta</span></label><label class="opt ">Familiares</label><label class="opt ">Compañeros de trabajo</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 90 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 31</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué debes hacer si haces clic en un enlace sospechoso?</b><div><label class="opt ">Ingresar tus datos para verificar</label><label class="opt ">Ignorarlo</label><label class="opt correct">Reportarlo inmediatamente<span class="mk">✔ correcta</span></label><label class="opt ">Reenviarlo a compañeros</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 91 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 32</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso de la página que pide la contraseña, ¿qué NO debe hacer el empleado?</b><div><label class="opt ">Reportarlo</label><label class="opt ">Cambiar su contraseña</label><label class="opt correct">Ingresar sus credenciales<span class="mk">✔ correcta</span></label><label class="opt ">Contactar a TI</label></div></div></div></div></div></div></div></div></div></section>
+</main>
+<script>
+  // Escala cada escenario al ancho del marco y marca las láminas que desbordan
+  // (misma regla que presFitOverflow en player.html, sin encoger: aquí se avisa).
+  const root = document.documentElement;
+  root.style.setProperty('--pbg', "#ffffff");
+  root.style.setProperty('--pacc', "#059669");
+  // Solo los marcos con escenario: la tarjeta de entrada (.frame.entry) no tiene .pstage.
+  function fit(){ document.querySelectorAll('.frame').forEach(f => { const st = f.querySelector('.pstage'); if (st) st.style.setProperty('--pk', f.clientWidth / 1280); }); }
+  function check(){
+    document.querySelectorAll('.sl').forEach(s => {
+      const body = s.querySelector('.sl-body'), fitEl = s.querySelector('.sl-fit');
+      if (!body || !fitEl || s.querySelector('.sl-over')) return;
+      if (fitEl.scrollHeight > body.clientHeight + 1) { const b = document.createElement('div'); b.className = 'sl-over'; b.textContent = 'Excede la lámina'; s.appendChild(b); }
+    });
+  }
+  fit(); addEventListener('resize', fit); addEventListener('load', check); setTimeout(check, 300);
+</script>
+</body></html>

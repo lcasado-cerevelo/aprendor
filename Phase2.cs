@@ -43,6 +43,7 @@ public static class Phase2Endpoints
             // El HTML del autor se sanea aquí (bloque F2): el reproductor lo pinta tal cual.
             var payload = ContentSanitizer.SanitizePayload(req.PayloadJson);
             if (payload is null) return Results.BadRequest("El contenido del ítem no es un JSON válido.");
+            payload = Narracion.QuitarSiVencida(req.Type, payload);
 
             var siblings = await db.TrainingItems.Where(i => i.TrainingVersionId == version.Id)
                 .OrderBy(i => i.Order).ThenBy(i => i.Id).ToListAsync();
@@ -82,6 +83,7 @@ public static class Phase2Endpoints
                 return Results.BadRequest("Solo se pueden editar ítems de un borrador.");
             var payload = ContentSanitizer.SanitizePayload(req.PayloadJson);
             if (payload is null) return Results.BadRequest("El contenido del ítem no es un JSON válido.");
+            payload = Narracion.QuitarSiVencida(req.Type, payload);   // texto cambiado: su voz ya no vale
             item.Type = req.Type;
             item.PayloadJson = payload;
             item.Points = req.Points;
@@ -213,15 +215,18 @@ public static class Phase2Endpoints
         app.MapGet("/versions/{versionId:guid}/config", async (Guid versionId, ITenantContext tc, IServiceProvider sp) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
-            var cfg = await (from v in db.TrainingVersions
-                             where v.Id == versionId
-                             join t in db.Trainings on v.TrainingId equals t.Id
-                             select t.PlayerConfigJson).FirstOrDefaultAsync();
+            var fila = await (from v in db.TrainingVersions
+                              where v.Id == versionId
+                              join t in db.Trainings on v.TrainingId equals t.Id
+                              select new { t.PlayerConfigJson, v.PassPercent }).FirstOrDefaultAsync();
+            var cfg = fila?.PlayerConfigJson;
             return Results.Ok(new
             {
                 allowBack = PlayerConfig.AllowBack(cfg),
                 immediateFeedback = PlayerConfig.ImmediateFeedback(cfg),
-                presentation = PlayerConfig.Presentation(cfg)
+                presentation = PlayerConfig.Presentation(cfg),
+                // Para la pantalla de entrada del curso («70 % para aprobar»).
+                passPercent = fila?.PassPercent
             });
         }).RequireAuthorization();
 

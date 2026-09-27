@@ -1,0 +1,532 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inteligencia Artificial: Uso Seguro, Ético y Responsable — vista previa</title>
+<style>
+  :root{color-scheme:light}
+  body{margin:0;background:#1a1a1a;color:#e5e5e5;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.5}
+  header{background:#000;color:#fff;padding:22px 20px;border-bottom:2px solid #059669}
+  header h1{margin:0 0 6px;font-size:20px}
+  header p{margin:0;opacity:.8;font-size:14px;max-width:900px}
+  main{max-width:1000px;margin:0 auto;padding:20px}
+  section{margin:22px 0}
+  .tag{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#9a9a9a;margin-bottom:6px}
+  .frame{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#ffffff;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+  .note{background:#fef9c3;color:#713f12;border-radius:10px;padding:12px 16px;font-size:14px}
+  /* Estilos del reproductor (copiados de wwwroot/player.html) */
+  
+  :root{--pbg:#0d0d0d;--pacc:#f97316;}
+  body.pres{overflow:hidden;background:var(--pbg);}
+  body.pres>header,body.pres>.progress,body.pres>main,body.pres>.nav{display:none !important;}
+  #presRoot{display:none;}
+  body.pres #presRoot{display:block;position:fixed;inset:0;background:var(--pbg);}
+  /* El escenario se coloca en píxeles enteros (--px/--py, ver presFit): con left:50% y
+     translate(-50%) una ventana de ancho impar dejaba la lámina en medio píxel y el texto
+     se veía borroso. */
+  .pstage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;transform:translate(var(--px,0px),var(--py,0px)) scale(var(--pk,1));overflow:hidden;background:var(--pbg);}
+  .player{position:absolute;inset:0;}
+  /* Transiciones cortas (~320 ms). Al terminar se quitan las clases: la lámina queda sin
+     transform y la saliente se retira siempre (transitionend con respaldo por tiempo).
+     isolation:isolate: cada lámina encierra sus z-index (el título del panel en split lleva
+     z-index:2). Sin esto la saliente, que ya no tiene transform, no crea contexto de
+     apilamiento y su título se pintaba ENCIMA de la entrante durante la transición (la
+     sombra o el título doble). Así el orden lo decide el DOM: la que va después, encima. */
+  .slide{position:absolute;inset:0;isolation:isolate;transition:transform .32s cubic-bezier(.2,.7,.2,1),opacity .28s ease;}
+  .slide.from-right{transform:translateX(100%);box-shadow:-16px 0 32px rgba(0,0,0,.35);}
+  .slide.from-right.in{transform:translateX(0);}
+  .slide.to-right{transform:translateX(100%);box-shadow:-16px 0 32px rgba(0,0,0,.35);}
+  .slide.fade-in{opacity:0;} .slide.fade-in.in{opacity:1;}
+  .slide.fade-out{opacity:0;}
+  /* Misma lámina de fondo (mismo layout, variante y título del panel o del encabezado): el
+     marco queda fijo y solo entra el contenido, sin arrastrar una copia del título. */
+  .slide.keep .sl-body{animation:slBodyIn .3s cubic-bezier(.2,.7,.2,1) both;}
+  @keyframes slBodyIn{from{opacity:0;transform:translateX(calc(var(--dx,1) * 28px));}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){ .slide{transition:none !important;} .slide.keep .sl-body{animation:none !important;} }
+
+  /* --- lámina: base --- */
+  .sl{position:absolute;inset:0;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:#fff;background:var(--pbg);line-height:1.25;}
+  .sl *{box-sizing:border-box;}
+  .sl-body{position:absolute;overflow:hidden;}
+  .sl-fit{transform-origin:top left;}
+  .sl-body p{margin:0 0 14px;}
+  .sl-body ul{margin:0 0 10px;padding-left:32px;} .sl-body li{margin:0 0 10px;}
+  .sl-body ul ul{margin:8px 0 0;list-style:disc;} .sl-body li li{margin:0 0 6px;font-size:.92em;}
+  .sl-body h2{font-size:30px;font-weight:700;margin:0 0 16px;line-height:1.15;}
+  .sl-body h3{font-size:28px;font-weight:700;text-transform:uppercase;margin:0 0 12px;line-height:1.2;}
+  .sl-body a{color:var(--pacc);}
+  .sl-body img,.sl-body video{max-width:100%;max-height:360px;border-radius:0;margin:10px 0;}
+  .sl-body .row2{margin:0;}
+  .sl-over{position:absolute;top:14px;right:14px;z-index:5;background:#dc2626;color:#fff;font:700 14px/1 system-ui,sans-serif;padding:8px 12px;border-radius:8px;}
+  .sl-kicker{margin:0;}
+
+  /* --- cover: foto a sangre + banda de título --- */
+  .sl-cover .cover-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .sl-cover .cover-band{position:absolute;left:0;right:0;top:548px;height:96px;background:rgba(255,255,255,.86);border-top:2px solid #2a2a2a;border-bottom:2px solid #2a2a2a;box-shadow:0 -5px 0 rgba(255,255,255,.75),0 5px 0 rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;text-align:center;padding:0 60px;}
+  .sl-cover .cover-band h1{margin:0;font-size:44px;font-weight:700;color:#111;line-height:1.1;}
+  .sl-cover .sl-body{left:90px;right:90px;top:660px;bottom:0;font-size:18px;}
+
+  /* --- dark: kicker en mayúsculas arriba, línea de acento, cuerpo --- */
+  .sl-dark .sl-kicker{position:absolute;left:100px;right:90px;top:44px;font-size:52px;font-weight:700;text-transform:uppercase;line-height:1.08;}
+  .sl-dark .sl-rule{position:absolute;left:88px;right:88px;top:190px;border-top:2px solid var(--pacc);}
+  .sl-dark .sl-body{left:96px;right:88px;top:216px;bottom:36px;font-size:24px;}
+  .sl-dark .sl-body h3{border-bottom:2px solid rgba(255,255,255,.45);padding-bottom:4px;margin-bottom:14px;}
+  .sl-dark.sl-mod .sl-kicker{top:250px;font-size:56px;} .sl-dark.sl-mod .sl-rule{top:400px;} .sl-dark.sl-mod .sl-body{top:420px;font-size:26px;color:#cfcfcf;}
+
+  /* --- pregunta: dark con marco de acento y opciones clicables --- */
+  .sl-q .sl-frame{position:absolute;inset:12px;border:2px solid var(--pacc);pointer-events:none;}
+  .sl-q .sl-kicker{position:absolute;left:100px;top:118px;font-size:64px;font-weight:400;text-transform:uppercase;line-height:1;}
+  .sl-q .sl-rule{position:absolute;left:14px;width:550px;top:212px;border-top:2px solid var(--pacc);}
+  .sl-q .sl-body{left:160px;right:90px;top:250px;bottom:36px;font-size:30px;}
+  .sl-q .qwrap{counter-reset:opt;}
+  .sl-q .qwrap+.qwrap{border-top:1px solid #333;margin-top:18px;padding-top:18px;}
+  .sl-q .qwrap>b{display:block;font-size:30px;font-weight:700;margin-bottom:26px;}
+  .sl-q .opt{counter-increment:opt;position:relative;display:flex;align-items:center;background:none;border:0;border-radius:8px;padding:6px 12px;margin:2px 0;font-size:30px;line-height:1.25;color:#fff;cursor:pointer;gap:0;}
+  .sl-q .opt::before{content:counter(opt,lower-alpha) ".";flex:none;width:46px;}
+  .sl-q .opt:hover{background:rgba(255,255,255,.08);}
+  .sl-q .opt:has(input:checked){background:color-mix(in srgb,var(--pacc) 18%,transparent);outline:2px solid var(--pacc);}
+  .sl-q .opt.correct{background:rgba(22,163,74,.25);} .sl-q .opt.wrong{background:rgba(220,38,38,.25);}
+  .sl-q .opt input{position:absolute;opacity:0;width:0;height:0;margin:0;}
+  .sl-q .opt .mk{margin-left:auto;color:#cfcfcf;font-size:16px;}
+  .sl-q .qwrap>.mk{color:#bbb;font-size:18px;}
+  .sl-q .matchrow{display:flex;gap:12px;align-items:center;margin:8px 0;} .sl-q .matchrow .mp{flex:1;font-size:24px;font-weight:600;}
+  .sl-q .matchrow select,.sl-q .opentext{background:#1c1c1c;color:#fff;border:1px solid #4a4a4a;font-size:22px;}
+  .sl-q .opentext{min-height:170px;} .sl-q .opentext-ro{background:#1c1c1c;border-color:#4a4a4a;font-size:22px;}
+  .sl-q .hintbox{font-size:18px;}
+
+  /* --- split: panel diagonal oscuro + contenido sobre blanco --- */
+  .sl-split{background:#fff;color:#111;}
+  .sl-split .panel{position:absolute;left:0;top:0;width:494px;height:720px;background:#1f1f1f;overflow:hidden;}
+  .sl-split .panel::before{content:"";position:absolute;inset:0;background:#2e2e2e;clip-path:polygon(18% 0,100% 0,100% 100%,69% 100%);}
+  /* centrado vertical con flex (no translateY(-50%), que deja medio píxel y texto borroso) */
+  .sl-split .ptitle{position:absolute;left:98px;width:340px;top:0;bottom:0;display:flex;align-items:center;margin:0;font-size:34px;font-weight:700;text-transform:uppercase;color:#fff;line-height:1.15;z-index:2;}
+  .sl-split .sl-body{left:575px;right:80px;top:50px;bottom:36px;font-size:24px;display:flex;flex-direction:column;}
+  .sl-split .sl-fit{margin:auto 0;}   /* centrado vertical seguro: si desborda, queda arriba */
+  .sl-split .sl-body p{margin-bottom:10px;} .sl-split .sl-body li{margin-bottom:8px;}
+  .sl-split .sl-body h2{font-size:30px;margin-bottom:14px;}
+  .sl-split .sl-body h3{font-size:26px;text-transform:none;margin:4px 0 8px;}
+  /* variante right: panel blanco a la izquierda con el título en negro, contenido sobre oscuro */
+  .sl-split.right .panel{left:auto;right:0;width:960px;background:transparent;}
+  .sl-split.right .panel::before{background:#6a6a6a;clip-path:polygon(31% 0,100% 0,100% 100%,0 100%);}
+  .sl-split.right .panel::after{content:"";position:absolute;inset:0;background:#262626;clip-path:polygon(34.5% 0,100% 0,100% 100%,3.6% 100%);}
+  .sl-split.right .ptitle{color:#111;width:380px;left:100px;}
+  .sl-split.right .sl-body{left:655px;right:50px;top:36px;bottom:24px;color:#fff;font-size:23px;}
+  .sl-split.right .sl-body li{margin-bottom:6px;}
+  /* variante lines: fondo oscuro, título del panel entre dos líneas de acento */
+  .sl-split.lines{background:var(--pbg);color:#fff;}
+  .sl-split.lines .panel{width:520px;background:transparent;}
+  .sl-split.lines .panel::before{background:transparent;clip-path:none;left:105px;right:0;top:150px;bottom:150px;border-top:2px solid var(--pacc);border-bottom:2px solid var(--pacc);}
+  .sl-split.lines .ptitle{left:118px;width:400px;font-size:40px;}
+  .sl-split.lines .sl-body{left:655px;right:80px;font-size:30px;}
+  .sl-split.lines .sl-body h2{font-size:38px;}
+  /* theme.panel=false: sin panel diagonal, contenido a lo ancho con el título del panel pequeño arriba */
+  .sl-split.no-panel .panel,.sl-split.no-panel .ptitle{display:none;}
+  .sl-split.no-panel .sl-body{left:90px;right:90px;top:70px;}
+  .sl-split.no-panel .sl-kicker{position:absolute;left:90px;top:28px;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;}
+
+  /* --- photo-left: foto a la izquierda, contenido a la derecha sobre blanco --- */
+  .sl-photo{background:#fff;color:#111;}
+  .sl-photo .photo{position:absolute;left:0;top:0;width:486px;height:720px;object-fit:cover;object-position:var(--ppos,50% 50%);}
+  .sl-photo .sl-kicker{position:absolute;left:535px;right:85px;top:100px;font-size:34px;font-weight:700;text-transform:uppercase;line-height:1.15;}
+  .sl-photo .sl-rule{position:absolute;left:535px;right:85px;top:218px;border-top:3px solid var(--pacc);}
+  .sl-photo .sl-body{left:535px;right:85px;top:255px;bottom:40px;font-size:24px;}
+  .sl-photo .sl-body h2{font-size:30px;}
+
+  /* --- resumen y resultado como láminas --- */
+  .sl-sum .sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 40px;}
+  .sl-sum .sumrow{display:flex;gap:10px;border-bottom:1px solid #333;font-size:19px;padding:8px 2px;} .sl-sum .sumrow .st{margin-left:auto;}
+  .sl .res{font-size:30px;font-weight:700;text-align:center;padding:12px;margin-top:14px;border-radius:12px;}
+  .sl .res.pass{background:transparent;color:#4ade80;} .sl .res.fail{background:transparent;color:#f87171;}
+  .sl .actions{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:24px;}
+  .sl-sum .actions{margin-top:14px;}   /* el resumen va justo de alto: que el aviso y los botones quepan */
+  .sl .tiempo{color:#bbb !important;font-size:18px !important;text-align:center;}
+  .sl .center{margin:20px 0 0;padding:0;color:#bbb;}
+  /* Lámina de resultado: todo centrado, con márgenes iguales a los dos lados. */
+  .sl-final .sl-kicker{left:90px;right:90px;text-align:center;}
+  .sl-final .sl-rule{left:90px;right:90px;}
+  .sl-final .sl-body{left:90px;right:90px;display:flex;flex-direction:column;}
+  .sl-final .sl-fit{margin:auto 0;text-align:center;}
+  .sl .hintbox{background:rgba(254,249,195,.12);border-color:#a16207;color:#fde68a;font-size:16px;}
+  .sl .btn,.pbtn{padding:13px 30px;border:0;border-radius:10px;background:var(--pacc);color:#fff;font:700 17px system-ui,sans-serif;cursor:pointer;text-decoration:none;display:inline-block;}
+  .sl .btn.ghost,.pbtn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);}
+  .sl .btn:disabled,.pbtn:disabled{opacity:.45;cursor:not-allowed;}
+
+  /* --- cromo del reproductor: contador, flechas, pantalla de inicio, aviso --- */
+  /* Contador «n / N»: va sobre una pastilla oscura translúcida para que se lea igual
+     sobre las láminas oscuras que sobre las de fondo blanco (split, photo-left). */
+  .pres-counter{position:fixed;right:16px;bottom:12px;color:#fff;background:rgba(15,15,15,.55);padding:3px 10px;border-radius:999px;font:600 13px system-ui,sans-serif;letter-spacing:.04em;pointer-events:none;z-index:20;}
+  .pres-counter:empty{display:none;}
+  .pres-arrow{position:fixed;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.5);color:#fff;font-size:22px;line-height:1;cursor:pointer;z-index:20;transition:opacity .4s;display:flex;align-items:center;justify-content:center;padding:0;}
+  .pres-arrow.l{left:14px;} .pres-arrow.r{right:14px;}
+  .pres-arrow:hover{background:rgba(0,0,0,.75);}
+  #presRoot.idle .pres-arrow{opacity:0;}
+  .pres-start{position:fixed;inset:0;z-index:30;background:var(--pbg);color:#fff;display:flex;flex-direction:column;overflow-y:auto;text-align:center;padding:20px;font-family:Arial,Helvetica,sans-serif;container-type:inline-size;}
+  .pres-start .ps-inner{position:relative;z-index:1;margin:auto;display:flex;flex-direction:column;align-items:center;width:100%;max-width:980px;}   /* margin:auto centra sin recortar arriba si no cabe */
+  .pres-start h1{font-size:34px;margin:0 0 12px;text-transform:uppercase;max-width:800px;}
+  .pres-start p{color:#a3a3a3;margin:0 0 28px;font-size:15px;max-width:520px;line-height:1.5;}
+  .pres-start .ps-resume{margin-top:14px;color:#e5e5e5;font-size:15px;}
+  /* pantalla de entrada del curso (ítem Info con layout 'intro'): foto atenuada, título,
+     descripción y fila de datos. Tamaños en cqw: se ajustan al ancho de la pantalla de
+     entrada (y al del marco en la vista previa de seed.mjs). */
+  .pres-start .ps-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.3;pointer-events:none;}
+  .pres-start .ps-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,color-mix(in srgb,var(--pbg) 78%,transparent) 55%,var(--pbg) 100%);pointer-events:none;}
+  .pres-start.intro h1{font-size:44px;font-size:clamp(28px,5cqw,62px);line-height:1.08;text-transform:none;max-width:none;margin:0 0 18px;}
+  .pres-start .ps-rule{width:120px;border-top:3px solid var(--pacc);margin:0 auto 22px;}
+  .pres-start .ps-desc{color:#e5e5e5;font-size:18px;font-size:clamp(15px,1.7cqw,21px);line-height:1.55;max-width:760px;margin:0 0 24px;}
+  .pres-start .ps-desc p{color:inherit;font-size:inherit;line-height:inherit;max-width:none;margin:0 0 10px;}
+  .pres-start .ps-desc b{color:#fff;}
+  .pres-start .ps-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 34px;padding:14px 10px;margin:0 0 28px;border-top:1px solid rgba(255,255,255,.2);border-bottom:1px solid rgba(255,255,255,.2);}
+  .pres-start .ps-stat b{display:block;font-size:30px;font-size:clamp(22px,2.7cqw,34px);font-weight:700;color:var(--pacc);line-height:1.1;}
+  .pres-start .ps-stat span{display:block;margin-top:4px;font:600 12px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#bdbdbd;}
+  .pres-start.intro .pbtn{font-size:19px;padding:15px 46px;}
+  .pres-start .ps-hint{margin-top:12px;font:13px system-ui,sans-serif;color:#9a9a9a;letter-spacing:.02em;}
+  .pres-toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:10px;font:600 14px system-ui,sans-serif;z-index:25;opacity:0;transition:opacity .25s;pointer-events:none;max-width:min(90vw,640px);text-align:center;}
+  .pres-toast.show{opacity:1;}
+
+  /* lista de módulos en la pantalla de entrada: número, título y qué trae cada uno */
+  .pres-start .ps-mods{list-style:none;margin:0 0 22px;padding:0;width:100%;max-width:900px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:0 28px;text-align:left;font-size:15px;font-size:clamp(13px,1.35cqw,16px);}
+  .pres-start .ps-mods li{display:flex;align-items:baseline;gap:10px;padding:7px 2px;border-bottom:1px solid rgba(255,255,255,.14);}
+  .pres-start .ps-mods b{flex:none;width:1.6em;color:var(--pacc);font-weight:700;}
+  .pres-start .ps-mods span{flex:1;color:#f1f1f1;}
+  .pres-start .ps-mods small{flex:none;color:#a8a8a8;font-size:.85em;white-space:nowrap;}
+  .plight .pres-start .ps-mods li{border-bottom-color:rgba(0,0,0,.1);}
+  .plight .pres-start .ps-mods b{color:var(--pacc-d);}
+  .plight .pres-start .ps-mods span{color:#1f2937;}
+  .plight .pres-start .ps-mods small{color:#6b7280;}
+
+  /* botón «Escuchar»: solo en las láminas que tienen voz grabada (payload.narration) */
+  .pres-voice{position:fixed;left:16px;bottom:12px;z-index:20;display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:rgba(15,15,15,.62);color:#fff;font:600 14px system-ui,sans-serif;cursor:pointer;}
+  .pres-voice:hover{background:rgba(15,15,15,.8);}
+  .pres-voice:focus-visible{outline:2px solid var(--pacc);outline-offset:2px;}
+  .pres-voice.on{background:var(--pacc-d,var(--pacc));border-color:transparent;}
+  .pres-voice .ic{font-size:12px;line-height:1;}
+
+  /* --- colores derivados del acento: --pacc-d (fuerte, para fondos con texto blanco) y
+     --pacc-t (tinte suave, para cajas y tarjetas). En tema claro, el fuerte se oscurece
+     para que el texto blanco encima y el texto de acento sobre blanco se lean. --- */
+  :root{--pacc-d:var(--pacc);--pacc-t:color-mix(in srgb,var(--pacc) 16%,var(--pbg));}
+
+  /* --- band: franja de acento arriba con rótulo y título, contenido debajo --- */
+  .sl-band .band{position:absolute;left:0;right:0;top:0;height:196px;background:var(--pacc-d);}
+  .sl-band .band::after{content:"";position:absolute;left:0;bottom:-12px;width:300px;height:12px;background:var(--pacc);}
+  .sl-band .sl-kicker{position:absolute;left:90px;right:90px;top:40px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.82);}
+  .sl-band .sl-title{position:absolute;left:90px;right:90px;top:72px;height:100px;display:flex;align-items:center;margin:0;font-size:42px;font-weight:700;line-height:1.1;color:#fff;}
+  .sl-band .sl-body{left:90px;right:90px;top:240px;bottom:36px;font-size:24px;}
+
+  /* --- cards: título arriba con barra corta de acento; cada viñeta de la lista es una tarjeta --- */
+  .sl-cards .sl-kicker{position:absolute;left:90px;right:90px;top:40px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--pacc);}
+  .sl-cards .sl-title{position:absolute;left:90px;right:90px;top:70px;margin:0;font-size:40px;font-weight:700;line-height:1.1;}
+  .sl-cards .sl-rule{position:absolute;left:90px;width:120px;top:150px;border-top:6px solid var(--pacc);}
+  .sl-cards .sl-body{left:90px;right:90px;top:184px;bottom:36px;font-size:22px;}
+  .sl-cards .sl-body ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;list-style:none;padding:0;margin:6px 0 14px;}
+  .sl-cards .sl-body ul>li{margin:0;padding:18px 22px;background:var(--pacc-t);border-top:5px solid var(--pacc);border-radius:12px;line-height:1.3;}
+  .sl-cards .sl-body li ul{display:block;list-style:disc;padding-left:26px;margin:8px 0 0;}
+  .sl-cards .sl-body li li{padding:0;background:none;border:0;border-radius:0;margin:0 0 4px;}
+
+  /* --- callout: una idea destacada en caja de acento, centrada en la lámina --- */
+  .sl-callout .sl-kicker{position:absolute;left:140px;right:140px;top:54px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--pacc);}
+  .sl-callout .sl-body{left:140px;right:140px;top:100px;bottom:70px;display:flex;flex-direction:column;}
+  .sl-callout .sl-fit{margin:auto 0;background:var(--pacc-t);border-left:14px solid var(--pacc);border-radius:0 18px 18px 0;padding:40px 52px;font-size:32px;line-height:1.3;}
+  .sl-callout .sl-body h2{font-size:38px;color:var(--pacc);margin-bottom:18px;}
+  .sl-callout .sl-body p:last-child,.sl-callout .sl-body ul:last-child{margin-bottom:0;}
+
+  /* --- tema claro (theme.mode 'light'): fondo blanco, texto oscuro, adornos de acento.
+     Clase .plight en <body>. Las láminas oscuras (dark, pregunta, resumen) pasan a
+     blanco; el panel diagonal se pinta con el acento. Pasos numerados en círculos. --- */
+  .plight{--pacc-d:color-mix(in srgb,var(--pacc) 72%,#000);--pacc-t:color-mix(in srgb,var(--pacc) 11%,#fff);}
+  .plight .sl{color:#1f2937;}
+  .plight .sl-body li::marker{color:var(--pacc);}
+  .plight .sl-body a{color:var(--pacc-d);}
+  .plight .sl-body ol{list-style:none;counter-reset:st;padding-left:0;margin:0 0 10px;}
+  .plight .sl-body ol>li{counter-increment:st;position:relative;padding-left:62px;min-height:44px;margin-bottom:14px;}
+  .plight .sl-body ol>li::before{content:counter(st);position:absolute;left:0;top:-5px;width:44px;height:44px;border-radius:50%;background:var(--pacc-d);color:#fff;font-weight:700;font-size:22px;display:flex;align-items:center;justify-content:center;}
+  .plight .sl-cover .cover-band{border-color:var(--pacc);box-shadow:0 -5px 0 rgba(255,255,255,.75),0 5px 0 rgba(255,255,255,.75);}
+  .plight .sl-dark::before{content:"";position:absolute;left:0;top:44px;width:16px;height:128px;background:var(--pacc);}
+  .plight .sl-dark .sl-kicker{color:#111;}
+  .plight .sl-dark .sl-body h3{border-bottom-color:#d1d5db;}
+  .plight .sl-dark.sl-mod .sl-body{color:#4b5563;}
+  .plight .sl-cards .sl-kicker,.plight .sl-callout .sl-kicker,.plight .sl-callout .sl-body h2{color:var(--pacc-d);}
+  .plight .sl-cards .sl-title{color:#111;}
+  .plight .sl-q .sl-kicker{color:#111;}
+  .plight .sl-q::before,.plight .sl-final::before{display:none;}
+  .plight .sl-dark.sl-mod::before{top:250px;height:140px;}
+  .plight .sl-q .qwrap+.qwrap{border-top-color:#e5e7eb;}
+  .plight .sl-q .opt{color:#1f2937;}
+  .plight .sl-q .opt:hover{background:rgba(0,0,0,.05);}
+  .plight .sl-q .opt:has(input:checked){background:var(--pacc-t);outline-color:var(--pacc-d);}
+  .plight .sl-q .opt.correct{background:#dcfce7;} .plight .sl-q .opt.wrong{background:#fee2e2;}
+  .plight .sl-q .opt .mk,.plight .sl-q .qwrap>.mk{color:#6b7280;}
+  .plight .sl-q .matchrow select,.plight .sl-q .opentext,.plight .sl-q .opentext-ro{background:#fff;color:#111;border-color:#cbd5e1;}
+  .plight .sl-split .panel{background:var(--pacc-d);}
+  .plight .sl-split .panel::before{background:var(--pacc);}
+  .plight .sl-split.right .panel{background:transparent;}
+  .plight .sl-split.right .panel::before{background:var(--pacc);}
+  .plight .sl-split.right .panel::after{background:var(--pacc-d);}
+  .plight .sl-split.lines{color:#1f2937;}
+  .plight .sl-split.lines .ptitle{color:#111;}
+  .plight .sl-split.no-panel .sl-kicker{color:var(--pacc-d);}
+  .plight .sl-photo .sl-kicker{color:#111;}
+  .plight .sl-sum .sumrow{border-bottom-color:#e5e7eb;}
+  .plight .sl .res.pass{color:#15803d;} .plight .sl .res.fail{color:#b91c1c;}
+  .plight .sl .tiempo{color:#6b7280 !important;} .plight .sl .center{color:#6b7280;}
+  .plight .sl .hintbox{background:#fef9c3;border-color:#fde68a;color:#854d0e;}
+  .plight .sl .btn,.plight .pbtn{background:var(--pacc-d);}
+  .plight .sl .btn.ghost,.plight .pbtn.ghost{background:transparent;color:#1f2937;border-color:rgba(0,0,0,.25);}
+  .plight .pres-start{color:#111;}
+  .plight .pres-start p{color:#4b5563;}
+  .plight .pres-start .ps-resume,.plight .pres-start .ps-desc{color:#374151;}
+  .plight .pres-start .ps-desc b{color:#111;}
+  .plight .pres-start .ps-photo{opacity:.22;}
+  .plight .pres-start .ps-shade{background:linear-gradient(180deg,rgba(255,255,255,.2) 0%,color-mix(in srgb,var(--pbg) 80%,transparent) 55%,var(--pbg) 100%);}
+  .plight .pres-start .ps-stats{border-color:rgba(0,0,0,.12);}
+  .plight .pres-start .ps-stat b{color:var(--pacc-d);}
+  .plight .pres-start .ps-stat span,.plight .pres-start .ps-hint{color:#6b7280;}
+  
+  /* La vista previa escala cada escenario al ancho de su marco, no a la ventana */
+  .frame .pstage{left:0;top:0;transform:scale(var(--pk,1));transform-origin:top left}
+  /* La pantalla de entrada ocupa el marco (en el reproductor cubre la ventana) */
+  .frame.entry .pres-start{position:absolute;overflow:hidden}
+</style></head><body class="plight">
+<header>
+  <h1>Inteligencia Artificial: Uso Seguro, Ético y Responsable</h1>
+  <p>Uso seguro de la inteligencia artificial en el trabajo: qué información nunca se comparte, cómo reconocer información inventada, propiedad intelectual, decisiones con supervisión humana y las reglas de la empresa.</p>
+</header>
+<main>
+  <div class="note"><strong>Vista previa para revisión (modo presentación).</strong> Cada lámina se ve como en el
+  reproductor, con la respuesta correcta marcada en verde. Si el cuerpo de una lámina no cabe, aparece el aviso
+  <b>«Excede la lámina»</b> — hay que recortar el texto o repartirlo. 27 preguntas · 27 puntos · aprueba con 70%.</div>
+  <section><span class="tag">Pantalla de entrada · no cuenta como lámina</span>
+      <div class="frame entry"><div class="pres-start intro">
+        <div class="ps-inner"><h1>Inteligencia Artificial: Uso Seguro, Ético y Responsable</h1><div class="ps-rule"></div><div class="ps-desc"><p>La inteligencia artificial ya está en el correo, el celular y las herramientas de trabajo. Bien usada ahorra tiempo; mal usada puede <b>filtrar información de la empresa y de los clientes</b> o llevar a decisiones equivocadas.</p><p>En este adiestramiento verás qué es la IA, qué información nunca se le comparte, por qué hay que verificar lo que dice y cómo usarla de forma responsable en el trabajo.</p></div><ol class="ps-mods"><li><b>1</b><span>Introducción a la Inteligencia Artificial</span><small>6 láminas · 4 preguntas</small></li><li><b>2</b><span>Riesgos de Compartir Información con IA</span><small>4 láminas · 4 preguntas</small></li><li><b>3</b><span>Alucinaciones y Errores de la IA</span><small>5 láminas · 4 preguntas</small></li><li><b>4</b><span>Propiedad Intelectual y Derechos de Autor</span><small>3 láminas · 3 preguntas</small></li><li><b>5</b><span>IA en la Toma de Decisiones</span><small>4 láminas · 4 preguntas</small></li><li><b>6</b><span>Uso Responsable de IA en el Trabajo</span><small>5 láminas · 4 preguntas</small></li><li><b>7</b><span>Reglas de la Empresa para Usar IA</span><small>6 láminas · 4 preguntas</small></li></ol><div class="ps-stats"><div class="ps-stat"><b>7</b><span>módulos</span></div><div class="ps-stat"><b>35</b><span>láminas de contenido</span></div><div class="ps-stat"><b>27</b><span>preguntas</span></div><div class="ps-stat"><b>27</b><span>puntos</span></div><div class="ps-stat"><b>70 %</b><span>para aprobar</span></div><div class="ps-stat"><b>25 min</b><span>tiempo estimado</span></div></div>
+          <button class="pbtn" type="button">Comenzar</button>
+          <div class="ps-hint">Pantalla completa · avanza con → o Enter</div></div></div></div></section>
+  <section><span class="tag">Lámina 1 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">Adiestramiento</div><h1 class="sl-title">Inteligencia Artificial: Uso Seguro, Ético y Responsable</h1><div class="sl-body"><div class="sl-fit"><p>Fundamentos de la IA, riesgos de compartir información, errores de la IA, propiedad intelectual, decisiones y uso responsable en el trabajo.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 2 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Al terminar este curso podrás</div><h1 class="sl-title">Objetivos de aprendizaje</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Entender qué es la IA</b>, incluida la IA generativa y los modelos de lenguaje.</li>
+         <li><b>Identificar qué información no se comparte</b> y evitar filtraciones.</li>
+         <li><b>Reconocer errores e información inventada</b> y verificar los resultados.</li>
+         <li><b>Respetar la propiedad intelectual</b> y evitar problemas legales.</li>
+         <li><b>Evaluar decisiones apoyadas por IA</b> sin sesgos ni discriminación.</li>
+         <li><b>Usar la IA de forma responsable</b>, con revisión humana y siguiendo las reglas de la empresa.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 3 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 1 — Introducción a la Inteligencia Artificial</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>Usar la IA de forma responsable empieza por entender qué es, qué puede hacer y qué limitaciones tiene.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 4 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">INTELIGENCIA ARTIFICIAL</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>¿Qué es la inteligencia artificial?</h3><p>Es la capacidad de un sistema de computadoras de hacer tareas que normalmente requieren inteligencia humana:</p>
+       <ul><li>Analizar información y reconocer patrones.</li><li>Tomar decisiones y resolver problemas.</li><li>Generar contenido.</li><li>Entender el lenguaje de las personas.</li></ul>
+       <p><b>La IA no «piensa» ni «entiende» como una persona:</b> funciona con modelos matemáticos entrenados con enormes cantidades de datos.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 5 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">INTELIGENCIA ARTIFICIAL</div><h1 class="sl-title">¿Qué es la IA generativa?</h1><div class="sl-body"><div class="sl-fit"><p>Es la IA que crea contenido nuevo a partir de lo que aprendió: texto, imágenes, audio, video, código, resúmenes e ideas.</p>
+       <p>Por ejemplo: redactar un correo, preparar una presentación, resumir un documento largo o proponer ideas para un problema.</p>
+       <p><b>La IA generativa no copia: predice.</b> Y esa predicción puede ser útil… o completamente incorrecta.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 6 · split</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-split"><div class="panel"></div><h1 class="ptitle">INTELIGENCIA ARTIFICIAL</h1><div class="sl-body"><div class="sl-fit"><h2>Los modelos de lenguaje (LLM)</h2><p>Son modelos entrenados con enormes cantidades de texto para responder de forma fluida. Algunos conocidos: GPT, Claude, Gemini, Llama.</p>
+       <ul><li>Predicen la siguiente palabra a partir de patrones.</li><li>No verifican los datos por sí mismos.</li><li>Simulan que entienden, pero no entienden el mundo.</li><li>Pueden equivocarse con total seguridad.</li><li>Muchas herramientas guardan tus conversaciones o una «memoria»: lo que escribes puede quedar guardado.</li></ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 7 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Cuáles se pueden usar lo decide la empresa (módulo 8)</div><h1 class="sl-title">Herramientas más conocidas</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>ChatGPT</b><br>De OpenAI. Genera textos, ideas, código y análisis.</li>
+         <li><b>Claude</b><br>De Anthropic. Útil para análisis y documentos largos.</li>
+         <li><b>Gemini</b><br>De Google, integrado con Gmail, Docs y Drive.</li>
+         <li><b>Copilot</b><br>De Microsoft, integrado con Windows y Office.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 8 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">INTELIGENCIA ARTIFICIAL</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Usos en el trabajo</h3><p>En una empresa de logística, la IA puede ayudar a:</p>
+       <ul><li>Redactar y corregir correos y avisos.</li><li>Resumir documentos largos y traducir textos que no son confidenciales.</li><li>Ordenar ideas para planificar rutas, inventario o procesos.</li><li>Preparar borradores de respuestas para clientes, sin datos personales.</li></ul>
+       <p>Es una herramienta poderosa, siempre que se use de forma segura, ética y responsable.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 9 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 1</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué es la Inteligencia Artificial?</b><div><label class="opt ">Un sistema que piensa como un humano</label><label class="opt correct">Tecnología que realiza tareas basadas en patrones y datos<span class="mk">✔ correcta</span></label><label class="opt ">Un programa que nunca se equivoca</label><label class="opt ">Un sistema de entretenimiento</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 10 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 2</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué es IA generativa?</b><div><label class="opt ">IA que solo analiza datos</label><label class="opt correct">IA que crea contenido nuevo<span class="mk">✔ correcta</span></label><label class="opt ">IA que solo responde preguntas</label><label class="opt ">IA que no puede generar texto</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 11 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un empleado usa IA para redactar un informe. La herramienta genera un texto que se lee bien, pero incluye datos incorrectos y referencias inventadas.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 12 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 3</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del informe, ¿qué debe hacer el empleado?</b><div><label class="opt ">Enviar el informe sin revisar</label><label class="opt correct">Verificar la información antes de usarla<span class="mk">✔ correcta</span></label><label class="opt ">Asumir que la IA siempre tiene razón</label><label class="opt ">Compartir datos sensibles para mejorar la respuesta</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 13 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 4</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>Los LLMs entienden el mundo como un humano.</b><div><label class="opt ">Verdadero</label><label class="opt correct">Falso<span class="mk">✔ correcta</span></label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 14 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 2 — Riesgos de Compartir Información con IA</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>Muchas herramientas de IA envían lo que escribes a servidores externos. Compartir información sensible puede provocar una filtración que no se puede deshacer.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 15 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Aunque sea para ahorrar tiempo</div><h1 class="sl-title">Lo que nunca va a una IA pública</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Información confidencial</b><br>Estrategias, planes, procedimientos y políticas internas.</li>
+         <li><b>Datos de clientes</b><br>Nombres, direcciones, teléfonos, pedidos, información financiera.</li>
+         <li><b>Datos de empleados</b><br>Información personal, evaluaciones, nómina.</li>
+         <li><b>Contratos</b><br>Tarifas, cláusulas y acuerdos de confidencialidad.</li>
+         <li><b>Información financiera interna</b><br>Presupuestos, resultados, proyecciones.</li>
+         <li><b>Contraseñas y accesos</b><br>Y también código o configuraciones de los sistemas.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 16 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">INTELIGENCIA ARTIFICIAL</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Datos de clientes y de salud: lo que dice la ley</h3><p>Los datos personales y de salud están protegidos por ley. Pegarlos en una IA pública puede ser una violación legal.</p>
+       <ul><li><b>HIPAA</b> protege la información de salud de los pacientes: diagnósticos, medicamentos, órdenes médicas. Ninguna IA pública está autorizada para recibirla.</li><li>En Puerto Rico, la <b>Ley Núm. 111-2005</b> obliga a avisar a las personas cuando se filtra su información personal.</li></ul>
+       <p>Consecuencias: demandas, multas y pérdida de la confianza de los clientes.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 17 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">INTELIGENCIA ARTIFICIAL</div><h1 class="sl-title">Casos y ejemplos</h1><div class="sl-body"><div class="sl-fit"><p><b>Caso real: Samsung (2023).</b> Empleados pegaron código interno en ChatGPT para corregir errores. La información quedó en
+       servidores externos y la empresa restringió el uso de estas herramientas.</p>
+       <p><b>Ejemplos de lo que puede pasar:</b> un analista pega datos de clientes para preparar un informe; un empleado pega un contrato
+       para resumirlo; alguien escribe información médica de un paciente. En todos, la información sale de la empresa sin permiso.</p>
+       <p><b>La IA no es peligrosa. El peligro es compartir lo que nunca debió salir de la empresa.</b></p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 18 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 5</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Cuál es el mayor riesgo al compartir información con IA pública?</b><div><label class="opt ">Respuestas lentas</label><label class="opt correct">Filtración de datos sensibles<span class="mk">✔ correcta</span></label><label class="opt ">Falta de creatividad</label><label class="opt ">Problemas de conexión</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 19 · MultiSelect · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 6</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué consecuencias puede tener una filtración?</b> <span class="mk">(varias correctas)</span><div><label class="opt correct">Multas legales<span class="mk">✔ correcta</span></label><label class="opt correct">Pérdida de clientes<span class="mk">✔ correcta</span></label><label class="opt ">Mejora de reputación</label><label class="opt correct">Despido del empleado<span class="mk">✔ correcta</span></label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 20 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un empleado copia y pega un contrato confidencial en una IA pública para pedir un resumen. La herramienta procesa el documento y responde.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 21 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 7</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del contrato, ¿qué riesgo ocurrió?</b><div><label class="opt ">Ninguno</label><label class="opt correct">Filtración de información legal<span class="mk">✔ correcta</span></label><label class="opt ">Error técnico</label><label class="opt ">Problema de formato</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 22 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 8</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del contrato, ¿qué debió hacer el empleado?</b><div><label class="opt correct">Usar una herramienta aprobada por la empresa<span class="mk">✔ correcta</span></label><label class="opt ">Compartir más información para mejorar la respuesta</label><label class="opt ">Enviar el contrato sin revisar</label><label class="opt ">Publicarlo en redes sociales</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 23 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 3 — Alucinaciones y Errores de la IA</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>La IA puede presentar información inventada como si fuera 100 % real. No es una falla: es cómo funcionan estos modelos. Por eso todo se verifica.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 24 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">INTELIGENCIA ARTIFICIAL</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>¿Qué es una alucinación?</h3><p>Es cuando la IA:</p>
+       <ul><li>Da información incorrecta o inventa datos.</li><li>Crea fuentes que no existen.</li><li>Mezcla hechos reales con ficción.</li><li>Responde con seguridad aunque no tenga información suficiente.</li></ul>
+       <p>No lo hace a propósito: son predicciones que parecen reales, pero no lo son. Por ejemplo, una ley, un estudio o una cita que no existe.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 25 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Cuando la IA «rellena» lo que no sabe</div><h1 class="sl-title">Datos incorrectos e inventados</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Fechas</b><br>Dice que algo pasó en 2021 cuando fue en 2019.</li>
+         <li><b>Cifras</b><br>Inventa números de ventas, costos o inventario.</li>
+         <li><b>Nombres y documentos</b><br>Inventa empleados, números de contrato o registros internos.</li>
+       </ul>
+       <p>En el trabajo, un dato incorrecto puede llevar a una decisión equivocada o a un error en la operación.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 26 · split</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-split"><div class="panel"></div><h1 class="ptitle">INTELIGENCIA ARTIFICIAL</h1><div class="sl-body"><div class="sl-fit"><h2>Fuentes falsas</h2><p>La IA puede inventar artículos, estudios, citas de expertos y enlaces que no funcionan, con un formato perfecto.</p>
+       <p><b>Caso real:</b> en 2023, en Nueva York, unos abogados presentaron a un tribunal un escrito con casos inventados por ChatGPT
+       (caso Mata contra Avianca). El juez los multó con 5,000 dólares y el caso dio la vuelta al mundo.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 27 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Verificación de resultados</div><div class="sl-body"><div class="sl-fit"><h2>Si la información es importante, se verifica. Siempre.</h2><p>La IA es una herramienta de apoyo, no una fuente. Confirma las cifras con los documentos de la empresa, las leyes y políticas con
+       la fuente oficial, y revisa los enlaces y las referencias. Si hace falta, consulta a quien sabe.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 28 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 9</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué es una alucinación de IA?</b><div><label class="opt ">Un error visual</label><label class="opt correct">Información inventada presentada como real<span class="mk">✔ correcta</span></label><label class="opt ">Un problema de hardware</label><label class="opt ">Un fallo de conexión</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 29 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 10</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué es una fuente falsa?</b><div><label class="opt ">Un documento oficial</label><label class="opt correct">Una referencia inventada por la IA<span class="mk">✔ correcta</span></label><label class="opt ">Un enlace verificado</label><label class="opt ">Un estudio académico real</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 30 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un empleado usa IA para preparar un análisis. La herramienta produce cifras que parecen correctas, pero ninguna coincide con los reportes oficiales.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 31 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 11</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso de las cifras que no coinciden, ¿qué ocurrió?</b><div><label class="opt ">Un error de formato</label><label class="opt correct">Una alucinación de IA<span class="mk">✔ correcta</span></label><label class="opt ">Un problema de impresión</label><label class="opt ">Un fallo del servidor</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 32 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 12</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso de las cifras que no coinciden, ¿qué debe hacer el empleado?</b><div><label class="opt ">Usar las cifras generadas</label><label class="opt correct">Verificar los datos con reportes oficiales<span class="mk">✔ correcta</span></label><label class="opt ">Compartir el análisis sin revisar</label><label class="opt ">Pedirle a la IA que invente más datos</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 33 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 4 — Propiedad Intelectual y Derechos de Autor</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>Que la IA pueda generar un texto o una imagen no significa que se pueda usar sin restricciones.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 34 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">INTELIGENCIA ARTIFICIAL</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Lo que genera la IA puede tener dueño</h3><p>Libros, fotos, música, logos, diseños y textos de otros están protegidos por derechos de autor. La IA puede generar algo muy
+       parecido a una obra protegida, sin que lo busques.</p>
+       <ul><li>Una imagen generada puede parecerse demasiado a una foto con derechos.</li><li>Un texto puede repetir frases de un artículo protegido.</li><li>No todas las herramientas permiten usar lo generado en anuncios o productos.</li></ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 35 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">INTELIGENCIA ARTIFICIAL</div><h1 class="sl-title">Riesgos legales</h1><div class="sl-body"><div class="sl-fit"><p>Usar sin revisar lo que genera la IA puede traer reclamaciones por derechos de autor, uso indebido de marcas o de la imagen
+       de una persona, y daño a la reputación.</p>
+       <p>Hay demandas de artistas y agencias de fotos contra las empresas que crean estas herramientas (por ejemplo, Getty Images contra
+       Stability AI, 2023). El tema legal no está resuelto: por eso se revisa antes de publicar algo generado con IA.</p>
+       <p><b>La IA no quita la responsabilidad legal de quien la usa.</b></p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 36 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 13</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué es material protegido?</b><div><label class="opt ">Contenido público</label><label class="opt correct">Obras con derechos de autor<span class="mk">✔ correcta</span></label><label class="opt ">Información irrelevante</label><label class="opt ">Contenido sin dueño</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 37 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un empleado usa IA para hacer la imagen del volante de una promoción. La imagen imita claramente el estilo de un artista famoso.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 38 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 14</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del volante de la promoción, ¿qué riesgo existe?</b><div><label class="opt ">Ninguno</label><label class="opt correct">Violación de derechos de autor<span class="mk">✔ correcta</span></label><label class="opt ">Mejora de creatividad</label><label class="opt ">Uso permitido automáticamente</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 39 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 15</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>El usuario es responsable del contenido generado por IA.</b><div><label class="opt correct">Verdadero<span class="mk">✔ correcta</span></label><label class="opt ">Falso</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 40 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 5 — IA en la Toma de Decisiones</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>La IA puede analizar y recomendar, pero no entiende consecuencias, ética ni el impacto en las personas. La decisión la toma una persona.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 41 · split</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-split"><div class="panel"></div><h1 class="ptitle">INTELIGENCIA ARTIFICIAL</h1><div class="sl-body"><div class="sl-fit"><h2>Sesgos y discriminación</h2><p>La IA aprende de datos del pasado. Si esos datos tienen sesgos (de género, edad, origen o idioma), la IA los repite y los agranda.</p>
+       <p><b>Caso real:</b> en 2018, Amazon dejó de usar una herramienta de contratación que favorecía a los hombres porque había aprendido
+       de solicitudes de años anteriores (Reuters).</p>
+       <p>La IA puede discriminar sin intención, pero con un impacto real y consecuencias legales.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 42 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Supervisión humana</div><div class="sl-body"><div class="sl-fit"><h2>La IA asiste, pero no decide</h2><p>Cuando la IA recomienda, evalúa personas, clasifica casos o sugiere acciones, una persona valida la información, corrige errores,
+       detecta sesgos y toma la decisión final.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 43 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">INTELIGENCIA ARTIFICIAL</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Responsabilidad final</h3><p>La responsabilidad siempre es de quien usa la IA:</p>
+       <ul><li>Si la IA se equivoca, el responsable es quien la usó.</li><li>Si inventa información, el empleado debe detectarla.</li><li>Si recomienda algo, el empleado debe evaluarlo.</li></ul>
+       <p>La IA no puede ser demandada, disciplinada ni despedida.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 44 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 16</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué rol tiene la supervisión humana?</b><div><label class="opt ">Ninguno</label><label class="opt correct">Validar y corregir resultados de IA<span class="mk">✔ correcta</span></label><label class="opt ">Dejar que la IA decida</label><label class="opt ">Ignorar recomendaciones</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 45 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 17</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Quién tiene la responsabilidad final?</b><div><label class="opt ">La IA</label><label class="opt correct">El empleado que la usa<span class="mk">✔ correcta</span></label><label class="opt ">El servidor</label><label class="opt ">El modelo de lenguaje</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 46 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un sistema de IA recomienda rechazar a un candidato porque su universidad no aparece en los datos del modelo. El reclutador acepta la recomendación sin revisar.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 47 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 18</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del candidato rechazado, ¿qué ocurrió?</b><div><label class="opt ">Un proceso correcto</label><label class="opt correct">Discriminación algorítmica<span class="mk">✔ correcta</span></label><label class="opt ">Un error administrativo</label><label class="opt ">Un caso sin impacto</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 48 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 19</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del candidato rechazado, ¿qué debió hacer el reclutador?</b><div><label class="opt ">Aceptar la recomendación sin revisar</label><label class="opt correct">Evaluar al candidato con criterios humanos<span class="mk">✔ correcta</span></label><label class="opt ">Dejar que la IA tome la decisión</label><label class="opt ">Ignorar el proceso</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 49 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 6 — Uso Responsable de IA en el Trabajo</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>La IA no reemplaza el criterio de una persona y no distingue entre información pública y confidencial. Estas son las reglas para usarla bien.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 50 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Qué se puede compartir</div><div class="sl-body"><div class="sl-fit"><h2>Si lo puedes publicar en la página web de la empresa, lo puedes compartir con la IA.</h2><p>Preguntas generales, conceptos, ideas, ejercicios de redacción sin datos sensibles e información que la empresa ya publicó.
+       Nada que identifique personas, que sea interno o que esté protegido por un acuerdo de confidencialidad.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 51 · split</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-split"><div class="panel"></div><h1 class="ptitle">INTELIGENCIA ARTIFICIAL</h1><div class="sl-body"><div class="sl-fit"><h2>Prompts seguros</h2><p>Un prompt (lo que le escribes a la IA) es seguro cuando no tiene nombres reales, datos de clientes, empleados o proveedores, ni documentos internos.</p>
+       <p><b>Sí:</b> «Redacta un aviso de retraso de entrega, amable y breve, sin nombres».</p>
+       <p><b>Sí:</b> «Dame ideas para organizar mejor el inventario de un almacén».</p>
+       <p><b>No:</b> «Resume este contrato con el cliente» o «Analiza esta lista de clientes con sus direcciones».</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 52 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">INTELIGENCIA ARTIFICIAL</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Revisión humana y aprobaciones</h3><p><b>Todo lo que genera la IA lo revisa una persona</b> antes de enviarlo a un cliente, publicarlo, usarlo en un documento oficial o decidir con él:
+       que sea correcto, coherente, legal y profesional.</p>
+       <p><b>Necesita aprobación previa</b> lo que tenga que ver con contenido legal, financiero o médico, lo que se publica fuera de la empresa,
+       lo que afecta a clientes o proveedores y las automatizaciones de procesos. Pregunta a tu supervisor.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 53 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Qué pasó y qué debió hacerse</div><h1 class="sl-title">Dos errores comunes</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>La lista de clientes</b><br>Un empleado pega en ChatGPT una hoja de Excel con nombres, correos y direcciones de clientes para pedir un análisis. Esos datos ya salieron de la empresa y no se pueden recuperar. Debió usar una herramienta aprobada o quitar los datos personales.</li>
+         <li><b>La queja del cliente</b><br>Otro pega el reclamo de un cliente, con su nombre y número de cuenta, para que la IA redacte la respuesta. Debió escribir el prompt sin datos personales y usar las plantillas de la empresa.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 54 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 20</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué tipo de información puede compartirse con IA?</b><div><label class="opt correct">Información pública<span class="mk">✔ correcta</span></label><label class="opt ">Estados financieros internos</label><label class="opt ">Datos de clientes</label><label class="opt ">Código fuente real</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 55 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 21</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué es un prompt seguro?</b><div><label class="opt ">Uno que incluye datos internos</label><label class="opt correct">Uno que no contiene información sensible<span class="mk">✔ correcta</span></label><label class="opt ">Uno que pega contratos reales</label><label class="opt ">Uno que expone código interno</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 56 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un empleado copia y pega un archivo con datos de clientes en una IA pública para pedir un análisis. La herramienta genera un reporte detallado.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 57 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 22</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del archivo de clientes, ¿qué ocurrió?</b><div><label class="opt ">Un uso correcto</label><label class="opt correct">Una violación grave de seguridad<span class="mk">✔ correcta</span></label><label class="opt ">Un análisis permitido</label><label class="opt ">Un proceso normal</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 58 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 23</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del archivo de clientes, ¿qué debió hacer el empleado?</b><div><label class="opt correct">Usar una herramienta aprobada por la empresa<span class="mk">✔ correcta</span></label><label class="opt ">Compartir más datos para mejorar la respuesta</label><label class="opt ">Publicar el análisis</label><label class="opt ">Ignorar políticas</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 59 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 8 — Reglas de la Empresa para Usar IA</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>Las reglas protegen a la empresa, a los clientes y a los empleados. Si tienes dudas, pregunta antes de usar la IA.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 60 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">INTELIGENCIA ARTIFICIAL</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Uso permitido</h3><p>La IA se puede usar para tareas que no incluyen información sensible y no crean riesgos legales:</p>
+       <ul><li>Redactar textos generales.</li><li>Buscar ideas y explicaciones.</li><li>Resumir o traducir contenido público.</li><li>Tareas internas que la empresa aprobó.</li></ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 61 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Además de compartir información sensible</div><h1 class="sl-title">Uso prohibido</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Evaluar personas</b><br>Empleados, candidatos o clientes.</li>
+         <li><b>Decidir sin supervisión</b><br>La decisión final es de una persona.</li>
+         <li><b>Contenido legal o financiero</b><br>Sin la aprobación que corresponde.</li>
+         <li><b>Automatizar procesos</b><br>Sin autorización de la empresa.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 62 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">INTELIGENCIA ARTIFICIAL</div><h1 class="sl-title">Herramientas autorizadas</h1><div class="sl-body"><div class="sl-fit"><p>Usa solo las herramientas de IA que la empresa haya aprobado. Una herramienta aprobada cumple con controles de seguridad,
+       protección de datos y acuerdos de privacidad.</p>
+       <p>Si no sabes si una herramienta está aprobada, <b>pregunta a tu supervisor antes de usarla</b>.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 63 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">INTELIGENCIA ARTIFICIAL</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Consecuencias del mal uso</h3><p>Usar mal la IA, por ejemplo filtrando datos de clientes o de la empresa, puede llevar a medidas disciplinarias según las
+       políticas de la empresa, además de las consecuencias legales para la empresa.</p>
+       <p><b>Cada empleado es responsable del uso que hace de la IA.</b></p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 64 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Aceptación</div><div class="sl-body"><div class="sl-fit"><h2>Tu compromiso</h2><p>Al completar este adiestramiento queda registrado en Aprendor que conoces estas reglas. Cúmplelas, reporta los usos indebidos
+       y, ante cualquier duda, consulta a tu supervisor o a Recursos Humanos.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 65 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 24</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué es uso permitido?</b><div><label class="opt ">Compartir datos internos</label><label class="opt correct">Usar IA con información pública<span class="mk">✔ correcta</span></label><label class="opt ">Pegar contratos</label><label class="opt ">Compartir código fuente</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 66 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 25</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué está prohibido?</b><div><label class="opt ">Ideas creativas</label><label class="opt correct">Información confidencial<span class="mk">✔ correcta</span></label><label class="opt ">Conceptos generales</label><label class="opt ">Ejemplos ficticios</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 67 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 26</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué define una herramienta autorizada?</b><div><label class="opt ">Que sea popular</label><label class="opt correct">Que cumpla con seguridad y privacidad<span class="mk">✔ correcta</span></label><label class="opt ">Que sea gratuita</label><label class="opt ">Que no requiera aprobación</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 68 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un empleado usa ChatGPT público para resumir un contrato interno.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 69 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 27</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del contrato en una IA pública, ¿qué ocurrió?</b><div><label class="opt ">Uso permitido</label><label class="opt correct">Violación de política<span class="mk">✔ correcta</span></label><label class="opt ">Proceso autorizado</label><label class="opt ">Mejora de productividad</label></div></div></div></div></div></div></div></div></div></section>
+</main>
+<script>
+  // Escala cada escenario al ancho del marco y marca las láminas que desbordan
+  // (misma regla que presFitOverflow en player.html, sin encoger: aquí se avisa).
+  const root = document.documentElement;
+  root.style.setProperty('--pbg', "#ffffff");
+  root.style.setProperty('--pacc', "#059669");
+  // Solo los marcos con escenario: la tarjeta de entrada (.frame.entry) no tiene .pstage.
+  function fit(){ document.querySelectorAll('.frame').forEach(f => { const st = f.querySelector('.pstage'); if (st) st.style.setProperty('--pk', f.clientWidth / 1280); }); }
+  function check(){
+    document.querySelectorAll('.sl').forEach(s => {
+      const body = s.querySelector('.sl-body'), fitEl = s.querySelector('.sl-fit');
+      if (!body || !fitEl || s.querySelector('.sl-over')) return;
+      if (fitEl.scrollHeight > body.clientHeight + 1) { const b = document.createElement('div'); b.className = 'sl-over'; b.textContent = 'Excede la lámina'; s.appendChild(b); }
+    });
+  }
+  fit(); addEventListener('resize', fit); addEventListener('load', check); setTimeout(check, 300);
+</script>
+</body></html>

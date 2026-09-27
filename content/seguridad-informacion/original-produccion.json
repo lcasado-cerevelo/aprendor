@@ -1,0 +1,2525 @@
+{
+ "exportado": "2026-09-27",
+ "titulo": "Seguridad de la Información para Empleados",
+ "version": 3,
+ "nota": "Contenido tal como estaba en la base de producción antes del recorte (los emojis se perdieron en la exportación).",
+ "items": [
+  {
+   "order": 0,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Seguridad de la Información para Empleados",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<svg viewBox=\"0 0 64 64\" width=\"84\" height=\"84\" fill=\"none\" stroke=\"#1d4ed8\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:block;margin:0 auto 14px\"><path d=\"M32 6l20 8v14c0 13-8.5 22-20 26C20.5 50 12 41 12 28V14z\"/><path d=\"M24 32l6 6 12-12\"/></svg><p style=\"text-align:center;font-size:15px;color:#475569\">Prácticas esenciales, prevención de amenazas y respuesta a incidentes.</p><div style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin:16px auto 0;max-width:430px;color:#334155;font-size:14px\"><div style=\"margin:4px 0\">?? <b>8 módulos</b></div><div style=\"margin:4px 0\">?? Evaluación de selección múltiple (80 puntos)</div><div style=\"margin:4px 0\">? Aprobación: <b>70%</b></div><div style=\"margin:4px 0\">?? Duración estimada: ~50–65 minutos</div></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 1,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Bienvenido al curso de Seguridad de la Información",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "¿Por qué este curso importa?",
+      "span": "full"
+     },
+     {
+      "type": "text",
+      "html": "<div><br></div>\"El mayor riesgo para una organización no siempre está en la tecnología. Muchas veces comienza con una decisión humana: abrir un archivo, compartir una contraseña o ignorar una alerta.\"",
+      "span": "full"
+     },
+     {
+      "type": "media",
+      "mediaUrl": "/media/2f9fc393-23f7-464e-ba98-711be70b356d",
+      "mediaType": "image/jpeg",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 2,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Objetivos de aprendizaje",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Al finalizar este curso, el participante será capaz de:</p><ul><li><b>Identificar principios básicos</b> de seguridad de la información y su importancia en el entorno corporativo.</li><li><b>Reconocer amenazas comunes</b> como phishing, malware, ingeniería social y fugas de datos.</li><li><b>Aplicar buenas prácticas</b> para proteger información digital y física.</li><li><b>Detectar correos sospechosos</b> y responder adecuadamente.</li><li><b>Proteger credenciales</b> mediante contraseñas seguras y autenticación multifactor.</li><li><b>Actuar correctamente ante incidentes</b> siguiendo los protocolos internos.</li></ul>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 3,
+   "type": "ModuleHeader",
+   "points": 0,
+   "payload": {
+    "title": "Módulo 1 — Introducción a la Seguridad de la Información",
+    "subtitle": "Duración estimada: 8–10 minutos"
+   }
+  },
+  {
+   "order": 4,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Temas y subtemas del módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>En este módulo verás:</p><ul><li>¿Qué es la seguridad de la información?</li><li>Clasificación de la información<ul><li>Público</li><li>Interno</li><li>Confidencial</li><li>Altamente confidencial / Restringido</li></ul></li><li>¿Qué es información confidencial?</li><li>¿Por qué ocurren los ataques?</li><li>Casos reales de empresas afectadas</li><li>Costos económicos y reputacionales</li></ul>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 5,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Introducción",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>La seguridad de la información es un componente esencial en cualquier organización moderna. No se trata únicamente de proteger computadoras o redes, sino de garantizar que los datos —el activo más valioso de una empresa— se mantengan seguros, íntegros y disponibles. En este módulo, el objetivo es que el participante comprenda qué es la información confidencial, por qué los ataques ocurren y cuál es el impacto real que pueden tener en una empresa.</p>",
+      "span": "full"
+     },
+     {
+      "type": "media",
+      "mediaUrl": "/media/0ff0d514-c0bc-4b14-b2ab-e1f52a99855f",
+      "mediaType": "image/jpeg",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 6,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "¿Qué es la seguridad de la información?",
+    "blocks": [
+     {
+      "type": "media",
+      "mediaUrl": "/media/0dc74e51-536a-47c6-916a-a5a5288e7637",
+      "mediaType": "image/png",
+      "span": "full"
+     },
+     {
+      "type": "text",
+      "html": "<p>La <a href=\"https://www.youtube.com/watch?v=fkrsaWn5tjo\" title=\"https://www.youtube.com/watch?v=fkrsaWn5tjo\" target=\"_blank\">seguridad de la información</a> se basa en tres principios fundamentales conocidos como el triángulo CIA:</p><p><b>Confidencialidad</b> — La información solo debe ser accesible para quienes están autorizados.</p><p><b>Integridad</b> — Los datos deben mantenerse correctos y sin alteraciones no autorizadas.</p><p><b>Disponibilidad </b>— La información debe estar accesible cuando los usuarios la necesiten.</p><p>Estos tres elementos funcionan como un sistema interdependiente. Si uno falla, la seguridad se compromete. Por ejemplo, un ataque de ransomware afecta la disponibilidad; una filtración afecta la confidencialidad; y una manipulación de datos afecta la integridad.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 7,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Clasificación de la información",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Para proteger adecuadamente la información, es necesario clasificarla según su nivel de sensibilidad. Esta clasificación permite aplicar controles adecuados y evitar que datos críticos caigan en manos equivocadas.</p><p>Las categorías más comunes son:</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Público</b><p>Información que puede compartirse libremente sin riesgo. Ejemplos: manuales publicados, comunicados oficiales, contenido del sitio web.</p></div><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Interno</b><p>Información destinada únicamente a empleados o colaboradores. Ejemplos: organigramas, políticas internas, extensiones telefónicas.</p></div><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Confidencial</b><p>Información que podría causar daño si se divulga sin autorización. Ejemplos: datos personales, información financiera, documentos internos.</p></div><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Altamente confidencial / Restringido</b><p>Información crítica cuyo acceso está limitado a roles específicos. Ejemplos: contraseñas, llaves API, planes estratégicos, código fuente.</p><p>Esta clasificación es fundamental para entender las actividades del módulo y para aplicar controles adecuados en el día a día.</p></div>",
+      "span": "full"
+     },
+     {
+      "type": "media",
+      "mediaUrl": "/media/9e3449fd-8c30-402f-8991-938a678ad5e2",
+      "mediaType": "image/png",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 8,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "¿Qué es información confidencial?",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>La <b>información confidencial</b> es cualquier dato que, si se divulga sin autorización, puede causar daño económico, legal o reputacional. No toda la información tiene el mismo nivel de sensibilidad, pero toda debe manejarse con responsabilidad.</p><p>Ejemplos comunes incluyen:</p><ul><li>Datos personales de empleados o clientes.</li></ul><ul><li>Información financiera interna.</li></ul><ul><li>Contraseñas, tokens, llaves API.</li></ul><ul><li>Propiedad intelectual como código fuente o diseños.</li></ul><ul><li>Estrategias, contratos y documentos internos.</li></ul><p>&nbsp;Un error común es pensar que “no manejo información importante”. En realidad, cualquier empleado puede ser un punto de entrada para un atacante, incluso si solo maneja datos operacionales.<br><br></p>",
+      "span": "full"
+     },
+     {
+      "type": "text",
+      "html": "Los atacantes suelen aprovechar errores humanos como contraseñas débiles, hacer clic en enlaces maliciosos o compartir información sin verificar.<br><br><div><b>Ver video</b>: <a href=\"https://www.youtube.com/watch?v=g6tO3ObVvEc\" title=\"https://www.youtube.com/watch?v=g6tO3ObVvEc\" target=\"_blank\">El factor humano en la seguridad informatica.</a></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 9,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "¿Por qué ocurren los ataques?",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Los ataques no ocurren por casualidad. Los atacantes —ya sean individuos, grupos criminales o incluso actores estatales— buscan obtener algún tipo de beneficio. Las motivaciones más frecuentes incluyen:</p><ul><li><b>Ganancias económicas</b>, como extorsión mediante ransomware.</li></ul><ul><li><b>Acceso a información valiosa</b> para venderla en la dark web.</li></ul><ul><li><b>Espionaje corporativo</b>, especialmente en industrias competitivas.</li></ul><ul><li><b>Sabotaje</b>, con el fin de afectar operaciones o reputación.</li></ul><p data-start=\"3350\" data-end=\"3422\">Más del 90% de incidentes de seguridad involucran algún elemento humano. Por eso, la capacitación es una de las defensas más efectivas.</p>",
+      "span": "full"
+     },
+     {
+      "type": "text",
+      "html": "<p data-start=\"913\" data-end=\"1090\">Un ejemplo común de cómo se aprovecha este factor humano es el <strong data-start=\"976\" data-end=\"988\"><a href=\"https://www.youtube.com/watch?v=s6xbg6jbTKo\" title=\"https://www.youtube.com/watch?v=s6xbg6jbTKo\" target=\"_blank\">phishing</a></strong>, donde los atacantes engañan a los usuarios para robar credenciales o acceso a sistemas corporativos.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 10,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Casos reales de empresas afectadas",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Los incidentes de seguridad no son hipotéticos. Empresas de todos los tamaños han sufrido ataques que han paralizado operaciones completas. Algunos ejemplos relevantes:</p><ul><li><b>Equifax (2017)</b>: una vulnerabilidad no corregida permitió la filtración de datos de 147 millones de personas.</li></ul><ul><li><b>Colonial Pipeline (2021)</b>: un ataque de ransomware detuvo el suministro de combustible en la costa este de EE. UU.</li></ul><ul><li><b>Uber (2022)</b>: un atacante obtuvo acceso a sistemas internos mediante ingeniería social a un empleado.</li></ul><p>Estos casos demuestran que incluso organizaciones con grandes recursos pueden ser vulnerables si fallan los controles básicos.</p>",
+      "span": "full"
+     },
+     {
+      "type": "media",
+      "mediaUrl": "/media/98930468-a76e-4f4b-8a7e-cdc31e047314",
+      "mediaType": "image/jpeg",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 11,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Costos económicos y reputacionales",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Un incidente de seguridad puede generar consecuencias graves. Los costos no se limitan a la reparación técnica; incluyen multas regulatorias, pérdida de clientes, interrupción de operaciones y daño a la marca. En algunos casos, el impacto reputacional es tan grande que la empresa nunca se recupera completamente.</p><p>Entre los costos más comunes se encuentran:</p><ul><li>Multas por incumplimiento de leyes de protección de datos.</li></ul><ul><li>Gastos de recuperación y respuesta a incidentes.</li></ul><ul><li>Pérdida de ingresos por interrupción de servicios.</li></ul><ul><li>Demandas legales de clientes o socios.</li></ul><ul><li>Pérdida de confianza del mercado.</li></ul>",
+      "span": "full"
+     },
+     {
+      "type": "media",
+      "mediaUrl": "/media/329f5334-817f-435b-bbb5-a3f8310f221c",
+      "mediaType": "image/png",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 12,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Resumen del módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p data-start=\"4695\" data-end=\"4729\">Después de este módulo aprendiste:</p>\n<p data-start=\"4731\" data-end=\"4877\">? Qué es seguridad de información<br data-start=\"4764\" data-end=\"4767\">\n? Cómo proteger datos<br data-start=\"4788\" data-end=\"4791\">\n? Qué información es sensible<br data-start=\"4820\" data-end=\"4823\">\n? Por qué ocurren ataques<br data-start=\"4848\" data-end=\"4851\">\n? Cómo actuar ante riesgos</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 13,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Comprensión del Módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<b>Seleccione la mejor alternativa</b>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 14,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "El manual de usuario publicado en la página web de la empresa es",
+    "options": [
+     {
+      "id": "a",
+      "text": "Confidencial"
+     },
+     {
+      "id": "b",
+      "text": "Interno"
+     },
+     {
+      "id": "c",
+      "text": "Público"
+     },
+     {
+      "id": "d",
+      "text": "Altamente confidencial"
+     }
+    ],
+    "correctOptionId": "c",
+    "samePage": true
+   }
+  },
+  {
+   "order": 15,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "El número de cuenta bancaria de un cliente es",
+    "options": [
+     {
+      "id": "a",
+      "text": "Público"
+     },
+     {
+      "id": "b",
+      "text": "Confidencial"
+     },
+     {
+      "id": "c",
+      "text": "Interno"
+     },
+     {
+      "id": "d",
+      "text": "No clasificado"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 19,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Caso práctico",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Un empleado descargó información de clientes en un USB personal para “trabajar desde casa”. El USB no está cifrado y se perdió en un taxi.</b></div><p><br></p>",
+      "span": "full"
+     }
+    ],
+    "samePage": true
+   }
+  },
+  {
+   "order": 20,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué tipo de información está comprometida?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Información pública"
+     },
+     {
+      "id": "b",
+      "text": "Información de clientes"
+     },
+     {
+      "id": "c",
+      "text": "Información irrelevante"
+     },
+     {
+      "id": "d",
+      "text": "Información de marketing"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 21,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué principio del triángulo CIA se violó?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Integridad"
+     },
+     {
+      "id": "b",
+      "text": "Disponibilidad"
+     },
+     {
+      "id": "c",
+      "text": "Confidencialidad"
+     },
+     {
+      "id": "d",
+      "text": "Ninguno"
+     }
+    ],
+    "correctOptionId": "c",
+    "samePage": true
+   }
+  },
+  {
+   "order": 25,
+   "type": "OpenResponse",
+   "points": 0,
+   "payload": {
+    "question": "¿Qué tipo de información manejas en tu trabajo que podría considerarse confidencial? ¿Qué medidas aplicas para protegerla?",
+    "graded": false,
+    "samePage": true
+   }
+  },
+  {
+   "order": 26,
+   "type": "ModuleHeader",
+   "points": 0,
+   "payload": {
+    "title": "Módulo 2 — Uso Aceptable de los Sistemas",
+    "subtitle": "Duración estimada: 6–8 minutos"
+   }
+  },
+  {
+   "order": 27,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Temas y subtemas del módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>En este módulo verás:</p><ul><li>Uso de computadoras corporativas<ul><li>¿Qué es un firewall?</li></ul></li><li>Uso de internet<ul><li>¿Qué es HTTPS y por qué importa?</li></ul></li><li>Uso del correo electrónico<ul><li>¿Qué es un enlace acortado malicioso?</li></ul></li><li>Uso de dispositivos móviles<ul><li>Riesgos de redes WiFi públicas</li></ul></li><li>Instalación de software sin autorización<ul><li>¿Qué es software potencialmente no deseado (PUP)?</li></ul></li><li>Uso de USB y dispositivos externos<ul><li>¿Qué es un ataque por USB?</li></ul></li><li>Almacenamiento en nubes personales<ul><li>¿Qué es una fuga de datos (data leak)?</li></ul></li></ul>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 28,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Introducción",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>El uso adecuado de los sistemas corporativos es fundamental para mantener la seguridad de la organización. Cada dispositivo, red o aplicación que utilizamos en el entorno laboral puede convertirse en un punto de entrada para un atacante si no se maneja correctamente. Por eso, las empresas establecen políticas claras sobre cómo deben usarse los recursos tecnológicos.</p><p>Además del uso correcto, es importante entender que los sistemas corporativos están protegidos por múltiples capas de seguridad —como firewalls, filtros web, monitoreo de actividad y controles de acceso— que funcionan de manera conjunta para reducir riesgos. Cuando un empleado ignora estas políticas o intenta evadirlas, debilita toda la estructura de protección.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 29,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Uso de computadoras corporativas",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Las computadoras corporativas están configuradas con controles de seguridad que protegen tanto al usuario como a la empresa. Estas configuraciones incluyen antivirus, políticas de acceso, restricciones de instalación y monitoreo de actividad sospechosa. Cuando un empleado modifica estas configuraciones o utiliza el equipo para fines no autorizados, aumenta el riesgo de incidentes.</p><p>Buenas prácticas:</p><ul><li>Mantener el equipo actualizado.</li></ul><ul><li>No desactivar antivirus o firewalls.</li></ul><ul><li>No instalar software sin aprobación.</li></ul><ul><li>Evitar el uso personal excesivo.</li></ul><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>¿Qué es un firewall?</b><p>Un firewall es un sistema que filtra el tráfico que entra y sale del equipo. Bloquea conexiones no autorizadas y evita que malware o atacantes accedan al sistema. Desactivarlo, aunque sea “por unos minutos”, deja el equipo expuesto.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 30,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Uso de internet",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>El acceso a internet es una herramienta esencial, pero también una de las principales fuentes de amenazas. Sitios maliciosos, descargas inseguras y publicidad engañosa pueden comprometer un sistema en segundos.</p><p>Recomendaciones:</p><ul><li>Evitar páginas no relacionadas al trabajo.</li></ul><ul><li>No descargar archivos de fuentes desconocidas.</li></ul><ul><li>No usar redes sociales para compartir información laboral.</li></ul><ul><li>Evitar servicios de streaming personales en horario laboral.</li></ul><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>¿Qué es HTTPS y por qué importa?</b><p>HTTPS indica que la conexión entre tu navegador y el sitio web está cifrada. Aunque no garantiza que un sitio sea legítimo, sí protege contra la interceptación de datos. Un sitio sin HTTPS es un riesgo mayor, especialmente si solicita credenciales.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 31,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Uso del correo electrónico",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>El correo electrónico es el medio preferido por los atacantes para distribuir malware y ejecutar ataques de phishing. Por eso, es vital que los empleados adopten hábitos seguros.</p><p>Buenas prácticas:</p><ul><li>Verificar el remitente antes de abrir un mensaje.</li></ul><ul><li>No abrir adjuntos inesperados.</li></ul><ul><li>No reenviar cadenas o correos personales.</li></ul><ul><li>Reportar correos sospechosos.</li></ul><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>¿Qué es un enlace acortado malicioso?</b><p>Los atacantes usan enlaces acortados (bit.ly, tinyurl, etc.) para ocultar destinos peligrosos. Si no puedes ver el dominio real, no hagas clic.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 32,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Uso de dispositivos móviles",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Los dispositivos móviles son especialmente vulnerables porque se transportan constantemente y pueden perderse con facilidad. Además, suelen conectarse a redes públicas o inseguras.</p><p>Recomendaciones:</p><ul><li>Mantener el sistema operativo actualizado.</li></ul><ul><li>Usar bloqueo de pantalla.</li></ul><ul><li>No almacenar información sensible sin cifrado.</li></ul><ul><li>Reportar pérdida o robo inmediatamente.</li></ul><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Riesgos de redes WiFi públicas</b><p>Las redes abiertas permiten que otros usuarios intercepten tráfico, capturen credenciales o manipulen conexiones. Nunca deben usarse para acceder a sistemas corporativos sin VPN.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 33,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Instalación de software sin autorización",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Instalar software no autorizado puede introducir malware, abrir puertas traseras o generar incompatibilidades con sistemas corporativos. Incluso aplicaciones aparentemente inofensivas pueden recopilar datos sin consentimiento.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>¿Qué es software potencialmente no deseado (PUP)?</b><p>Son programas que no son técnicamente malware, pero recopilan datos, muestran anuncios o instalan componentes ocultos. Muchos vienen incluidos en instaladores gratuitos.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 34,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Uso de USB y dispositivos externos",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Los USB son una de las fuentes más comunes de infecciones. Un solo dispositivo contaminado puede comprometer toda una red.</p><p>Buenas prácticas:</p><ul><li>Usar únicamente dispositivos aprobados por la empresa.</li></ul><ul><li>Escanear el USB antes de abrirlo.</li></ul><ul><li>Evitar conectar dispositivos personales.</li></ul><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>¿Qué es un ataque por USB?</b><p>Los atacantes pueden dejar USB infectados en lugares públicos esperando que alguien los conecte. Al hacerlo, el malware se ejecuta automáticamente.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 35,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Almacenamiento en nubes personales",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Subir documentos corporativos a cuentas personales de Google Drive, Dropbox o iCloud representa un riesgo grave. La empresa pierde control sobre la información y no puede garantizar su protección.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>¿Qué es una fuga de datos (data leak)?</b><p>Ocurre cuando información corporativa termina en un entorno no autorizado. Las nubes personales son una de las causas más comunes.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 36,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Comprensión del Módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<b>Seleccione la mejor alternativa</b>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 38,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué acción representa un riesgo al usar internet en el trabajo?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Acceder al portal interno de la empresa"
+     },
+     {
+      "id": "b",
+      "text": "Descargar archivos de sitios desconocidos"
+     },
+     {
+      "id": "c",
+      "text": "Revisar manuales corporativos"
+     },
+     {
+      "id": "d",
+      "text": "Usar la intranet"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 39,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué debes hacer si recibes un correo sospechoso?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Abrirlo para verificar su contenido"
+     },
+     {
+      "id": "b",
+      "text": "Reenviarlo a compañeros"
+     },
+     {
+      "id": "c",
+      "text": "Reportarlo al equipo de seguridad"
+     },
+     {
+      "id": "d",
+      "text": "Ignorarlo y borrarlo"
+     }
+    ],
+    "correctOptionId": "c",
+    "samePage": true
+   }
+  },
+  {
+   "order": 40,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué práctica es segura en dispositivos móviles corporativos?",
+    "options": [
+     {
+      "id": "a",
+      "text": "No usar bloqueo de pantalla"
+     },
+     {
+      "id": "b",
+      "text": "Conectarse a cualquier red WiFi pública"
+     },
+     {
+      "id": "c",
+      "text": "Mantener el sistema operativo actualizado"
+     },
+     {
+      "id": "d",
+      "text": "Instalar apps personales sin revisión"
+     }
+    ],
+    "correctOptionId": "c",
+    "samePage": true
+   }
+  },
+  {
+   "order": 42,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Caso práctico",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Un empleado descarga un programa gratuito desde internet para “trabajar más rápido”. Después de instalarlo, la computadora comienza a comportarse de forma extraña.</b></div><p><br></p>",
+      "span": "full"
+     }
+    ],
+    "samePage": true
+   }
+  },
+  {
+   "order": 45,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué debió hacer el empleado antes de instalar el software?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Consultar con TI"
+     },
+     {
+      "id": "b",
+      "text": "Instalarlo sin preguntar"
+     },
+     {
+      "id": "c",
+      "text": "Descargarlo en su celular"
+     },
+     {
+      "id": "d",
+      "text": "Ignorar la necesidad"
+     }
+    ],
+    "correctOptionId": "a",
+    "samePage": true
+   }
+  },
+  {
+   "order": 48,
+   "type": "OpenResponse",
+   "points": 0,
+   "payload": {
+    "question": "Describe una situación en la que hayas usado un dispositivo personal para trabajar. ¿Qué riesgos identificas ahora?",
+    "graded": false,
+    "samePage": true
+   }
+  },
+  {
+   "order": 49,
+   "type": "ModuleHeader",
+   "points": 0,
+   "payload": {
+    "title": "Módulo 3 — Contraseñas y Autenticación",
+    "subtitle": "Duración estimada: 6–8 minutos"
+   }
+  },
+  {
+   "order": 50,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Temas y subtemas del módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>En este módulo verás:</p><ul><li>¿Qué hace que una contraseña sea segura?</li><li>El riesgo de reutilizar contraseñas<ul><li>Una contraseña = una cuenta.</li></ul></li><li>Gestores de contraseñas</li><li>Autenticación multifactor (MFA)</li><li>Riesgos de compartir credenciales</li></ul>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 51,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Introducción",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Las contraseñas siguen siendo uno de los mecanismos de seguridad más utilizados en el mundo digital, pero también uno de los más vulnerables. La mayoría de los ataques exitosos involucran contraseñas débiles, predecibles o reutilizadas. Por eso, comprender cómo crear, gestionar y proteger credenciales es fundamental para cualquier empleado, independientemente de su rol técnico.</p><p>Este módulo explica qué hace que una contraseña sea segura, por qué no deben reutilizarse, cómo funcionan los gestores de contraseñas y por qué la autenticación multifactor (MFA) es una de las defensas más efectivas contra accesos no autorizados.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 52,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "¿Qué hace que una contraseña sea segura?",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Una contraseña segura no es aquella que puedes recordar fácilmente, sino aquella que resulta difícil de adivinar o descifrar, incluso mediante herramientas automatizadas. Los atacantes utilizan programas capaces de probar millones de combinaciones por segundo, por lo que las contraseñas simples o cortas son extremadamente vulnerables.</p><p>Una contraseña segura debe cumplir con estas características:</p><ul><li>Tener <b>al </b><b>menos</b><b> 12 </b><b>caracteres</b>.</li></ul><ul><li>Incluir una mezcla de <b>mayúsculas, minúsculas, números y símbolos</b>.</li></ul><ul><li>No contener información personal (fechas, nombres, direcciones).</li></ul><ul><li>No ser una palabra del diccionario.</li></ul><ul><li>No reutilizarse en múltiples cuentas.</li></ul><p>Una buena práctica es usar frases largas combinadas con símbolos o números, lo que aumenta la complejidad sin sacrificar la memorización.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 53,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "El riesgo de reutilizar contraseñas",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Reutilizar contraseñas es uno de los errores más comunes y peligrosos. Cuando una plataforma sufre una filtración, los atacantes prueban esas mismas credenciales en otros servicios en un ataque conocido como <b>credential</b><b> </b><b>stuffing</b>. Si usas la misma contraseña en tu correo personal, redes sociales y cuentas corporativas, un solo incidente puede comprometerlo todo.</p><p>La regla es simple:</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Una contraseña = una cuenta.</b></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 54,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Gestores de contraseñas",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Recordar docenas de contraseñas complejas es prácticamente imposible. Por eso existen los gestores de contraseñas: herramientas diseñadas para almacenar claves de forma segura y generar contraseñas fuertes automáticamente.</p><p>Beneficios principales:</p><ul><li>Guardan todas tus contraseñas cifradas.</li></ul><ul><li>Generan claves largas y únicas.</li></ul><ul><li>Solo necesitas recordar una contraseña maestra.</li></ul><ul><li>Reducen el riesgo de reutilización.</li></ul><p>Ejemplos comunes incluyen Bitwarden, 1Password y KeePass.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 55,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Autenticación multifactor (MFA)",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>La autenticación multifactor agrega una capa adicional de seguridad combinando dos o más elementos:</p><ul><li><b>Algo </b><b>que</b><b> sabes</b> (contraseña).</li></ul><ul><li><b>Algo que tienes</b> (celular, token, app de autenticación).</li></ul><ul><li><b>Algo que eres</b> (huella, rostro).</li></ul><p>Incluso si un atacante obtiene tu contraseña, no podrá acceder sin el segundo factor. Por eso, MFA es uno de los controles más efectivos contra accesos no autorizados.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 56,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Riesgos de compartir credenciales",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Compartir contraseñas, incluso con compañeros de confianza, es una violación grave de seguridad. Cuando varias personas usan la misma cuenta:</p><ul><li>Se pierde la trazabilidad.</li></ul><ul><li>No se puede identificar quién realizó qué acción.</li></ul><ul><li>Se abren puertas a accesos no autorizados.</li></ul><ul><li>Se incumplen políticas corporativas.</li></ul><p>Cada usuario debe tener su propia cuenta y credenciales.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 57,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Comprensión del Módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<b>Seleccione la mejor alternativa</b>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 61,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué elemento forma parte de MFA?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Tu color favorito"
+     },
+     {
+      "id": "b",
+      "text": "Tu contraseña"
+     },
+     {
+      "id": "c",
+      "text": "Tu historial de navegación"
+     },
+     {
+      "id": "d",
+      "text": "Tu dirección de correo"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 62,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué ocurre al compartir credenciales?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Se mejora la seguridad"
+     },
+     {
+      "id": "b",
+      "text": "Se pierde trazabilidad"
+     },
+     {
+      "id": "c",
+      "text": "Se acelera el trabajo"
+     },
+     {
+      "id": "d",
+      "text": "Se reduce el riesgo"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 63,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Caso práctico",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Un empleado usa la misma contraseña para su correo personal y su cuenta corporativa. Su correo personal fue comprometido en una filtración masiva.</b></div>",
+      "span": "full"
+     }
+    ],
+    "samePage": true
+   }
+  },
+  {
+   "order": 65,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué debió hacer el empleado?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Usar la misma contraseña"
+     },
+     {
+      "id": "b",
+      "text": "Usar contraseñas únicas"
+     },
+     {
+      "id": "c",
+      "text": "Compartir la contraseña"
+     },
+     {
+      "id": "d",
+      "text": "Guardarla en un papel"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 67,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué acción debe tomar ahora?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Ignorar el incidente"
+     },
+     {
+      "id": "b",
+      "text": "Cambiar la contraseña"
+     },
+     {
+      "id": "c",
+      "text": "Desactivar MFA"
+     },
+     {
+      "id": "d",
+      "text": "Compartir la contraseña"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 69,
+   "type": "OpenResponse",
+   "points": 0,
+   "payload": {
+    "question": "Piensa en tus contraseñas actuales. ¿Cuántas crees que has reutilizado? ¿Qué cambios puedes implementar hoy para mejorar tu seguridad?",
+    "graded": false,
+    "samePage": true
+   }
+  },
+  {
+   "order": 70,
+   "type": "ModuleHeader",
+   "points": 0,
+   "payload": {
+    "title": "Módulo 4 — Phishing e Ingeniería Social",
+    "subtitle": "Duración estimada: 8–10 minutos"
+   }
+  },
+  {
+   "order": 71,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Temas y subtemas del módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>En este módulo verás:</p><ul><li>¿Qué es el phishing?<ul><li>Spear phishing</li><li>Whaling</li></ul></li><li>Smishing: phishing por mensaje de texto<ul><li>Enlaces acortados</li></ul></li><li>Vishing: phishing por llamada telefónica<ul><li>Spoofing de llamadas</li></ul></li><li>Ingeniería social en redes sociales<ul><li>Reconocimiento (recon)</li></ul></li><li>Señales de alerta comunes<ul><li>Si algo parece extraño, probablemente lo es.</li><li>Dominios falsificados (typosquatting)</li></ul></li></ul>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 72,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Introducción",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>La ingeniería social es una de las técnicas más efectivas utilizadas por los atacantes. En lugar de intentar vulnerar sistemas complejos, los atacantes se enfocan en el eslabón más vulnerable: las personas. El phishing, el smishing y el vishing son métodos diseñados para manipular al usuario y lograr que entregue información, descargue malware o permita acceso no autorizado.</p><p>Este módulo te ayudará a identificar señales de alerta, comprender cómo operan estos ataques y saber cómo responder ante ellos.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 73,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "¿Qué es el phishing?",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>El phishing es un intento fraudulento de obtener información sensible haciéndose pasar por una entidad confiable. Generalmente llega en forma de correo electrónico, aunque también puede presentarse en mensajes internos o notificaciones falsas.</p><p>Los correos de phishing suelen:</p><ul><li>Crear <b>sensación de urgencia</b> (“Tu cuenta será suspendida hoy”).</li></ul><ul><li>Incluir <b>enlaces falsos</b> que imitan páginas legítimas.</li></ul><ul><li>Contener <b>errores ortográficos o gramaticales</b>.</li></ul><ul><li>Solicitar <b>credenciales, pagos o información personal</b>.</li></ul><ul><li>Usar <b>logos o nombres de empresas conocidas</b> para generar confianza.</li></ul><p>El objetivo es que el usuario actúe rápido sin pensar.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Spear phishing</b><p>El spear phishing es una versión más sofisticada del phishing tradicional. El atacante investiga a la víctima y personaliza el mensaje con:</p><ul><li>Su nombre</li></ul><ul><li>Su rol</li></ul><ul><li>Proyectos reales</li></ul><ul><li>Información pública de redes sociales</li></ul><p>Esto hace que el mensaje parezca legítimo y aumenta la probabilidad de que la víctima caiga.</p></div><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Whaling</b><p>El whaling es un tipo de spear phishing dirigido específicamente a ejecutivos, gerentes o personal con acceso privilegiado. Los atacantes buscan:</p><ul><li>Transferencias bancarias</li></ul><ul><li>Acceso a sistemas críticos</li></ul><ul><li>Información estratégica</li></ul></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 74,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Smishing: phishing por mensaje de texto",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>El smishing utiliza mensajes SMS o plataformas de mensajería (WhatsApp, Telegram, etc.) para engañar al usuario. Suelen incluir enlaces acortados o mensajes alarmantes como:</p><p>“Su paquete no pudo ser entregado. Verifique aquí.” “Su cuenta será bloqueada. Actualice su información.”</p><p>Los atacantes aprovechan que los mensajes de texto generan más confianza que los correos.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Enlaces acortados</b><p>Los atacantes usan enlaces acortados para ocultar el destino real. Si no puedes ver el dominio completo, no hagas clic.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 75,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Vishing: phishing por llamada telefónica",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>En el vishing, el atacante llama directamente al usuario haciéndose pasar por:</p><ul><li>Soporte técnico</li></ul><ul><li>Un banco</li></ul><ul><li>Un supervisor</li></ul><ul><li>Un proveedor de servicios</li></ul><p>El objetivo es obtener información o convencer al usuario de instalar software malicioso. Estas llamadas suelen usar presión psicológica, tono autoritario o urgencia.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Spoofing de llamadas</b><p>Los atacantes pueden falsificar el número telefónico que aparece en tu pantalla. Puede parecer que la llamada proviene de:</p><ul><li>Un banco</li></ul><ul><li>Un número interno</li></ul><ul><li>Un proveedor legítimo</li></ul><p>Nunca confíes solo en el número que aparece.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 76,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Ingeniería social en redes sociales",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Las redes sociales permiten a los atacantes recopilar información personal que luego utilizan para ataques más elaborados. También pueden:</p><ul><li>Crear perfiles falsos</li></ul><ul><li>Enviar enlaces maliciosos</li></ul><ul><li>Suplantar identidades</li></ul><ul><li>Contactar empleados para obtener datos internos</li></ul><p>La información pública en redes puede ser suficiente para personalizar un ataque.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Reconocimiento (recon)</b><p>Antes de lanzar un ataque, los criminales investigan a la víctima:</p><ul><li>Publicaciones</li></ul><ul><li>Fotos</li></ul><ul><li>Amigos</li></ul><ul><li>Ubicaciones</li></ul><ul><li>Información laboral</li></ul><p>Cuanta más información compartas, más fácil es atacarte.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 77,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Señales de alerta comunes",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Aunque los atacantes mejoran constantemente sus técnicas, la mayoría de los intentos de ingeniería social comparten señales claras:</p><ul><li>Solicitudes inesperadas de información</li></ul><ul><li>Mensajes que apelan al miedo o urgencia</li></ul><ul><li>Enlaces que no coinciden con el dominio oficial</li></ul><ul><li>Archivos adjuntos no solicitados</li></ul><ul><li>Comunicaciones fuera de horario o inusuales</li></ul><p>La regla de oro es simple:</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Si algo parece extraño, probablemente lo es.</b></div><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Dominios falsificados (typosquatting)</b><p>Los atacantes crean dominios casi idénticos a los reales:</p><ul><li>micr0soft.com</li></ul><ul><li>paypa1.com</li></ul><ul><li>amaz0n-support.com</li></ul><p>Una sola letra puede marcar la diferencia.</p><p><b>4.6¿Qué hacer si ya hiciste clic?</b></p><p>No todos los usuarios reportan un incidente porque sienten vergüenza. Pero reportar rápido puede evitar daños mayores.</p><p>Si hiciste clic:</p><ul><li>No ingreses credenciales.</li></ul><ul><li>Cierra la página inmediatamente.</li></ul><ul><li>Reporta al equipo de seguridad.</li></ul><ul><li>Cambia tu contraseña si la ingresaste.</li></ul><ul><li>No intentes “arreglarlo” por tu cuenta.</li></ul></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 78,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Comprensión del Módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<b>Seleccione la mejor alternativa</b>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 79,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Cuál de las siguientes es una señal común de un correo de phishing?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Un saludo personalizado"
+     },
+     {
+      "id": "b",
+      "text": "Errores ortográficos"
+     },
+     {
+      "id": "c",
+      "text": "Un mensaje interno de la empresa"
+     },
+     {
+      "id": "d",
+      "text": "Un adjunto esperado"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 80,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué es smishing?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Phishing por correo"
+     },
+     {
+      "id": "b",
+      "text": "Phishing por mensaje de texto"
+     },
+     {
+      "id": "c",
+      "text": "Phishing por llamada"
+     },
+     {
+      "id": "d",
+      "text": "Phishing por redes sociales"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 81,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué es vishing?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Phishing por llamada telefónica"
+     },
+     {
+      "id": "b",
+      "text": "Phishing por redes sociales"
+     },
+     {
+      "id": "c",
+      "text": "Phishing por correo"
+     },
+     {
+      "id": "d",
+      "text": "Phishing por USB"
+     }
+    ],
+    "correctOptionId": "a",
+    "samePage": true
+   }
+  },
+  {
+   "order": 84,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Caso práctico",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Recibes un correo que dice: “Tu cuenta será suspendida hoy. Haz clic aquí para verificar tu identidad”. El remitente parece legítimo, pero el mensaje no coincide con ninguna solicitud previa.</b></div><p><br></p>",
+      "span": "full"
+     }
+    ],
+    "samePage": true
+   }
+  },
+  {
+   "order": 88,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué control ayuda a prevenir daño si caes en el enlace?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Antivirus"
+     },
+     {
+      "id": "b",
+      "text": "MFA"
+     },
+     {
+      "id": "c",
+      "text": "Redes sociales"
+     },
+     {
+      "id": "d",
+      "text": "USB cifrado"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 90,
+   "type": "OpenResponse",
+   "points": 0,
+   "payload": {
+    "question": "¿Alguna vez recibiste un mensaje que ahora reconoces como intento de phishing? ¿Qué señales recuerdas y cómo habrías actuado diferente con lo aprendido?",
+    "graded": false,
+    "samePage": true
+   }
+  },
+  {
+   "order": 91,
+   "type": "ModuleHeader",
+   "points": 0,
+   "payload": {
+    "title": "Módulo 5 — Malware y Amenazas Comunes",
+    "subtitle": "Duración estimada: 5–7 minutos"
+   }
+  },
+  {
+   "order": 92,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Temas y subtemas del módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>En este módulo verás:</p><ul><li>Virus<ul><li>Señales comunes de infección por virus</li></ul></li><li>Ransomware<ul><li>¿Qué es un exploit?</li></ul></li><li>Spyware<ul><li>Señales comunes de spyware</li></ul></li><li>Troyanos<ul><li>¿Qué es un backdoor?</li></ul></li><li>Descargas peligrosas<ul><li>¿Qué es un PUP?</li></ul></li><li>Sitios web fraudulentos<ul><li>Typosquatting</li></ul></li><li>Worms (Gusanos)</li><li>Rootkits</li><li>Botnets</li></ul>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 93,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Introducción",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>El malware es uno de los riesgos más frecuentes en el entorno digital. Se trata de software malicioso diseñado para infiltrarse, dañar o tomar control de sistemas sin autorización. Aunque existen múltiples variantes, todas comparten un objetivo común: comprometer la seguridad de la información. Comprender cómo funcionan, cómo se propagan y cómo identificarlos es fundamental para prevenir incidentes.</p><p>En este módulo exploramos los tipos de malware más comunes, las formas en que se introducen en los sistemas y las señales que pueden alertarte de una infección.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 94,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Virus",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Los virus informáticos funcionan de manera similar a los virus biológicos: se replican y se propagan infectando archivos o programas legítimos. Suelen activarse cuando el usuario ejecuta el archivo infectado. Una vez dentro del sistema, pueden borrar datos, corromper archivos o ralentizar el equipo.</p><p>Los virus suelen propagarse a través de:</p><ul><li>Archivos adjuntos en correos electrónicos</li></ul><ul><li>Descargas de sitios no confiables</li></ul><ul><li>Dispositivos USB infectados</li></ul><ul><li>Software pirata</li></ul><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Señales comunes de infección por virus</b><ul><li>Programas que se cierran inesperadamente</li></ul><ul><li>Archivos que desaparecen o se corrompen</li></ul><ul><li>Lentitud inusual del sistema</li></ul></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 95,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Ransomware",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>El ransomware es una de las amenazas más peligrosas y costosas. Este tipo de malware cifra los archivos del usuario y exige un pago —generalmente en criptomonedas— para restaurar el acceso. Incluso si se paga el rescate, no hay garantía de que los datos sean recuperados.</p><p>El ransomware suele entrar por:</p><ul><li>Correos de phishing</li></ul><ul><li>Archivos adjuntos maliciosos</li></ul><ul><li>Vulnerabilidades sin parchear</li></ul><p>Su impacto puede paralizar operaciones completas de una empresa.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>¿Qué es un exploit?</b><p>Un exploit es un código que aprovecha una vulnerabilidad en un sistema o aplicación. Muchos ataques de ransomware comienzan explotando fallas que no han sido actualizadas.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 96,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Spyware",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>El spyware es un tipo de malware diseñado para espiar al usuario sin su conocimiento. Puede registrar teclas (keyloggers), capturar pantallas, monitorear navegación o recopilar información personal. Su objetivo es robar datos como contraseñas, números de tarjetas o información corporativa.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Señales comunes de spyware</b><ul><li>Ventanas emergentes inesperadas</li></ul><ul><li>Cambios en el navegador</li></ul><ul><li>Actividad inusual en cuentas</li></ul></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 97,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Troyanos",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Los troyanos se presentan como software legítimo, pero contienen código malicioso oculto. Una vez instalados, permiten al atacante acceder al sistema, instalar más malware o controlar el equipo de forma remota. Su nombre proviene del “Caballo de Troya”, ya que engañan al usuario para que los instale voluntariamente.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>¿Qué es un backdoor?</b><p>Un backdoor es una “puerta trasera” que permite al atacante entrar al sistema sin autorización. Muchos troyanos instalan backdoors para mantener acceso persistente.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 98,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Descargas peligrosas",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Una de las formas más comunes de infección es descargar archivos desde:</p><ul><li>Sitios piratas</li></ul><ul><li>Páginas de descargas no oficiales</li></ul><ul><li>Correos desconocidos</li></ul><ul><li>Enlaces acortados sospechosos</li></ul><p>Los atacantes suelen disfrazar malware como documentos, instaladores o actualizaciones falsas.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>¿Qué es un PUP?</b><p>Un PUP (Potentially Unwanted Program) no es malware, pero puede:</p><ul><li>Mostrar anuncios</li></ul><ul><li>Rastrear actividad</li></ul><ul><li>Instalar software adicional</li></ul><ul><li>Degradar el rendimiento</li></ul><p>Muchos PUP vienen incluidos en instaladores gratuitos.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 99,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Sitios web fraudulentos",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Los sitios fraudulentos imitan páginas legítimas para engañar al usuario. Pueden solicitar credenciales, descargar malware automáticamente o redirigir a contenido malicioso. Suelen tener dominios similares a los reales, pero con pequeñas variaciones.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Typosquatting</b><p>Los atacantes registran dominios casi idénticos a los reales:</p><ul><li>mircosoft.com</li></ul><ul><li>paypa1.com</li></ul><ul><li>amaz0n-support.net</li></ul><p>Una sola letra puede marcar la diferencia.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 100,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Worms (Gusanos)",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>A diferencia de los virus, los gusanos no necesitan que el usuario ejecute un archivo. Se propagan automáticamente a través de redes, correos o dispositivos conectados.</p><p>Pueden:</p><ul><li>Saturar redes</li></ul><ul><li>Replicarse sin control</li></ul><ul><li>Instalar malware adicional</li></ul>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 101,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Rootkits",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Un rootkit es un tipo de malware diseñado para ocultarse. Permite al atacante:</p><ul><li>Esconder procesos</li></ul><ul><li>Manipular archivos</li></ul><ul><li>Evitar detección del antivirus</li></ul><p>Son extremadamente peligrosos porque operan a nivel profundo del sistema.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 102,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Botnets",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Una botnet es una red de computadoras infectadas controladas por un atacante. Estas máquinas, llamadas “bots” o “zombies”, pueden usarse para:</p><ul><li>Enviar spam</li></ul><ul><li>Realizar ataques DDoS</li></ul><ul><li>Minar criptomonedas</li></ul><ul><li>Distribuir malware</li></ul><p>El usuario puede no notar que su equipo forma parte de una botnet.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 103,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Comprensión del Módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<b>Seleccione la mejor alternativa</b>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 107,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué acción puede causar una infección?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Descargar software pirata"
+     },
+     {
+      "id": "b",
+      "text": "Actualizar el sistema"
+     },
+     {
+      "id": "c",
+      "text": "Usar VPN"
+     },
+     {
+      "id": "d",
+      "text": "Cerrar sesión"
+     }
+    ],
+    "correctOptionId": "a",
+    "samePage": true
+   }
+  },
+  {
+   "order": 108,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué característica suele tener un sitio fraudulento?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Certificado válido"
+     },
+     {
+      "id": "b",
+      "text": "Dominio extraño o similar al original"
+     },
+     {
+      "id": "c",
+      "text": "Contenido corporativo"
+     },
+     {
+      "id": "d",
+      "text": "Navegación segura"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 109,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Caso práctico",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><div><b>Un empleado recibe un correo con un archivo adjunto llamado “Factura_2024.zip”. El remitente no le resulta familiar, pero abre el archivo. Su computadora se bloquea y aparece un mensaje indicando que sus archivos han sido cifrados.</b></div></div><p><br></p>",
+      "span": "full"
+     }
+    ],
+    "samePage": true
+   }
+  },
+  {
+   "order": 112,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué debió hacer el empleado?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Abrirlo para verificar"
+     },
+     {
+      "id": "b",
+      "text": "Reportarlo inmediatamente"
+     },
+     {
+      "id": "c",
+      "text": "Reenviarlo a compañeros"
+     },
+     {
+      "id": "d",
+      "text": "Ignorarlo"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 114,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué NO debe hacer el empleado ahora?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Reportar el incidente"
+     },
+     {
+      "id": "b",
+      "text": "Apagar el equipo"
+     },
+     {
+      "id": "c",
+      "text": "Pagar el rescate"
+     },
+     {
+      "id": "d",
+      "text": "Contactar a TI"
+     }
+    ],
+    "correctOptionId": "c",
+    "samePage": true
+   }
+  },
+  {
+   "order": 115,
+   "type": "OpenResponse",
+   "points": 0,
+   "payload": {
+    "question": "¿Alguna vez descargaste un archivo o programa de una fuente no oficial? ¿Qué riesgos identificas ahora que antes no considerabas?",
+    "graded": false,
+    "samePage": true
+   }
+  },
+  {
+   "order": 116,
+   "type": "ModuleHeader",
+   "points": 0,
+   "payload": {
+    "title": "Módulo 6 — Trabajo Remoto y Dispositivos Personales",
+    "subtitle": "Duración estimada: 4–6 minutos"
+   }
+  },
+  {
+   "order": 117,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Temas y subtemas del módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>En este módulo verás:</p><ul><li>Riesgos del WiFi público<ul><li>Hotspots seguros</li></ul></li><li>Uso de computadoras compartidas<ul><li>Sesiones de navegador</li></ul></li><li>Uso de VPN<ul><li>¿Qué protege la VPN?</li></ul></li><li>Bloqueo de pantalla<ul><li>Shoulder surfing</li></ul></li><li>Uso de dispositivos personales (BYOD)</li><li>Cifrado de disco</li><li>Riesgos de sincronización automática</li><li>Pérdida o robo de dispositivos</li></ul>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 118,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Introducción",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>El trabajo remoto se ha convertido en una práctica común en muchas organizaciones, pero también introduce riesgos adicionales que no existen en un entorno corporativo controlado. Cuando los empleados trabajan desde casa, desde un café o utilizando dispositivos personales, la superficie de ataque aumenta significativamente. Por eso, es fundamental adoptar prácticas seguras que protejan tanto la información como los sistemas corporativos.</p><p>Este módulo explica los riesgos más comunes del trabajo remoto y las medidas que deben tomarse para reducirlos.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 119,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Riesgos del WiFi público",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Las redes WiFi públicas —como las de aeropuertos, cafés, hoteles o centros comerciales— suelen ser inseguras. Cualquier persona conectada a la misma red puede intentar interceptar el tráfico, capturar credenciales o manipular la conexión.</p><p>Aunque parezcan convenientes, estas redes deben evitarse para actividades laborales. Si es absolutamente necesario conectarse, se debe usar una <b>VPN corporativa</b>, que cifra la comunicación y protege los datos.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Hotspots seguros</b><p>Cuando no haya una red confiable disponible, es preferible usar un hotspot personal del móvil. Los hotspots:</p><ul><li>Son más seguros que redes públicas</li></ul><ul><li>Permiten controlar quién se conecta</li></ul><ul><li>Reducen el riesgo de interceptación</li></ul></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 120,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Uso de computadoras compartidas",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Las computadoras compartidas, como las de hoteles, bibliotecas o incluso las de familiares, representan un riesgo crítico. Estos equipos pueden tener:</p><ul><li>Malware instalado</li></ul><ul><li>Keyloggers</li></ul><ul><li>Configuraciones inseguras</li></ul><ul><li>Usuarios desconocidos con acceso al historial</li></ul><p>Por esta razón, nunca deben utilizarse para acceder a sistemas corporativos, correos laborales o documentos sensibles.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Sesiones de navegador</b><p>Incluso si usas “modo incógnito”, la computadora puede registrar:</p><ul><li>Contraseñas</li></ul><ul><li>Cookies</li></ul><ul><li>Historial de navegación</li></ul><ul><li>Archivos temporales</li></ul><p>Por eso, el acceso corporativo debe hacerse únicamente desde equipos autorizados.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 121,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Uso de VPN",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>La VPN (Virtual Private Network) es una herramienta esencial para el trabajo remoto. Su función principal es cifrar la conexión entre el dispositivo del empleado y la red corporativa, evitando que terceros intercepten la información.</p><p>Además, la VPN:</p><ul><li>Protege contra redes inseguras</li></ul><ul><li>Permite acceso seguro a recursos internos</li></ul><ul><li>Reduce el riesgo de espionaje digital</li></ul><p>Siempre que se trabaje fuera de la oficina, la VPN debe estar activa.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>¿Qué protege la VPN?</b><p>La VPN protege:</p><ul><li>Credenciales</li></ul><ul><li>Archivos transmitidos</li></ul><ul><li>Conexiones a sistemas internos</li></ul><ul><li>Información sensible</li></ul><p>Pero <b>no</b> protege contra malware si descargas archivos peligrosos.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 122,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Bloqueo de pantalla",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>El bloqueo de pantalla es una medida simple pero extremadamente efectiva. Cuando un empleado se aleja de su equipo, incluso por unos segundos, cualquier persona cercana podría ver información sensible o manipular el dispositivo.</p><p>El bloqueo automático debe estar configurado, y el usuario debe bloquear manualmente el equipo cada vez que se levante.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Shoulder surfing</b><p>El shoulder surfing ocurre cuando alguien observa tu pantalla sin que te des cuenta. Puede suceder en:</p><ul><li>Aeropuertos</li></ul><ul><li>Cafeterías</li></ul><ul><li>Salas de espera</li></ul><ul><li>Espacios compartidos</li></ul><p>Bloquear la pantalla y usar filtros de privacidad reduce este riesgo.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 123,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Uso de dispositivos personales (BYOD)",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>El uso de dispositivos personales para trabajar, conocido como BYOD (Bring Your Own Device), puede ser conveniente, pero introduce riesgos importantes:</p><ul><li>Dispositivos sin antivirus</li></ul><ul><li>Sistemas operativos desactualizados</li></ul><ul><li>Falta de cifrado</li></ul><ul><li>Aplicaciones no autorizadas</li></ul><ul><li>Redes inseguras</li></ul><p>Si la organización permite BYOD, deben aplicarse controles mínimos como:</p><ul><li>Cifrado de disco</li></ul><ul><li>Bloqueo con PIN o biometría</li></ul><ul><li>Actualizaciones automáticas</li></ul><ul><li>Separación entre datos personales y corporativos</li></ul>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 124,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Cifrado de disco",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>El cifrado de disco protege la información almacenada en caso de pérdida o robo del dispositivo. Sin cifrado, cualquier persona puede extraer el disco y leer los archivos.</p><p>El cifrado:</p><ul><li>Protege documentos corporativos</li></ul><ul><li>Evita accesos no autorizados</li></ul><ul><li>Es obligatorio en la mayoría de las políticas de seguridad</li></ul>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 125,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Riesgos de sincronización automática",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Muchos dispositivos personales sincronizan archivos automáticamente con servicios como:</p><ul><li>iCloud</li></ul><ul><li>Google Drive</li></ul><ul><li>OneDrive personal</li></ul><ul><li>Dropbox personal</li></ul><p>Esto puede causar fugas de información sin que el usuario lo note. Por eso, los documentos corporativos deben almacenarse únicamente en plataformas aprobadas.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 126,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Pérdida o robo de dispositivos",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Si un dispositivo se pierde o es robado:</p><ul><li>La información puede ser expuesta</li></ul><ul><li>Las cuentas pueden quedar abiertas</li></ul><ul><li>Los atacantes pueden acceder a correos, chats o documentos</li></ul><p>Debe reportarse inmediatamente para que TI pueda:</p><ul><li>Revocar accesos</li></ul><ul><li>Bloquear el dispositivo</li></ul><ul><li>Activar borrado remoto si está disponible</li></ul>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 127,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Comprensión del Módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<b>Seleccione la mejor alternativa</b>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 128,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué red es más segura para trabajar?",
+    "options": [
+     {
+      "id": "a",
+      "text": "WiFi público"
+     },
+     {
+      "id": "b",
+      "text": "Hotspot desconocido"
+     },
+     {
+      "id": "c",
+      "text": "Red corporativa o VPN"
+     },
+     {
+      "id": "d",
+      "text": "Red abierta de un café"
+     }
+    ],
+    "correctOptionId": "c",
+    "samePage": true
+   }
+  },
+  {
+   "order": 129,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué dispositivo NO debe usarse para acceder a sistemas corporativos?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Laptop corporativa"
+     },
+     {
+      "id": "b",
+      "text": "Computadora personal sin controles"
+     },
+     {
+      "id": "c",
+      "text": "Dispositivo con VPN"
+     },
+     {
+      "id": "d",
+      "text": "Equipo aprobado por TI"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 133,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Caso práctico",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Estás trabajando desde un café y necesitas enviar un documento corporativo urgente. El WiFi del lugar está disponible y gratuito.</b></div>",
+      "span": "full"
+     }
+    ],
+    "samePage": true
+   }
+  },
+  {
+   "order": 134,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué debes hacer primero?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Conectarte al WiFi del café"
+     },
+     {
+      "id": "b",
+      "text": "Usar tu hotspot personal o activar la VPN"
+     },
+     {
+      "id": "c",
+      "text": "Enviarlo sin revisar"
+     },
+     {
+      "id": "d",
+      "text": "Guardarlo en tu USB"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 135,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué riesgo tiene el WiFi público?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Velocidad lenta"
+     },
+     {
+      "id": "b",
+      "text": "Intercepción de datos"
+     },
+     {
+      "id": "c",
+      "text": "Falta de señal"
+     },
+     {
+      "id": "d",
+      "text": "Consumo de batería"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 139,
+   "type": "OpenResponse",
+   "points": 0,
+   "payload": {
+    "question": "¿En qué lugares sueles trabajar fuera de la oficina? ¿Qué medidas de seguridad aplicarás a partir de ahora?",
+    "graded": false,
+    "samePage": true
+   }
+  },
+  {
+   "order": 140,
+   "type": "ModuleHeader",
+   "points": 0,
+   "payload": {
+    "title": "Módulo 7 — Manejo de Información Sensible",
+    "subtitle": "Duración estimada: 5–7 minutos"
+   }
+  },
+  {
+   "order": 141,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Temas y subtemas del módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>En este módulo verás:</p><ul><li>Tipos de información sensible<ul><li>PII y SPII</li></ul></li><li>Información personal<ul><li>Minimización de datos</li></ul></li><li>Información financiera<ul><li>PCI Compliance</li></ul></li><li>Información de clientes<ul><li>Confidencialidad contractual</li></ul></li><li>Clasificación de la información<ul><li>Etiquetado</li></ul></li><li>Principio de mínimo privilegio<ul><li>RBAC (Role-Based Access Control)</li></ul></li><li>Almacenamiento seguro<ul><li>Cifrado en reposo</li></ul></li><li>Transmisión segura<ul><li>Cifrado en tránsito</li></ul></li><li>Eliminación segura<ul><li>Eliminar archivos arrastrándolos a la papelera no es suficiente.</li></ul></li></ul>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 142,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Introducción",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>La información sensible es uno de los activos más importantes de cualquier organización. Su protección no depende únicamente de herramientas tecnológicas, sino también del comportamiento de cada empleado. Manejar información sensible de forma incorrecta puede generar filtraciones, multas, pérdida de confianza y daños reputacionales. Por eso, es fundamental comprender qué tipos de información requieren mayor protección y cómo deben manejarse en el día a día.</p><p>Este módulo explica los tipos de información sensible, cómo clasificarlos, cómo deben almacenarse y quién debe tener acceso a ellos.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 143,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Tipos de información sensible",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>La información sensible incluye cualquier dato que pueda causar daño si se divulga, modifica o destruye sin autorización. No toda la información tiene el mismo nivel de riesgo, pero toda debe manejarse con responsabilidad.</p><p>Entre los tipos más comunes se encuentran:</p><ul><li>Información personal</li></ul><ul><li>Información financiera</li></ul><ul><li>Información de clientes</li></ul><ul><li>Información operativa</li></ul><ul><li>Información técnica o de sistemas</li></ul><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>PII y SPII</b><ul><li><b>PII (</b><b>Personally</b><b> </b><b>Identifiable</b><b> </b><b>Information</b><b>)</b>: información que identifica a una persona (nombre, dirección, teléfono).</li></ul><ul><li><b>SPII (Sensitive </b><b>Personally</b><b> </b><b>Identifiable</b><b> </b><b>Information</b><b>)</b>: información altamente sensible (SSN, números de cuenta, historial médico).</li></ul><p>La SPII requiere controles más estrictos.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 144,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Información personal",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>La información personal incluye datos que identifican a empleados, clientes o proveedores. Ejemplos:</p><ul><li>Nombre y apellido</li></ul><ul><li>Dirección</li></ul><ul><li>Teléfono</li></ul><ul><li>Fecha de nacimiento</li></ul><ul><li>Identificación gubernamental</li></ul><p>Esta información debe protegerse para evitar robo de identidad, fraude o uso indebido.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Minimización de datos</b><p>Solo debe recopilarse y almacenarse la información estrictamente necesaria. Mientras menos datos se manejen, menor es el riesgo.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 145,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Información financiera",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>La información financiera es especialmente atractiva para atacantes. Incluye:</p><ul><li>Números de cuenta</li></ul><ul><li>Estados financieros</li></ul><ul><li>Transacciones</li></ul><ul><li>Información de tarjetas</li></ul><ul><li>Reportes contables</li></ul><p>Su divulgación puede generar pérdidas económicas y multas regulatorias.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>PCI Compliance</b><p>Las empresas que manejan tarjetas de pago deben cumplir con estándares estrictos de seguridad. Aunque no todos los empleados lo aplican directamente, deben conocer su importancia.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 146,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Información de clientes",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Los clientes confían en que la organización protegerá sus datos. Ejemplos:</p><ul><li>Historial de compras</li></ul><ul><li>Información de contacto</li></ul><ul><li>Documentos enviados por el cliente</li></ul><ul><li>Reclamaciones o solicitudes</li></ul><p>La pérdida de esta información afecta directamente la reputación de la empresa.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Confidencialidad contractual</b><p>Muchos contratos incluyen cláusulas de protección de datos. Una filtración puede resultar en demandas o pérdida del cliente.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 147,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Clasificación de la información",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>La clasificación permite aplicar controles adecuados según el nivel de sensibilidad. Las categorías más comunes son:</p><ul><li><b>Público</b></li></ul><ul><li><b>Interno</b></li></ul><ul><li><b>Confidencial</b></li></ul><ul><li><b>Altamente</b><b> </b><b>confidencial</b><b> / </b><b>Restringido</b></li></ul><p>La información sensible suele clasificarse como <b>Confidencial</b> o <b>Altamente confidencial</b>.</p><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Etiquetado</b><p>Los documentos deben estar claramente marcados según su clasificación. Esto ayuda a los empleados a saber cómo manejarlos.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 148,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Principio de mínimo privilegio",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>El acceso a la información debe basarse en el rol del empleado, no en conveniencia o confianza. El principio de mínimo privilegio establece que:</p><ul><li>Cada persona debe tener acceso solo a lo que necesita para su trabajo.</li></ul><ul><li>El acceso debe ser temporal cuando sea posible.</li></ul><ul><li>Los permisos deben revisarse periódicamente.</li></ul><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>RBAC (Role-Based Access Control)</b><p>Los accesos se asignan según el rol, no según la persona. Esto evita privilegios innecesarios.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 149,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Almacenamiento seguro",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>La información sensible debe almacenarse únicamente en:</p><ul><li>Sistemas corporativos aprobados</li></ul><ul><li>Carpetas con permisos controlados</li></ul><ul><li>Plataformas cifradas</li></ul><ul><li>Repositorios internos</li></ul><p>Nunca debe almacenarse en:</p><ul><li>USB personales</li></ul><ul><li>Nubes personales</li></ul><ul><li>Dispositivos no autorizados</li></ul><ul><li>Correos personales</li></ul><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Cifrado en reposo</b><p>El cifrado protege los datos incluso si el dispositivo es robado o perdido.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 150,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Transmisión segura",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Cuando se comparte información sensible, debe hacerse mediante:</p><ul><li>Correo corporativo con cifrado</li></ul><ul><li>Plataformas internas seguras</li></ul><ul><li>VPN cuando se trabaja fuera de la oficina</li></ul><p>Nunca debe enviarse por:</p><ul><li>WhatsApp</li></ul><ul><li>Mensajes de texto</li></ul><ul><li>Redes sociales</li></ul><ul><li>Correos personales</li></ul><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Cifrado en tránsito</b><p>Protege los datos mientras viajan por la red.</p></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 151,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Eliminación segura",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>La información sensible no debe conservarse más tiempo del necesario. Cuando ya no se necesita, debe eliminarse de forma segura:</p><ul><li>Trituración de documentos físicos</li></ul><ul><li>Borrado seguro de archivos</li></ul><ul><li>Eliminación mediante herramientas aprobadas</li></ul><div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Eliminar archivos arrastrándolos a la papelera no es suficiente.</b></div>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 152,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Comprensión del Módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<b>Seleccione la mejor alternativa</b>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 153,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué tipo de información está protegida por leyes como GDPR?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Información pública"
+     },
+     {
+      "id": "b",
+      "text": "Información personal"
+     },
+     {
+      "id": "c",
+      "text": "Información de marketing"
+     },
+     {
+      "id": "d",
+      "text": "Información irrelevante"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 154,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué tipo de información requiere cifrado y controles estrictos?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Información pública"
+     },
+     {
+      "id": "b",
+      "text": "Información financiera"
+     },
+     {
+      "id": "c",
+      "text": "Información general"
+     },
+     {
+      "id": "d",
+      "text": "Información de redes sociales"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 158,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Caso práctico",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Un empleado accede a información de clientes que no necesita para realizar sus tareas diarias. Lo hace “por curiosidad” y sin intención maliciosa.</b></div><p><br></p>",
+      "span": "full"
+     }
+    ],
+    "samePage": true
+   }
+  },
+  {
+   "order": 160,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué riesgo existe en este comportamiento?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Pérdida de señal"
+     },
+     {
+      "id": "b",
+      "text": "Acceso no autorizado"
+     },
+     {
+      "id": "c",
+      "text": "Falta de espacio"
+     },
+     {
+      "id": "d",
+      "text": "Error de impresión"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 163,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué debe hacer el empleado ahora?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Ignorar el incidente"
+     },
+     {
+      "id": "b",
+      "text": "Reportarlo"
+     },
+     {
+      "id": "c",
+      "text": "Compartirlo con compañeros"
+     },
+     {
+      "id": "d",
+      "text": "Guardarlo en su USB"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 164,
+   "type": "OpenResponse",
+   "points": 0,
+   "payload": {
+    "question": "¿Qué tipo de información manejas en tu rol que podría clasificarse como confidencial o restringida? ¿Qué medidas aplicarás para protegerla mejor?",
+    "graded": false,
+    "samePage": true
+   }
+  },
+  {
+   "order": 165,
+   "type": "ModuleHeader",
+   "points": 0,
+   "payload": {
+    "title": "Módulo 8 — Reporte y Respuesta a Incidentes",
+    "subtitle": "Duración estimada: 5–7 minutos"
+   }
+  },
+  {
+   "order": 166,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Temas y subtemas del módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>En este módulo verás:</p><ul><li>¿Qué es un incidente de seguridad?</li><li>Señales de que algo no está bien</li><li>¿Qué hacer si hiciste clic en un enlace sospechoso?</li><li>¿Qué hacer si abriste un archivo malicioso?</li><li>Pérdida o robo de dispositivos</li><li>¿A quién reportar?</li><li>¿Qué información incluir en el reporte?</li><li>¿Qué pasa después de reportar?</li><li>Cultura de reporte</li></ul>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 167,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Introducción",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Un incidente de seguridad puede ocurrir en cualquier momento y afectar a cualquier empleado, sin importar su rol. La rapidez con la que se detecta y reporta un incidente es uno de los factores más importantes para minimizar daños. No reportar un incidente a tiempo puede permitir que un atacante mantenga acceso, robe información o comprometa sistemas adicionales.</p><p>Este módulo explica qué se considera un incidente, cómo identificar señales de alerta, qué pasos seguir y por qué es fundamental reportar incluso cuando no estás completamente seguro de lo que ocurrió.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 168,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "¿Qué es un incidente de seguridad?",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Un incidente de seguridad es cualquier evento que:</p><ul><li>Compromete la confidencialidad, integridad o disponibilidad de la información</li></ul><ul><li>Afecta sistemas, dispositivos o cuentas corporativas</li></ul><ul><li>Indica actividad sospechosa o potencialmente maliciosa</li></ul><p>Ejemplos comunes:</p><ul><li>Hacer clic en un enlace sospechoso</li></ul><ul><li>Descargar un archivo malicioso</li></ul><ul><li>Pérdida o robo de un dispositivo</li></ul><ul><li>Accesos no autorizados</li></ul><ul><li>Comportamiento extraño del equipo</li></ul><ul><li>Archivos que desaparecen o se cifran</li></ul><ul><li>Mensajes inesperados solicitando credenciales</li></ul><p>No es necesario confirmar que ocurrió un ataque. <b>Si algo parece extraño, debe reportarse.</b></p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 169,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Señales de que algo no está bien",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Los incidentes no siempre son obvios. Algunas señales incluyen:</p><ul><li>Ventanas emergentes inesperadas</li></ul><ul><li>Programas que se abren solos</li></ul><ul><li>Cambios en el navegador</li></ul><ul><li>Solicitudes de contraseña fuera de lo normal</li></ul><ul><li>Mensajes de “su cuenta será suspendida”</li></ul><ul><li>Archivos renombrados o cifrados</li></ul><ul><li>El equipo se vuelve extremadamente lento</li></ul><ul><li>Alertas del antivirus</li></ul><p>Incluso si no estás seguro, es mejor reportarlo.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 170,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "¿Qué hacer si hiciste clic en un enlace sospechoso?",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Muchos empleados no reportan incidentes por vergüenza, pero el tiempo es crítico. Si hiciste clic en un enlace sospechoso:</p><ul><li>No ingreses credenciales.</li></ul><ul><li>Cierra la página inmediatamente.</li></ul><ul><li>No descargues nada.</li></ul><ul><li>No intentes “arreglarlo” por tu cuenta.</li></ul><ul><li>Reporta al equipo de seguridad.</li></ul><ul><li>Cambia tu contraseña si la ingresaste.</li></ul><p>Un reporte rápido puede evitar que el atacante avance.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 171,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "¿Qué hacer si abriste un archivo malicioso?",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Si abriste un archivo que no esperabas:</p><ul><li>Desconéctate de internet si es posible.</li></ul><ul><li>No reinicies el equipo (puede borrar evidencia importante).</li></ul><ul><li>No elimines el archivo.</li></ul><ul><li>Reporta inmediatamente.</li></ul><ul><li>Espera instrucciones del equipo de TI.</li></ul><p>Muchos tipos de malware se propagan rápidamente. El tiempo importa.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 172,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Pérdida o robo de dispositivos",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Si pierdes o te roban:</p><ul><li>Laptop</li></ul><ul><li>Teléfono corporativo</li></ul><ul><li>USB autorizado</li></ul><ul><li>Tablet</li></ul><ul><li>Cualquier dispositivo con acceso a información</li></ul><p>Debes reportarlo de inmediato para que TI pueda:</p><ul><li>Revocar accesos</li></ul><ul><li>Bloquear el dispositivo</li></ul><ul><li>Activar borrado remoto si está disponible</li></ul><ul><li>Monitorear actividad sospechosa</li></ul><p>No reportarlo puede permitir que un atacante acceda a correos, documentos o sistemas internos.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 173,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "¿A quién reportar?",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Cada organización tiene un canal oficial. Puede ser:</p><ul><li>Equipo de Seguridad de la Información</li></ul><ul><li>Mesa de Servicio / Help Desk</li></ul><ul><li>Supervisor directo</li></ul><ul><li>Correo de incidentes</li></ul><ul><li>Línea de emergencia interna</li></ul><p>Lo importante es <b>reportar rápido</b>, incluso si no estás seguro de que sea un incidente real.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 174,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "¿Qué información incluir en el reporte?",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>No necesitas un reporte técnico. Solo incluye:</p><ul><li>Qué ocurrió</li></ul><ul><li>Qué estabas haciendo</li></ul><ul><li>Qué viste en pantalla</li></ul><ul><li>Si hiciste clic en algo</li></ul><ul><li>Si ingresaste credenciales</li></ul><ul><li>Si descargaste un archivo</li></ul><ul><li>Si perdiste un dispositivo</li></ul><p>Mientras más detalles, mejor, pero lo esencial es <b>no retrasar el reporte</b>.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 175,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "¿Qué pasa después de reportar?",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>El equipo de seguridad puede:</p><ul><li>Analizar el incidente</li></ul><ul><li>Revisar registros</li></ul><ul><li>Aislar el dispositivo</li></ul><ul><li>Cambiar contraseñas</li></ul><ul><li>Bloquear accesos</li></ul><ul><li>Notificar a otras áreas si es necesario</li></ul><p>Reportar no es un castigo. Es una acción responsable que protege a toda la organización.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 176,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Cultura de reporte",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<p>Una organización segura depende de empleados que reportan sin miedo. No existe el “error tonto”. No existe el “no es nada”. No existe el “mejor no digo nada”.</p><p>Reportar es parte del trabajo. Y es una de las formas más efectivas de prevenir daños mayores.</p>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 177,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Comprensión del Módulo",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<b>Seleccione la mejor contestación</b>",
+      "span": "full"
+     }
+    ]
+   }
+  },
+  {
+   "order": 178,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Cuál de los siguientes es un incidente de seguridad?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Abrir un documento interno"
+     },
+     {
+      "id": "b",
+      "text": "Perder un equipo corporativo"
+     },
+     {
+      "id": "c",
+      "text": "Revisar el correo laboral"
+     },
+     {
+      "id": "d",
+      "text": "Usar la VPN"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 179,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿A quién debes reportar un incidente?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Redes sociales"
+     },
+     {
+      "id": "b",
+      "text": "Equipo de TI o Seguridad"
+     },
+     {
+      "id": "c",
+      "text": "Familiares"
+     },
+     {
+      "id": "d",
+      "text": "Compañeros de trabajo"
+     }
+    ],
+    "correctOptionId": "b",
+    "samePage": true
+   }
+  },
+  {
+   "order": 180,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué debes hacer si haces clic en un enlace sospechoso?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Ingresar tus datos para verificar"
+     },
+     {
+      "id": "b",
+      "text": "Ignorarlo"
+     },
+     {
+      "id": "c",
+      "text": "Reportarlo inmediatamente"
+     },
+     {
+      "id": "d",
+      "text": "Reenviarlo a compañeros"
+     }
+    ],
+    "correctOptionId": "c",
+    "samePage": true
+   }
+  },
+  {
+   "order": 183,
+   "type": "Info",
+   "points": 0,
+   "payload": {
+    "title": "Caso práctico",
+    "blocks": [
+     {
+      "type": "text",
+      "html": "<div style=\"background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;margin:12px 0\"><b>Un empleado recibe un correo que parece legítimo, hace clic en un enlace y la página le solicita sus credenciales. El empleado sospecha que algo no está bien.</b></div><p><br></p>",
+      "span": "full"
+     }
+    ],
+    "samePage": true
+   }
+  },
+  {
+   "order": 185,
+   "type": "MultipleChoice",
+   "points": 1,
+   "payload": {
+    "question": "¿Qué NO debe hacer el empleado?",
+    "options": [
+     {
+      "id": "a",
+      "text": "Reportarlo"
+     },
+     {
+      "id": "b",
+      "text": "Cambiar su contraseña"
+     },
+     {
+      "id": "c",
+      "text": "Ingresar sus credenciales"
+     },
+     {
+      "id": "d",
+      "text": "Contactar a TI"
+     }
+    ],
+    "correctOptionId": "c",
+    "samePage": true
+   }
+  },
+  {
+   "order": 189,
+   "type": "OpenResponse",
+   "points": 0,
+   "payload": {
+    "question": "¿Alguna vez dudaste si debías reportar algo? ¿Qué señales aprendiste hoy que te ayudarán a decidir más rápido?",
+    "graded": false,
+    "samePage": true
+   }
+  }
+ ]
+}

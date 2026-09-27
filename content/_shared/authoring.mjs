@@ -18,6 +18,15 @@ import { fileURLToPath } from 'node:url';
 
 export const T = (html, span = 'full') => ({ type: 'text', html, span });
 
+// Imagen o video ya subido a la plataforma (/media/{id}, del mismo tenant): se reutiliza
+// tal cual. Con span 'half' y otro bloque 'half' al lado, van en dos columnas.
+export const media = (mediaUrl, mediaType = 'image/jpeg', span = 'full') => ({ type: 'media', mediaUrl, mediaType, span });
+
+// Ítem que se sube DESACTIVADO: queda en el borrador (se ve en la app y se puede activar)
+// pero el empleado no lo ve ni cuenta para la nota. Para el banco de preguntas que queda
+// fuera del subconjunto.
+export const off = item => ({ ...item, active: false });
+
 // Ilustración local embebida como data URL (para que course.json sea autosuficiente,
 // igual que el curso HIPAA original). `moduleUrl` es el import.meta.url del archivo
 // que llama a fig(); `relPath` es la ruta al archivo de imagen relativa a ese módulo

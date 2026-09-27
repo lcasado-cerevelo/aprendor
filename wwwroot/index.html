@@ -4705,7 +4705,7 @@ function setFichaTab(k){
     b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
   });
   document.querySelectorAll('#mgFicha .pane').forEach(p => p.hidden = p.dataset.p !== k);
-  if (k === 'presentacion') fitStages();
+  if (k === 'presentacion'){ fitStages(); loadVoz(); }
 }
 
 // Todo en paralelo; cada pestaña se pinta en cuanto llega lo suyo.
@@ -5011,6 +5011,8 @@ function slMedia(url, type){
   if (type && type.indexOf('video') === 0) return `<video src="${esc(s)}"></video>`;
   return '<a>Abrir documento</a>';
 }
+// Foto de portada o de lámina: si es una foto subida (/media/…), lleva el token.
+function slPhoto(u){ return /^\/media\//.test(u) ? u + (u.includes('?') ? '&' : '?') + 'access_token=' + encodeURIComponent(token) : u; }
 function slBody(p){
   const blk = b => b.type === 'text' ? `<div>${b.html || ''}</div>` : b.type === 'media' ? slMedia(b.mediaUrl, b.mediaType) : '';
   if (!Array.isArray(p.blocks)) return slMedia(p.mediaUrl, p.mediaType) + `<div>${p.bodyHtml || ''}</div>`;
@@ -5026,7 +5028,7 @@ function slQuestion(it){
   if (it.type === 'MultipleChoice' || it.type === 'MultiSelect') return q + `<div style="margin-top:10px">${(p.options || []).map(o => `<div class="qopt">${esc(o.text)}</div>`).join('')}</div>`;
   if (it.type === 'Matching') return q + `<div style="margin-top:10px">${(p.prompts || []).map(x => `<div class="qmatch">${esc(x.text)}</div>`).join('')}</div>`;
   if (it.type === 'OpenResponse') return q + '<div style="margin-top:10px" class="qopen"></div>';
-  if (it.type === 'Info') return (p.title ? `<h2>${esc(p.title)}</h2>` : '') + (p.photo ? `<img src="${esc(p.photo)}" alt="">` : '') + slBody(p);
+  if (it.type === 'Info') return (p.title ? `<h2>${esc(p.title)}</h2>` : '') + (p.photo ? `<img src="${esc(slPhoto(p.photo))}" alt="">` : '') + slBody(p);
   return '';
 }
 function slideHtml(page, pres, num, total){
@@ -5045,10 +5047,10 @@ function slideHtml(page, pres, num, total){
     if (it.type === 'Info'){
       const layout = p.layout || 'dark', body = slBody(p), tt = p.title ? `<h2>${esc(p.title)}</h2>` : '';
       if (layout === 'cover')
-        return wrap('sl-cover', `${p.photo ? `<img class="cover-photo" src="${esc(p.photo)}" alt="">` : ''}<div class="cover-band"><h1>${esc(p.title || '')}</h1></div>`, body);
+        return wrap('sl-cover', `${p.photo ? `<img class="cover-photo" src="${esc(slPhoto(p.photo))}" alt="">` : ''}<div class="cover-band"><h1>${esc(p.title || '')}</h1></div>`, body);
       if (layout === 'photo-left'){
         const pos = String(p.photoPos || '').replace(/[^\w%.\s-]/g, '');
-        return wrap('sl-photo', `${p.photo ? `<img class="photo" src="${esc(p.photo)}" alt="">` : '<div class="photo"></div>'}<h1 class="sl-kicker">${esc(p.kicker || ptitle)}</h1><div class="sl-rule"></div>`,
+        return wrap('sl-photo', `${p.photo ? `<img class="photo" src="${esc(slPhoto(p.photo))}" alt="">` : '<div class="photo"></div>'}<h1 class="sl-kicker">${esc(p.kicker || ptitle)}</h1><div class="sl-rule"></div>`,
                     tt + body, pos ? `--ppos:${pos}` : '');
       }
       if (layout === 'split'){
@@ -5230,6 +5232,9 @@ function renderPresentacion(){
       <p class="hint" style="margin:4px 0 0">Vacío = el título del curso, en mayúsculas.</p>
       <label>Portada</label>
       ${portada}
+      <label>Voz de las láminas</label>
+      <p class="hint" style="margin:0 0 6px">Se graba una sola vez con una voz de Puerto Rico y queda en cada lámina: el empleado ve el botón «Escuchar». Si cambias el texto de una lámina, solo esa se vuelve a grabar.</p>
+      <div id="vozBox">${vozHtml()}</div>
       <p class="hint" style="margin-top:14px">Teclas: <span class="kbd">→</span> <span class="kbd">Enter</span> <span class="kbd">Espacio</span> avanzan · <span class="kbd">←</span> retrocede (si se permite) · <span class="kbd">Esc</span> sale de pantalla completa.</p>
     </div>
     <div>
@@ -5248,6 +5253,52 @@ function renderPresentacion(){
     <span class="hint dirty" id="presDirtyNote">${presDirty ? 'Cambios sin guardar' : ''}</span>
   </div>`;
   paintPresPreview();
+}
+// ----- Voz de las láminas (Azure Speech: se graba una vez y queda enlazada a cada lámina) -----
+let VOZ = null;   // { tid, available, voices, voice, total, done, versionStatus } | { tid, error }
+const VOZ_TXT = { 'es-PR-KarinaNeural':'Karina · mujer, Puerto Rico', 'es-PR-VictorNeural':'Víctor · hombre, Puerto Rico' };
+async function loadVoz(){
+  const t = fichaT(); if (!t) return;
+  const id = t.id;
+  try{ const r = await api('/trainings/'+id+'/narration'); if (fichaId === id) VOZ = Object.assign({ tid:id }, r); }
+  catch(e){ if (fichaId === id) VOZ = { tid:id, error:e.message }; }
+  paintVoz();
+}
+function paintVoz(){ const b = el('vozBox'); if (b) b.innerHTML = vozHtml(); }
+function vozHtml(){
+  const t = fichaT();
+  if (!t || !VOZ || VOZ.tid !== t.id) return `<p class="hint" role="status">Cargando…</p>`;
+  if (VOZ.error) return `<p class="hint">No se pudo consultar la voz: ${esc(VOZ.error)}</p>`;
+  if (!VOZ.available) return `<p class="hint">La voz no está configurada en el servidor: falta la clave de Azure Speech (APRENDOR_Speech__Key y APRENDOR_Speech__Region).</p>`;
+  const falta = VOZ.total - VOZ.done;
+  const estado = !VOZ.total ? 'El curso aún no tiene láminas.'
+    : falta === 0 ? `Las ${VOZ.total} láminas tienen voz.` : `${VOZ.done} de ${VOZ.total} láminas con voz; faltan ${falta}.`;
+  const pub = VOZ.versionStatus === 'published' ? ' Se graba sobre la versión publicada: su contenido no cambia.' : '';
+  return `<div class="row" style="align-items:flex-end">
+      <div style="max-width:300px"><label for="vozSel">Voz</label>
+        <select id="vozSel" class="field">${(VOZ.voices || []).map(v => `<option value="${esc(v)}" ${v === VOZ.voice ? 'selected' : ''}>${esc(VOZ_TXT[v] || v)}</option>`).join('')}</select></div>
+      <div><button type="button" class="btn sm" id="vozBtn" onclick="grabarVoz(this)" ${VOZ.total ? '' : 'disabled'}>${ic('play',14)} Grabar voz</button></div>
+    </div>
+    <p class="hint" id="vozMsg" role="status" style="margin:6px 0 0">${esc(estado + pub)}</p>`;
+}
+// El servidor graba unas pocas láminas por llamada; se repite hasta que no falte ninguna.
+// Si Azure pide esperar (nivel gratis), responde `wait` en segundos.
+async function grabarVoz(btn){
+  const t = fichaT(); if (!t || !VOZ) return;
+  const voice = el('vozSel') ? el('vozSel').value : VOZ.voice, soltar = ocupar(btn);
+  const msg = txt => { const m = el('vozMsg'); if (m) m.textContent = txt; };
+  msg('Grabando…');
+  try{
+    for (let i = 0; i < 300; i++){
+      const r = await api('/trainings/'+t.id+'/narration','POST',{ voice, max:6 });
+      Object.assign(VOZ, { total:r.total, done:r.done, voice });
+      if (r.error){ toast(r.error,'err'); break; }
+      if (!r.pending){ toast('Voz grabada en las ' + r.total + ' láminas.'); break; }
+      msg(`Grabando… ${r.done} de ${r.total} láminas`);
+      if (r.wait){ msg(`Azure pidió una pausa de ${r.wait} s… ${r.done} de ${r.total} láminas`); await new Promise(ok => setTimeout(ok, r.wait * 1000)); }
+    }
+  }catch(e){ toast(e.message,'err'); }
+  finally{ soltar(); paintVoz(); }
 }
 async function savePresentation(silencioso){
   const t = fichaT(); if (!t || !P) return;

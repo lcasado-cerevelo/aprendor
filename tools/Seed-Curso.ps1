@@ -28,6 +28,12 @@
   # reemplaza todos sus items y refresca titulo, descripcion, recurrencia y certificado.
   # No crea un Training nuevo ni duplica el curso.
   .\Seed-Curso.ps1 -Url http://localhost:8086 -Email autor@cliente.com -Password "clave" -CoursePath .\course.json -Update
+
+.EXAMPLE
+  # Graba ademas la voz de cada lamina (Azure AI Speech, voz de Puerto Rico) antes de
+  # publicar. El sitio necesita APRENDOR_Speech__Key y APRENDOR_Speech__Region. La voz
+  # sale de training.voice en course.json (por defecto es-PR-KarinaNeural).
+  .\Seed-Curso.ps1 -Url http://localhost:8086 -Email autor@cliente.com -Password "clave" -CoursePath .\course.json -Update -Voz -Publish
 #>
 [CmdletBinding()]
 param(
@@ -38,6 +44,8 @@ param(
     [switch]$Publish,
     [switch]$Update,
     [switch]$SoloProbarConexion,
+    # Graba la voz de cada lamina con Azure antes de publicar.
+    [switch]$Voz,
     # Codigo de la app autenticadora, si la cuenta lo pide (si no se pasa, se pregunta).
     [string]$TotpCode
 )
@@ -175,8 +183,26 @@ function Verificar-Borrador($trainingId) {
     Write-Output "Borrador verificado: $($got.Count) items en el orden de course.json$(if ($conIntro) { ', pantalla de entrada primero' })."
 }
 
+# Voz de las laminas (-Voz): el servidor graba unas pocas por llamada; se repite hasta que
+# no quede ninguna. Si Azure pide esperar (nivel gratis), el servidor responde 'wait'.
+function Grabar-Voz($trainingId) {
+    if (-not $Voz) { return }
+    $voice = if ($course.training.voice) { $course.training.voice } else { 'es-PR-KarinaNeural' }
+    Write-Output "Grabando la voz ($voice)..."
+    for ($vuelta = 0; $vuelta -lt 200; $vuelta++) {
+        $r = Invoke-Api -Path "/trainings/$trainingId/narration" -Method 'POST' -Body @{ voice = $voice; max = 8 }
+        Write-Progress -Activity 'Grabando la voz' -Status "$($r.done) de $($r.total) laminas" -PercentComplete ([Math]::Min(100, $r.done * 100 / [Math]::Max(1, $r.total)))
+        if ($r.error) { Write-Error "No se pudo grabar la voz: $($r.error)"; exit 1 }
+        if (-not $r.pending) { Write-Progress -Activity 'Grabando la voz' -Completed; Write-Output "Voz grabada: $($r.done) laminas."; return }
+        if ($r.wait) { Start-Sleep -Seconds ([int]$r.wait) }
+    }
+    Write-Error 'La grabacion de la voz no termino; corre de nuevo con -Voz para seguir donde quedo.'
+    exit 1
+}
+
 function Publicar-SiCorresponde($trainingId) {
     Verificar-Borrador $trainingId
+    Grabar-Voz $trainingId
     if ($Publish) {
         $v = Invoke-Api -Path "/trainings/$trainingId/publish" -Method 'POST'
         Write-Output "Publicado: version $($v.versionNumber)."
@@ -216,7 +242,7 @@ if ($Update) {
     foreach ($it in $items) {
         $payloadJson = $it.payload | ConvertTo-Json -Depth 30 -Compress
         Invoke-Api -Path "/trainings/$($existing.id)/items" -Method 'POST' -Body @{
-            type = $it.type; payloadJson = $payloadJson; points = [int]$it.points; required = $true; active = $true
+            type = $it.type; payloadJson = $payloadJson; points = [int]$it.points; required = $true; active = ($it.active -ne $false)
         } | Out-Null
         $n++
         Write-Progress -Activity 'Subiendo contenido actualizado' -Status "$n de $($items.Count)" -PercentComplete ($n * 100 / $items.Count)
@@ -258,7 +284,7 @@ $n = 0
 foreach ($it in $items) {
     $payloadJson = $it.payload | ConvertTo-Json -Depth 30 -Compress
     Invoke-Api -Path "/trainings/$($training.id)/items" -Method 'POST' -Body @{
-        type = $it.type; payloadJson = $payloadJson; points = [int]$it.points; required = $true; active = $true
+        type = $it.type; payloadJson = $payloadJson; points = [int]$it.points; required = $true; active = ($it.active -ne $false)
     } | Out-Null
     $n++
     Write-Progress -Activity 'Subiendo contenido' -Status "$n de $($items.Count)" -PercentComplete ($n * 100 / $items.Count)

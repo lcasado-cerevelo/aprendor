@@ -18,6 +18,15 @@ using TrainingPlatform.Notifications;
 using TrainingPlatform.Seguridad;
 using TrainingPlatform.TenantData;
 
+// Consola: "voz-texto <course.json>" muestra lo que leerá la voz en cada lámina de un curso
+// de content/ y cuántos caracteres gasta (Azure cobra por carácter: 500 mil gratis al mes).
+// No toca la base ni Azure.
+if (args.Length > 1 && args[0].Equals("voz-texto", StringComparison.OrdinalIgnoreCase))
+{
+    TrainingPlatform.Narracion.Consola(args[1]);
+    return;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 // Además de las variables de entorno sin prefijo que ya carga CreateBuilder, admite
 // las mismas claves con el prefijo APRENDOR_ (p. ej. APRENDOR_Email__ApiKey), para
@@ -1801,6 +1810,7 @@ app.MapPost("/trainings", async (CreateTrainingRequest req, ITenantContext tc, I
 }).RequireAuthorization();
 
 app.MapPhase2();
+app.MapNarracion();
 app.MapCertificates();
 app.MapCompliance();
 app.MapRetakes();
