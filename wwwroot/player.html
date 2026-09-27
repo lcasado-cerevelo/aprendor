@@ -207,7 +207,10 @@
   .sl .btn:disabled,.pbtn:disabled{opacity:.45;cursor:not-allowed;}
 
   /* --- cromo del reproductor: contador, flechas, pantalla de inicio, aviso --- */
-  .pres-counter{position:fixed;right:16px;bottom:12px;color:#fff;opacity:.6;font:600 13px system-ui,sans-serif;letter-spacing:.04em;pointer-events:none;z-index:20;}
+  /* Contador «n / N»: va sobre una pastilla oscura translúcida para que se lea igual
+     sobre las láminas oscuras que sobre las de fondo blanco (split, photo-left). */
+  .pres-counter{position:fixed;right:16px;bottom:12px;color:#fff;background:rgba(15,15,15,.55);padding:3px 10px;border-radius:999px;font:600 13px system-ui,sans-serif;letter-spacing:.04em;pointer-events:none;z-index:20;}
+  .pres-counter:empty{display:none;}
   .pres-arrow{position:fixed;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.5);color:#fff;font-size:22px;line-height:1;cursor:pointer;z-index:20;transition:opacity .4s;display:flex;align-items:center;justify-content:center;padding:0;}
   .pres-arrow.l{left:14px;} .pres-arrow.r{right:14px;}
   .pres-arrow:hover{background:rgba(0,0,0,.75);}
