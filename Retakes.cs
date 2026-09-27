@@ -340,8 +340,15 @@ public static class RetakeEndpoints
                     // El intento aprobado deja de contar y su certificado queda anulado (definitivo).
                     aprobado.VoidedAt = ahora;
                     aprobado.VoidReason = motivo;
+                    // La anulación invalida también lo aprobado antes (así lo cuenta ResolveAsync):
+                    // si aprobó el curso más de una vez sin solicitud, sus certificados anteriores
+                    // seguían «valid». Se anulan todos los vigentes de ese curso y persona, además
+                    // del del intento, para que ninguno quede descargable ni abra por /c/.
                     var certs = await db.Certificates
-                        .Where(c => c.AttemptId == aprobado.Id && c.Status != CertificateStatus.Voided).ToListAsync();
+                        .Where(c => c.Status != CertificateStatus.Voided
+                                    && (c.AttemptId == aprobado.Id
+                                        || (c.UserId == p.Id && c.TrainingId == t.Id && c.Status == CertificateStatus.Valid)))
+                        .ToListAsync();
                     foreach (var c in certs)
                     {
                         c.Status = CertificateStatus.Voided;
@@ -350,6 +357,16 @@ public static class RetakeEndpoints
                         c.StatusByUserId = tc.UserId;
                         anulados.Add(c);
                     }
+                    // Los intentos de esos certificados anteriores también quedan anulados, para
+                    // que el expediente no los muestre como aprobados vigentes.
+                    var otrosIntentos = certs.Where(c => c.AttemptId != aprobado.Id)
+                        .Select(c => c.AttemptId).Distinct().ToList();
+                    if (otrosIntentos.Count > 0)
+                        foreach (var a in await db.Attempts.Where(a => otrosIntentos.Contains(a.Id) && a.VoidedAt == null).ToListAsync())
+                        {
+                            a.VoidedAt = ahora;
+                            a.VoidReason = motivo;
+                        }
                     if (certs.Count > 0) detalle += $"; certificado anulado: {string.Join(", ", certs.Select(c => c.Serial))}";
                 }
                 db.AuditLogs.Add(new TenantAuditLog { Action = "retake-request", Detail = detalle, UserId = tc.UserId });

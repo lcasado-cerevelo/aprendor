@@ -1612,6 +1612,8 @@ function tokenVencido(){ const d = datosToken(token); return !!(d && d.exp && d.
 function irAlPasoPendiente(){
   const s = alcanceToken();
   el('profileModal')?.classList.add('hidden');   // (los modales van después del script)
+  cerrarPasos2FA('tfa');                         // con el perfil se van sus pasos del doble factor
+  el('tfaAcciones')?.classList.remove('hidden');
   if (s === 'change-password') showForceChange();
   else if (s === 'enroll-2fa') mostrarAlta2FA();
   else if (s === 'verify-email') pedirValidacionCorreo();
@@ -1924,6 +1926,12 @@ el('rcBack').onclick = e => {
 
 function logout(){
   recordarRetoCorreo(null);
+  // Doble factor: nada de la sesión anterior se queda para la siguiente persona. Ni el
+  // reto del correo del alta (se reusaría y mostraría el correo de otro), ni el QR, la
+  // clave o la contraseña de «Cambiar de app» de los pasos abiertos (alta o perfil).
+  retoCorreo2FA = null; estado2FA = null;
+  cerrarPasos2FA('en'); cerrarPasos2FA('tfa');
+  el('tfaAcciones')?.classList.remove('hidden');
   token=null; user=null; retoActual=null; retoRecuperar=null; claveDelLogin='';
   localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user');
   el('profileModal')?.classList.add('hidden'); el('segModal')?.classList.add('hidden');
@@ -2098,7 +2106,7 @@ el('fcLogout').onclick = e => { e.preventDefault(); logout(); };
 //  - Escanea el código QR: QR grande y la clave VISIBLE en grupos de 4, con «Copiar».
 //  - Escribe el código de la app: confirma y activa.
 let estado2FA = null;       // último GET /me/2fa: { emailCodeRequired, trustedNetworks, ... }
-let retoCorreo2FA = null;   // { id, correo, at }: el código ya enviado (el servidor pide 60 s entre envíos)
+let retoCorreo2FA = null;   // { id, correo, at, uid }: el código ya enviado (el servidor pide 60 s entre envíos)
 const Pasos2FA = {};        // estado de los pasos por prefijo: 'en' (alta obligatoria) y 'tfa' (perfil)
 const ST_PASO2FA = { correo:'Correo', qr:'Qr', codigo:'Codigo' };
 
@@ -2208,16 +2216,19 @@ function irPaso2FA(w, paso){
 // Paso del correo: manda el código (o reusa el que se mandó hace poco, si volvió atrás).
 // Si el servidor dice que ya no hace falta, sigue directo al QR.
 async function pedirCorreo2FA(w, reenviar){
-  const reciente = retoCorreo2FA && Date.now() - retoCorreo2FA.at < 5 * 60 * 1000;
+  // Solo se reusa el reto de esta misma persona (logout lo borra; esto cubre el resto).
+  const reciente = retoCorreo2FA && user && retoCorreo2FA.uid === user.id
+                   && Date.now() - retoCorreo2FA.at < 5 * 60 * 1000;
   if (!reenviar && reciente){ w.reto = retoCorreo2FA.id; w.correo = retoCorreo2FA.correo; }
   else {
     const s = await api('/me/2fa/setup/send-code','POST');
+    if (Pasos2FA[w.p] !== w) return;   // salió de los pasos (o cerró sesión) mientras esperaba
     if (!s.required){
       w.pasos = ['qr','codigo'];
       if (estado2FA) estado2FA.emailCodeRequired = false;
       return pedirQr2FA(w);
     }
-    retoCorreo2FA = { id:s.challengeId, correo:s.email || w.correo, at:Date.now() };
+    retoCorreo2FA = { id:s.challengeId, correo:s.email || w.correo, at:Date.now(), uid:user && user.id };
     w.reto = retoCorreo2FA.id; w.correo = retoCorreo2FA.correo;
   }
   el(w.p + 'Correo').textContent = w.correo;
@@ -2443,7 +2454,9 @@ async function cambiarCompania(tenantId){
     irAlPasoPendiente();
   }catch(e){ toast(e.message,'err'); cargarCompanias(); }
 }
-function closeProfile(){ el('profileModal').classList.add('hidden'); }
+// Al cerrar el perfil se cierran también los pasos del doble factor: el QR, la clave y la
+// contraseña de «Cambiar de app» no se quedan en la página hasta volver a abrirlo.
+function closeProfile(){ tfaCancelar(); el('profileModal').classList.add('hidden'); }
 
 // ===== Verificación en dos pasos (alta y cambio desde el perfil) =====
 // Mismos pasos que el alta obligatoria (iniciarPasos2FA), sin antesala.
