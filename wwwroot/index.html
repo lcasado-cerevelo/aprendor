@@ -1690,7 +1690,10 @@ TS.listo = (async () => {
 async function tsMontar(slot){
   if (!await TS.listo || !window.turnstile || TS.ids[slot] != null) return;
   const nodo = el(slot); if (!nodo) return;
-  try{ TS.ids[slot] = turnstile.render(nodo, { sitekey: TS.key, language: 'es', theme: 'light' }); }
+  // appearance 'interaction-only': el recuadro de Cloudflare solo se ve cuando de verdad hace
+  // falta que la persona pulse algo. Visible siempre mostraba «¡Operación exitosa!» junto a
+  // «Correo o contraseña incorrectos», que parecía contradecirse.
+  try{ TS.ids[slot] = turnstile.render(nodo, { sitekey: TS.key, language: 'es', theme: 'light', appearance: 'interaction-only' }); }
   catch{ TS.ids[slot] = null; }
 }
 // Token del widget: undefined si Turnstile no está en uso (o no cargó); '' si aún no
@@ -1732,6 +1735,8 @@ async function doLogin(){
   const msg = el('loginMsg'); msg.textContent=''; msg.className='msg err';
   const email = el('email').value.trim(), password = el('password').value;
   if (!email || !password){ msg.textContent = 'Escribe tu correo y tu contraseña.'; return; }
+  // Un correo mal escrito (dos @, sin dominio) no llega al servidor: se dice qué revisar.
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ msg.textContent = 'Revisa el correo: no parece una dirección válida.'; el('email').focus(); return; }
   const soltar = ocupar(btn);
   let enviado = false;
   try{
