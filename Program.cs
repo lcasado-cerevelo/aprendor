@@ -186,6 +186,10 @@ DosFactores.RegistrarCodigosEnLog = app.Environment.IsDevelopment();
     RedesConfianza.Configurar(cfg, logSeguridad);
     if (!modoMigracion) app.Services.GetRequiredService<Turnstile>().AdvertirAlArrancar();
 }
+// Zona horaria de la aplicación (App:TimeZone, por defecto America/Puerto_Rico): con ella
+// se muestran las fechas y se cuentan los días, esté el servidor en la zona que esté.
+if (HoraLocal.Configurar(cfg["App:TimeZone"]) is string avisoZona)
+    app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("HoraLocal").LogWarning("{Aviso}", avisoZona);
 
 // ---- CLI mode: apply migrations to the catalog + every tenant database ----
 if (modoMigracion)
@@ -1150,9 +1154,13 @@ app.MapGet("/admin/tenants", async (CatalogDbContext catalog) =>
 // /admin/email-preview?kind=reminder|open|overdue|invite|reset|2fa|locked|2fa-locked|2fa-changed|recover|enroll-code|
 //   2fa-reset|2fa-recovered|admin-reset-notice|admin-2fa-notice|completion|digest|certificate|certificate-officer|compliance|
 //   retake|retake-void
-app.MapGet("/admin/email-preview", (string? kind) =>
+app.MapGet("/admin/email-preview", (string? kind, DateTime? at) =>
 {
     var k = (kind ?? "reminder").ToLowerInvariant();
+    // ?at=2026-09-27T02:30:00Z: simula la hora «ahora» (sin zona se toma como UTC) para revisar
+    // las fechas en la hora de la aplicación, p. ej. un certificado emitido de noche en Puerto Rico.
+    var ahora = at is not DateTime a ? DateTime.UtcNow
+        : a.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(a, DateTimeKind.Utc) : a.ToUniversalTime();
     var html = k switch
     {
         "open" => EmailTemplates.CourseReminder("María Rivera", "Cumplimiento HIPAA para transporte y logística",
@@ -1161,44 +1169,44 @@ app.MapGet("/admin/email-preview", (string? kind) =>
                     "https://aprendor.advancelogisticspr.com/index.html#invite=demo", Invitaciones.VigenciaHoras),
         "locked" => EmailTemplates.AccountLocked("María Rivera", "password", 15),
         "2fa-locked" => EmailTemplates.AccountLocked("María Rivera", "2fa", 15),
-        "2fa-changed" => EmailTemplates.AuthenticatorChanged("María Rivera", "changed", DateTime.UtcNow),
+        "2fa-changed" => EmailTemplates.AuthenticatorChanged("María Rivera", "changed", ahora),
         "recover" => EmailTemplates.RecoveryCode("María Rivera", "428913", DosFactores.VigenciaMinutos),
         "enroll-code" => EmailTemplates.EnrollCode("María Rivera", "428913", DosFactores.VigenciaMinutos),
-        "2fa-reset" => EmailTemplates.AuthenticatorReset("María Rivera", "admin", DateTime.UtcNow),
-        "2fa-recovered" => EmailTemplates.AuthenticatorReset("María Rivera", "recovered", DateTime.UtcNow),
+        "2fa-reset" => EmailTemplates.AuthenticatorReset("María Rivera", "admin", ahora),
+        "2fa-recovered" => EmailTemplates.AuthenticatorReset("María Rivera", "recovered", ahora),
         "admin-reset-notice" => EmailTemplates.AdminSecurityNotice("José Torres", "María Rivera", "maria.rivera@advancelogisticspr.com",
-                    "Advance Logistics", "password-reset", DateTime.UtcNow, "203.0.113.7"),
+                    "Advance Logistics", "password-reset", ahora, "203.0.113.7"),
         "admin-2fa-notice" => EmailTemplates.AdminSecurityNotice("José Torres", "María Rivera", "maria.rivera@advancelogisticspr.com",
-                    "Advance Logistics", "2fa-recovered", DateTime.UtcNow, "203.0.113.7"),
+                    "Advance Logistics", "2fa-recovered", ahora, "203.0.113.7"),
         "reset" => EmailTemplates.PasswordReset("María Rivera", "https://aprendor.advancelogisticspr.com/index.html#reset=demo", 60),
         "2fa" => EmailTemplates.TwoFactorCode("María Rivera", "428913", 10),
         "completion" => EmailTemplates.Completion("María Rivera", "Cumplimiento HIPAA para transporte y logística", 270, 300),
         "certificate" or "certificate-officer" => EmailTemplates.CertificateIssued("María Rivera",
-                    "Cumplimiento HIPAA para transporte y logística", "CERT-2026-1A2B3C4D", DateTime.UtcNow,
-                    DateTime.UtcNow.AddMonths(12), paraArchivo: k == "certificate-officer",
+                    "Cumplimiento HIPAA para transporte y logística", "CERT-2026-1A2B3C4D", ahora,
+                    ahora.AddMonths(12), paraArchivo: k == "certificate-officer",
                     "https://aprendor.advancelogisticspr.com", link: "https://aprendor.advancelogisticspr.com/c/demo", dias: 30),
         "overdue" => EmailTemplates.CourseReminder("María Rivera", "Cumplimiento HIPAA para transporte y logística",
-                    "overdue", DateTime.UtcNow.AddDays(-9), "https://aprendor.advancelogisticspr.com"),
+                    "overdue", ahora.AddDays(-9), "https://aprendor.advancelogisticspr.com"),
         "compliance" => EmailTemplates.ComplianceDigest("Advance Logistics",
                     new List<ComplianceRow> { new(Guid.NewGuid(), "María Rivera", "", new(), new() { "Choferes" }, Guid.NewGuid(),
-                        "Cumplimiento HIPAA para transporte y logística", "expired", "overdue", DateTime.UtcNow.AddDays(-3), "expires", 3) },
+                        "Cumplimiento HIPAA para transporte y logística", "expired", "overdue", ahora.AddDays(-3), "expires", 3) },
                     new List<ComplianceRow> { new(Guid.NewGuid(), "José Torres", "", new(), new() { "Almacén" }, Guid.NewGuid(),
-                        "Hostigamiento sexual en el empleo", "overdue", "overdue", DateTime.UtcNow.AddDays(-20), "due", 20) },
+                        "Hostigamiento sexual en el empleo", "overdue", "overdue", ahora.AddDays(-20), "due", 20) },
                     new List<ComplianceRow> { new(Guid.NewGuid(), "Ana López", "", new(), new(), Guid.NewGuid(),
-                        "Seguridad de la Información para Empleados", "renewal", "due-soon", DateTime.UtcNow.AddDays(12), "expires", 12) },
+                        "Seguridad de la Información para Empleados", "renewal", "due-soon", ahora.AddDays(12), "expires", 12) },
                     new List<ComplianceRow> { new(Guid.NewGuid(), "Luis Pérez", "", new(), new() { "Nuevos ingresos" }, Guid.NewGuid(),
-                        "Ética Empresarial y Prevención de Fraude", "not-started", "not-started", DateTime.UtcNow.AddDays(5), "due", 5) },
+                        "Ética Empresarial y Prevención de Fraude", "not-started", "not-started", ahora.AddDays(5), "due", 5) },
                     30, "https://aprendor.advancelogisticspr.com"),
         "retake" or "retake-void" => EmailTemplates.RetakeRequested("María Rivera",
                     "Cumplimiento HIPAA para transporte y logística", k == "retake-void" ? "void" : "renewal",
-                    DateTime.UtcNow.Date.AddDays(7).AddSeconds(-1),
+                    HoraLocal.FinDelDia(HoraLocal.DiaDe(ahora).AddDays(7)),
                     k == "retake-void" ? "El adiestramiento lo completó otra persona con su cuenta." : null,
                     "https://aprendor.advancelogisticspr.com").html,
         "digest" => EmailTemplates.Digest("María Rivera",
                     new List<PendingItem> { new(Guid.NewGuid(), "Ética Empresarial y Prevención de Fraude", Guid.NewGuid(), null, "not-started", null) },
                     new List<PendingItem> { new(Guid.NewGuid(), "Seguridad de la Información para Empleados", Guid.NewGuid(), null, "in-progress", null) }),
         _ => EmailTemplates.CourseReminder("María Rivera", "Cumplimiento HIPAA para transporte y logística",
-                    "due15", DateTime.UtcNow.AddDays(15), "https://aprendor.advancelogisticspr.com"),
+                    "due15", ahora.AddDays(15), "https://aprendor.advancelogisticspr.com"),
     };
     return Results.Content(html, "text/html; charset=utf-8");
 }).RequireAuthorization(AdminPlataforma.Politica);

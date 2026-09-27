@@ -211,7 +211,7 @@ public class ComplianceConfig
     public string DigestFrequency { get; set; } = "weekly";     // daily | weekly | monthly
     public string DigestDayOfWeek { get; set; } = "Monday";     // solo weekly
     public int DigestDayOfMonth { get; set; } = 1;              // solo monthly
-    public int DigestHour { get; set; } = 8;                    // hora local mínima de envío
+    public int DigestHour { get; set; } = 8;                    // hora mínima de envío (hora de la aplicación, App:TimeZone)
     public int ExpiredRepeatDays { get; set; } = 14;            // cada cuánto se repite un vencido
     public bool IncludeNotStarted { get; set; } = true;
     public string CertificateDelivery { get; set; } = "link";   // link | attachment

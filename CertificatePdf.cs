@@ -106,10 +106,11 @@ public static class CertificatePdf
     private static readonly string[] Meses =
         { "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre" };
 
-    // Misma fecha que certificate.html (toLocaleDateString 'es', día 2 dígitos y mes largo).
+    // Misma fecha que certificate.html (día de 2 dígitos y mes largo), en la hora de la
+    // aplicación (App:TimeZone, Puerto Rico) y no en la del servidor.
     private static string Fecha(DateTime utc)
     {
-        var f = utc.ToLocalTime();
+        var f = TrainingPlatform.HoraLocal.De(utc);
         return $"{f.Day:00} de {Meses[f.Month - 1]} de {f.Year}";
     }
 
@@ -245,8 +246,11 @@ public static class CertificatePdf
         p.Texto(nombreFirma, cxFirma, yLinea + 1.5 + 6 + 14 * SerifBase, Fuente.Serif, 14, Tinta);
         p.Texto(cargo, cxFirma, yCargo + 12 * SansBase, Fuente.Sans, 12, Gris500);
 
-        // Sello: círculo de 96px con borde doble, girado -8°, opacidad .9.
-        p.Sello(916 - 48, pie - 48, Mezcla(acento, 0.9), passPercent);
+        // Sello: círculo de 96px con borde doble, girado -8°, opacidad .9. Anulado: ANULADO en
+        // rojo; reemplazado: REEMPLAZADO en gris; ninguno lleva la palomita de aprobado.
+        if (anulado) p.Sello(916 - 48, pie - 48, Mezcla(Anulado, 0.9), passPercent, "ANULADO", 15);
+        else if (reemplazado) p.Sello(916 - 48, pie - 48, Mezcla(Gris500, 0.9), passPercent, "REEMPLAZADO", 9.5);
+        else p.Sello(916 - 48, pie - 48, Mezcla(acento, 0.9), passPercent);
 
         // --- Folio y plataforma (.serial: 11px / 10px, interlineado 16.5, a 34px del pie) ---
         double ySerial = AltoPx - 34 - 33;
@@ -383,8 +387,11 @@ public static class CertificatePdf
         }
 
         // Sello .seal: 96px, border 3px double (dos aros de 1px), girado -8° y con
-        // «APROBADO», «✓» y «NN% mín.» en columna.
-        public void Sello(double cx, double cy, (double r, double g, double b) color, int minimo)
+        // «APROBADO», «✓» y «NN% mín.» en columna. Con `palabra` (certificado anulado o
+        // reemplazado) lleva solo esa palabra en negrita, sin la palomita ni el mínimo
+        // (.seal.void / .seal.sup de certificate.html).
+        public void Sello(double cx, double cy, (double r, double g, double b) color, int minimo,
+            string? palabra = null, double tamPalabra = 15)
         {
             const double Angulo = 8 * Math.PI / 180;  // -8° en pantalla (y hacia abajo) = +8° en PDF
             double c = Math.Cos(Angulo), s = Math.Sin(Angulo);
@@ -392,15 +399,22 @@ public static class CertificatePdf
             // Desde aquí, coordenadas en puntos relativas al centro del sello (y hacia arriba).
             Circulo(47.5 * S, S, color);
             Circulo(45.5 * S, S, color);
-            // Contenido: tres líneas centradas (10px / 20px negrita / 10px) en los 90px interiores.
-            double altoCol = 10 * SansLinea + 20 * SansLinea + 10 * SansLinea;
-            double arriba = -altoCol / 2;
             void Linea(string t, Fuente f, double tam, double espaciado, double baseDesdeCentro)
             {
                 double w = Ancho(t, f, tam, espaciado);
                 Flujo.Append($"BT {Rgb(color)} rg /F{(int)f + 1} {N(tam * S)} Tf {N(espaciado * S)} Tc " +
                              $"{N(-w / 2 * S)} {N(-baseDesdeCentro * S)} Td ({Cadena(t, f)}) Tj ET\n");
             }
+            if (palabra is not null)
+            {
+                // Una sola línea (.seal .sw: negrita, espaciado 1px) centrada en el círculo.
+                Linea(palabra, Fuente.SansNegrita, tamPalabra, 1, -tamPalabra * SansLinea / 2 + tamPalabra * SansBase);
+                Flujo.Append("Q\n");
+                return;
+            }
+            // Contenido: tres líneas centradas (10px / 20px negrita / 10px) en los 90px interiores.
+            double altoCol = 10 * SansLinea + 20 * SansLinea + 10 * SansLinea;
+            double arriba = -altoCol / 2;
             Linea("APROBADO", Fuente.Sans, 10, 2, arriba + 10 * SansBase);
             // «✓» dibujado como trazo y no con la fuente ZapfDingbats: hay visores (poppler
             // sin fuentes base, algunos móviles) que no la traen y dejarían el sello sin marca.

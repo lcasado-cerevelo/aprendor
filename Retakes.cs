@@ -31,10 +31,11 @@ public static class RetakeService
 
     public static bool ModoValido(string? m) => m is "renewal" or "void";
 
-    // Fecha límite: el final (23:59:59 UTC) del día. Las fechas límite se guardan y se
-    // muestran como día (dd/MM/yyyy en UTC), igual que el resto de fechas de la app.
-    public static DateTime FinDelDia(DateTime dia)
-        => DateTime.SpecifyKind(dia.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
+    // Fecha límite: el día elegido se interpreta en la hora de la aplicación (App:TimeZone,
+    // Puerto Rico) y vence al final de ese día allí (23:59:59 locales, guardadas en UTC). Se
+    // muestra como ese día (HoraLocal en el servidor, la misma zona en el front). Las
+    // solicitudes anteriores quedaron a las 23:59:59 UTC, que en Puerto Rico es el mismo día.
+    public static DateTime FinDelDia(DateTime dia) => HoraLocal.FinDelDia(dia);
 
     public static DateTime Utc(DateTime d) => DateTime.SpecifyKind(d, DateTimeKind.Utc);
 
@@ -78,6 +79,13 @@ public static class RetakeService
     // La aprobación que cuenta de cada persona en el curso: la última aprobada, si no está
     // anulada (si la última se anuló, ya tiene que repetirlo y lo de antes tampoco cuenta).
     public static async Task<Dictionary<Guid, Attempt>> AprobacionesAsync(TenantDbContext db, Guid trainingId, List<Guid> userIds)
+        => (await UltimasAprobacionesAsync(db, trainingId, userIds)).Values
+            .Where(a => a.VoidedAt == null)
+            .ToDictionary(a => a.UserId!.Value);
+
+    // La última aprobación de cada persona en el curso, anulada o no (con VoidedAt, a quien
+    // se le anuló se le dice cuándo en lugar de «todavía no lo ha aprobado»).
+    public static async Task<Dictionary<Guid, Attempt>> UltimasAprobacionesAsync(TenantDbContext db, Guid trainingId, List<Guid> userIds)
     {
         var lista = await (from a in db.Attempts
                            where a.UserId != null && userIds.Contains(a.UserId.Value)
@@ -86,10 +94,14 @@ public static class RetakeService
                            where v.TrainingId == trainingId
                            select a).ToListAsync();
         return lista.GroupBy(a => a.UserId!.Value)
-            .Select(g => g.OrderByDescending(a => a.CompletedAt).First())
-            .Where(a => a.VoidedAt == null)
-            .ToDictionary(a => a.UserId!.Value);
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.CompletedAt).First());
     }
+
+    // Por qué no se le puede pedir que lo repita a quien no tiene una aprobación que cuente.
+    public static string MotivoNo(Attempt? ultima, bool largo)
+        => ultima?.VoidedAt is DateTime anulada
+            ? $"Su aprobación fue anulada el {HoraLocal.Fecha(anulada)}: no se le puede volver a pedir que lo repita hasta que apruebe."
+            : largo ? "Todavía no lo ha aprobado: no hay nada que repetir." : "Todavía no lo ha aprobado.";
 
     // Al aprobar (/complete y /grade): cumple la solicitud abierta de esa persona en ese
     // curso (si la pidieron antes de terminar este intento) y pasa a «Reemplazado» los
@@ -211,7 +223,7 @@ public static class RetakeEndpoints
 
             var ids = personas.Select(p => p.Id).ToList();
             var plazos = await RetakeService.PlazosAsync(db, t, ids);
-            var aprobaciones = await RetakeService.AprobacionesAsync(db, trainingId, ids);
+            var ultimas = await RetakeService.UltimasAprobacionesAsync(db, trainingId, ids);
             var certs = (await db.Certificates.AsNoTracking()
                     .Where(c => c.UserId != null && ids.Contains(c.UserId.Value) && c.TrainingId == trainingId && c.Status == CertificateStatus.Valid)
                     .ToListAsync())
@@ -224,7 +236,6 @@ public static class RetakeEndpoints
                 .Select(m => new { m.UserId, m.UserGroupId }).ToListAsync();
             var ingresos = await CatalogLogic.FechasIngresoAsync(catalog, tid);
 
-            var ahora = DateTime.UtcNow;
             var gente = new List<object>();
             foreach (var p in personas)
             {
@@ -232,7 +243,9 @@ public static class RetakeEndpoints
                 var estado = (await CatalogLogic.ResolveAsync(db, p.Id, grupos, ingresos.TryGetValue(p.Id, out var f) ? f : null))
                     .FirstOrDefault(x => x.TrainingId == trainingId);
                 var plazo = plazos[p.Id];
-                var aprobado = aprobaciones.TryGetValue(p.Id, out var a) ? a : null;
+                // La aprobación que cuenta: la última, si no está anulada.
+                var ultima = ultimas.TryGetValue(p.Id, out var a) ? a : null;
+                var aprobado = ultima?.VoidedAt is null ? ultima : null;
                 certs.TryGetValue(p.Id, out var cert);
                 abiertas.TryGetValue(p.Id, out var abierta);
                 gente.Add(new
@@ -246,8 +259,9 @@ public static class RetakeEndpoints
                         expiresAt = cert.ExpiresAt is DateTime e ? RetakeService.Utc(e) : (DateTime?)null
                     },
                     canRequest = aprobado is not null,
-                    reasonNot = aprobado is null ? "Todavía no lo ha aprobado: no hay nada que repetir." : null,
-                    dueAt = RetakeService.FinDelDia(ahora.AddDays(plazo.Dias)),
+                    reasonNot = aprobado is null ? RetakeService.MotivoNo(ultima, largo: true) : null,
+                    voidedAt = ultima?.VoidedAt is DateTime va ? RetakeService.Utc(va) : (DateTime?)null,
+                    dueAt = RetakeService.FinDelDia(HoraLocal.Hoy().AddDays(plazo.Dias)),
                     dueDays = plazo.Dias,
                     dueSource = plazo.Origen,
                     openRequest = SolicitudJson(abierta)
@@ -284,8 +298,9 @@ public static class RetakeEndpoints
             DateTime? limiteFijo = null;
             if (req.DueAt is DateTime d)
             {
+                // «Hoy» es el de la aplicación (Puerto Rico): de noche allí, en UTC ya es mañana.
+                if (d.Date < HoraLocal.Hoy()) return Results.BadRequest("La fecha límite tiene que ser hoy o un día futuro.");
                 var fin = RetakeService.FinDelDia(d);
-                if (fin <= ahora) return Results.BadRequest("La fecha límite tiene que ser hoy o un día futuro.");
                 if (fin > ahora.AddDays(3650)) return Results.BadRequest("La fecha límite está demasiado lejos.");
                 limiteFijo = fin;
             }
@@ -299,7 +314,7 @@ public static class RetakeEndpoints
 
             var ids = personas.Select(p => p.Id).ToList();
             var plazos = await RetakeService.PlazosAsync(db, t, ids);
-            var aprobaciones = await RetakeService.AprobacionesAsync(db, t.Id, ids);
+            var ultimas = await RetakeService.UltimasAprobacionesAsync(db, t.Id, ids);
             var abiertas = await db.RetakeRequests
                 .Where(r => ids.Contains(r.UserId) && r.TrainingId == t.Id && r.FulfilledAt == null && r.CancelledAt == null)
                 .ToListAsync();
@@ -311,9 +326,11 @@ public static class RetakeEndpoints
             var anulados = new List<Certificate>();
             foreach (var p in personas)
             {
-                if (!aprobaciones.TryGetValue(p.Id, out var aprobado))
+                // Solo a quien tiene una aprobación que cuenta (la última, sin anular).
+                ultimas.TryGetValue(p.Id, out var aprobado);
+                if (aprobado is null || aprobado.VoidedAt is not null)
                 {
-                    omitidas.Add(new { userId = p.Id, name = p.Name, reason = "Todavía no lo ha aprobado." });
+                    omitidas.Add(new { userId = p.Id, name = p.Name, reason = RetakeService.MotivoNo(aprobado, largo: false) });
                     continue;
                 }
                 // Una abierta por persona y curso: la nueva reemplaza a la anterior.
@@ -322,7 +339,7 @@ public static class RetakeEndpoints
                     vieja.CancelledAt = ahora;
                     vieja.CancelledByUserId = tc.UserId;
                 }
-                var limite = limiteFijo ?? RetakeService.FinDelDia(ahora.AddDays(plazos[p.Id].Dias));
+                var limite = limiteFijo ?? RetakeService.FinDelDia(HoraLocal.Hoy().AddDays(plazos[p.Id].Dias));
                 var sol = new RetakeRequest
                 {
                     UserId = p.Id, TrainingId = t.Id, Mode = modo, Reason = motivo, DueAt = limite,
@@ -333,7 +350,7 @@ public static class RetakeEndpoints
 
                 var detalle = $"{quien ?? "(admin)"} pidió repetir «{t.Title}» a {p.Name} ({p.Email}): " +
                               (modo == "void" ? "no fue válido (anulación)" : "renovación anticipada") +
-                              $", fecha límite {limite:yyyy-MM-dd}" + (motivo is null ? "" : $", motivo: {motivo}");
+                              $", fecha límite {HoraLocal.Fecha(limite)}" + (motivo is null ? "" : $", motivo: {motivo}");
 
                 if (modo == "void")
                 {
@@ -374,7 +391,9 @@ public static class RetakeEndpoints
 
             if (creadas.Count == 0)
                 return Results.BadRequest(personas.Count == 1
-                    ? "Esta persona todavía no ha aprobado el curso: no hay nada que repetir."
+                    ? (ultimas.TryGetValue(personas[0].Id, out var u) && u.VoidedAt is not null
+                        ? RetakeService.MotivoNo(u, largo: true)
+                        : "Esta persona todavía no ha aprobado el curso: no hay nada que repetir.")
                     : "Ninguna de estas personas ha aprobado el curso: no hay nada que repetir.");
 
             // Enlaces /c/ de los certificados anulados: revocados al instante (viven en el catálogo).

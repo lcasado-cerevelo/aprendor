@@ -836,17 +836,26 @@ public static class Phase2Endpoints
                                   }).ToListAsync();
 
             var todo = internos.Concat(externos).OrderByDescending(x => x.issuedOn).ToList();
-            var hoy = DateTime.UtcNow.Date;
+            var hoy = HoraLocal.Hoy();
+            // Fechas: las de la plataforma son instantes UTC (con Z; el front las muestra en la
+            // hora de Puerto Rico); las de una certificación externa son días del calendario y
+            // van como «yyyy-MM-dd», sin hora, para que ninguna zona las corra un día.
+            // Vigente: hasta el día de vencimiento incluido, contado en la hora de la aplicación.
+            static object? Fecha(string origen, DateTime? d) => d is not DateTime v ? null
+                : origen == "externa" ? v.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)
+                : DateTime.SpecifyKind(v, DateTimeKind.Utc);
             // status: valid | superseded (reemplazado al aprobar de nuevo) | voided (anulado).
             // Un certificado anulado o reemplazado ya no está vigente, tenga la fecha que tenga.
             return Results.Ok(todo.Select(x => new
             {
-                x.origen, x.id, x.trainingId, x.title, x.issuer, x.credentialId, x.issuedOn, x.expiresOn,
+                x.origen, x.id, x.trainingId, x.title, x.issuer, x.credentialId,
+                issuedOn = Fecha(x.origen, x.issuedOn), expiresOn = Fecha(x.origen, x.expiresOn),
                 x.documentUrl, x.externalSource, x.notes,
                 x.status,
                 statusChangedAt = x.statusChangedAt is DateTime sc ? DateTime.SpecifyKind(sc, DateTimeKind.Utc) : (DateTime?)null,
                 x.statusReason,
-                vigente = x.status == CertificateStatus.Valid && (x.expiresOn == null || x.expiresOn.Value.Date >= hoy)
+                vigente = x.status == CertificateStatus.Valid && (x.expiresOn is not DateTime ve
+                    || (x.origen == "externa" ? ve.Date : HoraLocal.DiaDe(ve)) >= hoy)
             }));
         }).RequireAuthorization();
 

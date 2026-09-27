@@ -2592,17 +2592,59 @@ let catMeta = {};           // trainingId → { category, description, cover }
 let catFilter = 'all';      // all | pend | ren | ok
 const DAY_MS = 86400000;
 
-function daysUntil(d){
-  const a = new Date(); a.setHours(0,0,0,0);
-  const b = new Date(d); b.setHours(0,0,0,0);
-  return Math.round((b - a) / DAY_MS);
+// ===== Fechas: todas en la hora de Puerto Rico =====
+// La aplicación cuenta y muestra las fechas en America/Puerto_Rico (App:TimeZone del
+// servidor, HoraLocal.cs), se miren desde donde se miren: el mismo día aquí, en
+// certificate.html, en el PDF y en los correos. TODO formateo de fechas pasa por aquí.
+// Lectura (fecha):
+//   Date                        -> tal cual
+//   «AAAA-MM-DD» (sin hora)      -> ese día del calendario (certificaciones externas); no se corre
+//   con hora y sin zona          -> UTC (EF devuelve las fechas sin Kind y todo se guarda en UTC)
+//   con Z u offset               -> tal cual
+// diaCal() lee como día del calendario una fecha fija que llega con hora
+// (Training.ExpiresOn: «2026-12-31T00:00:00»).
+const TZ_APP = 'America/Puerto_Rico';
+const _fmtDiaPR = new Intl.DateTimeFormat('en-US', { timeZone:TZ_APP, year:'numeric', month:'2-digit', day:'2-digit',
+                                                     hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
+function fecha(v){
+  if (v == null || v === '') return null;
+  if (v instanceof Date) return isNaN(v) ? null : v;
+  const s = String(v), dia = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  const d = dia ? new Date(Date.UTC(+dia[1], +dia[2] - 1, +dia[3], 12))   // mediodía UTC: ese día en cualquier zona de América
+              : new Date(/T/.test(s) && !/(Z|[+-]\d{2}:?\d{2})$/i.test(s) ? s + 'Z' : s);
+  return isNaN(d) ? null : d;
 }
-function fmtShort(d){
-  const x = new Date(d), o = { day:'numeric', month:'short' };
-  if (x.getFullYear() !== new Date().getFullYear()) o.year = 'numeric';
-  return x.toLocaleDateString('es-PR', o).replace('.', '');
+function diaCal(s){ const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? fecha(m[0]) : fecha(s); }
+// Comienzo (00:00) de un día del calendario en Puerto Rico (UTC-4 todo el año, sin horario
+// de verano): así vence una fecha fija en el servidor (CatalogLogic.VigenciaDe).
+function inicioDiaPR(s){ const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 4)) : fecha(s); }
+// Partes de la fecha en Puerto Rico: { y, m, d, h, mi } como texto de 2 dígitos (y de 4).
+function partesPR(v){
+  const d = fecha(v); if (!d) return null;
+  const p = {}; _fmtDiaPR.formatToParts(d).forEach(x => p[x.type] = x.value);
+  return { y:p.year, m:p.month, d:p.day, h:p.hour === '24' ? '00' : p.hour, mi:p.minute };
 }
-function fmtLong(d){ return new Date(d).toLocaleDateString('es-PR', { day:'numeric', month:'long', year:'numeric' }); }
+function fmtTz(v, o){ const d = fecha(v); return d ? d.toLocaleString('es-PR', Object.assign({}, o, { timeZone:TZ_APP })) : ''; }
+// El día en Puerto Rico como «AAAA-MM-DD» (valor de los <input type=date>) y el de hoy.
+function diaPR(v){ const p = partesPR(v); return p ? p.y + '-' + p.m + '-' + p.d : ''; }
+function hoyPR(){ return diaPR(new Date()); }
+// Fecha y hora en Puerto Rico como «AAAA-MM-DD HH:mm» (exportaciones CSV).
+function fechaHoraPR(v){ const p = partesPR(v); return p ? `${p.y}-${p.m}-${p.d} ${p.h}:${p.mi}` : ''; }
+function numDia(iso){ const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) / DAY_MS : NaN; }
+// Días del calendario de Puerto Rico que faltan hasta esa fecha (negativo si ya pasó).
+function daysUntil(v){ const d = diaPR(v); return d ? Math.round(numDia(d) - numDia(hoyPR())) : NaN; }
+function fmtShort(v){
+  const p = partesPR(v); if (!p) return '—';
+  const o = { day:'numeric', month:'short' };
+  if (p.y !== hoyPR().slice(0, 4)) o.year = 'numeric';
+  return fmtTz(v, o).replace('.', '');
+}
+function fmtLong(v){ return fmtTz(v, { day:'numeric', month:'long', year:'numeric' }) || '—'; }
+function fmtFecha(v){
+  if (!fecha(v)) return '—';
+  return fmtTz(v, { day:'numeric', month:'short', year:'numeric' }).replace('.', '') + ' · '
+       + fmtTz(v, { hour:'numeric', minute:'2-digit' });
+}
 function enDias(n){ return n <= 0 ? 'hoy' : n === 1 ? 'mañana' : `en ${n} días`; }
 
 // Cómo se presenta un curso del catálogo:
@@ -2614,8 +2656,8 @@ function enDias(n){ return n <= 0 ? 'hoy' : n === 1 ? 'mañana' : `en ${n} días
 //   grp         filtro: pend (pendientes) | ren (por renovar) | ok (aprobados)
 function catInfo(c){
   const s = c.status;
-  const exp = c.expiresAt ? new Date(c.expiresAt) : null;
-  const due = c.dueAt ? new Date(c.dueAt) : null;
+  const exp = fecha(c.expiresAt);
+  const due = fecha(c.dueAt);
   const aprobado = { tone:'ok', label:'Aprobado', btn: c.canReview ? 'Repasar' : 'Ver expediente',
                      act: c.canReview ? 'review' : 'record', rank:9, grp:'ok', ghost:true };
   let r;
@@ -2649,12 +2691,12 @@ function catInfo(c){
     const n = daysUntil(due), motivo = rt.reason ? ' title="' + esc('Motivo: ' + rt.reason) + '"' : '';
     if (rt.mode === 'void'){
       r.tone = 'err'; r.label = 'Anulado';
-      r.due = `<span${motivo}>Anulado · repítelo antes del <b>${esc(fmtDia(due))}</b></span>`;
+      r.due = `<span${motivo}>Anulado · repítelo antes del <b>${esc(fmtShort(due))}</b></span>`;
       r.dueTone = 'err';
       if (s !== 'in-progress') r.btn = 'Repetir ▸';
     } else {
       r.tone = 'warn'; r.label = 'Renovación pedida';
-      r.due = `<span${motivo}>Renovación pedida · antes del <b>${esc(fmtDia(due))}</b></span>`;
+      r.due = `<span${motivo}>Renovación pedida · antes del <b>${esc(fmtShort(due))}</b></span>`;
       r.dueTone = 'warn';
       if (s !== 'in-progress') r.btn = 'Renovar ▸';
     }
@@ -2662,7 +2704,7 @@ function catInfo(c){
     if (n <= 1) r.label += ' · ' + enDias(n);
     return r;
   }
-  if (rt && due && s === 'overdue') r.due = `${rt.mode === 'void' ? 'Anulado' : 'Renovación pedida'} · límite <b>${esc(fmtDia(due))}</b>`;
+  if (rt && due && s === 'overdue') r.due = `${rt.mode === 'void' ? 'Anulado' : 'Renovación pedida'} · límite <b>${esc(fmtShort(due))}</b>`;
   // Pendiente con fecha límite todavía por delante: pasa a «vence antes» y lo dice;
   // la cinta se vuelve ámbar cuando faltan dos semanas o menos.
   if (!rt && due && (s === 'not-started' || s === 'in-progress' || s === 'failed')){
@@ -2761,7 +2803,7 @@ async function loadDashStats(){
     renderHero(rows);
     paintTakeBadge();
   }catch(e){ el('dashHero').innerHTML = ''; }
-  const hoy = new Date().toLocaleDateString('es-PR', { weekday:'long', day:'numeric', month:'long' });
+  const hoy = fmtTz(new Date(), { weekday:'long', day:'numeric', month:'long' });
   const atender = rows.filter(r => r.k.act === 'take').length;
   el('dashSub').textContent = hoy + ' · ' + (atender === 0 ? 'Estás al día con tus adiestramientos'
     : atender === 1 ? '1 curso requiere tu atención' : `${atender} cursos requieren tu atención`);
@@ -2801,8 +2843,8 @@ function renderHero(rows){
   // «Pedir que lo repita»: la frase lo dice con la fecha de la solicitud.
   const rt = c.retake && c.status !== 'overdue' ? c.retake : null;
   if (rt) frase = rt.mode === 'void'
-    ? `Tu certificado fue anulado${rt.reason ? ' (' + rt.reason + ')' : ''}. Debes repetirlo antes del ${fmtDia(due)}.`
-    : `Te pidieron repetirlo antes del ${fmtDia(due)}. Tu certificado sigue vigente mientras tanto.`;
+    ? `Tu certificado fue anulado${rt.reason ? ' (' + rt.reason + ')' : ''}. Debes repetirlo antes del ${fmtShort(due)}.`
+    : `Te pidieron repetirlo antes del ${fmtShort(due)}. Tu certificado sigue vigente mientras tanto.`;
   const limite = (due && c.status !== 'overdue' && !rt) ? ` Fecha límite: ${fmtLong(due)}.` : '';
   const otros = tomables.length - 1;
   const boton = c.status === 'expired' || c.status === 'renewal' ? 'Renovar ahora ▸' : k.btn;
@@ -2882,17 +2924,8 @@ function showSection(id){
 // múltiple), Grupos (cada curso del plan, para todo el grupo) y la ficha del curso
 // (Resultados, selección múltiple). El servidor calcula la fecha límite de cada persona
 // (/retakes/preview) y el modal la deja cambiar.
-// Las fechas límite son días: se guardan como 23:59:59 UTC de ese día y se muestran en UTC.
-function fmtDia(d){
-  if (!d) return '—';
-  const x = new Date(d);
-  if (isNaN(x)) return '—';
-  const o = { day:'numeric', month:'short', timeZone:'UTC' };
-  if (x.getUTCFullYear() !== new Date().getFullYear()) o.year = 'numeric';
-  return x.toLocaleDateString('es-PR', o).replace('.', '');
-}
-function diaIso(d){ const x = new Date(d); return isNaN(x) ? '' : x.toISOString().slice(0, 10); }
-function hoyIso(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+// Las fechas límite son días de Puerto Rico: el servidor las guarda como el final (23:59:59)
+// de ese día allí, en UTC, y aquí se muestran en la hora de Puerto Rico (fmtShort).
 // Estado de una persona en un curso, como lo resuelve el servidor (CatalogLogic.ResolveAsync).
 const RT_ESTADO = { 'not-started':['gray','Por tomar'], 'in-progress':['info','En progreso'], failed:['info','No aprobado'],
   overdue:['err','Vencido'], 'pending-grading':['info','En revisión'], 'pending-cancellation':['gray','Cancelación pendiente'],
@@ -2954,7 +2987,7 @@ async function pedirRepetir(o){
   $('#rtCurso').textContent = P.title || o.title || '';
   // Fecha prellenada: la calculada si todas coinciden; si no, la más próxima (y cada quien
   // conserva la suya mientras no se cambie).
-  const dias = [...new Set(aptas.map(p => diaIso(p.dueAt)))].sort();
+  const dias = [...new Set(aptas.map(p => diaPR(p.dueAt)))].sort();
   S.due = dias[0] || '';
   const iguales = dias.length <= 1;
 
@@ -2964,18 +2997,28 @@ async function pedirRepetir(o){
     const sub = c ? `Folio ${c.serial} · emitido ${fmtShort(c.issuedAt)}${c.expiresAt ? ' · vence ' + fmtShort(c.expiresAt) : ''}`
                   : p.approvedAt ? 'Aprobado el ' + fmtShort(p.approvedAt) : 'Sin certificado vigente';
     const abierta = p.openRequest
-      ? `<small class="warn">Ya tiene una solicitud abierta (${esc(RT_MODO[p.openRequest.mode] ? RT_MODO[p.openRequest.mode][1].toLowerCase() : p.openRequest.mode)}, límite ${esc(fmtDia(p.openRequest.dueAt))}): la nueva la reemplaza.</small>` : '';
+      ? `<small class="warn">Ya tiene una solicitud abierta (${esc(RT_MODO[p.openRequest.mode] ? RT_MODO[p.openRequest.mode][1].toLowerCase() : p.openRequest.mode)}, límite ${esc(fmtShort(p.openRequest.dueAt))}): la nueva la reemplaza.</small>` : '';
     return `<div class="li${p.canRequest ? '' : ' skip'}"><div class="av">${esc(initials(p.name))}</div>
       <div class="t">${esc(p.name)}<small>${esc(sub)}</small>
-        ${p.canRequest ? `<small class="due">Límite calculado: <b>${esc(fmtDia(p.dueAt))}</b> · ${esc(p.dueSource)}</small>${abierta}`
-                       : `<small>${esc(p.reasonNot || 'No se le puede pedir.')}</small>`}</div>
+        ${p.canRequest ? `<small class="due">Límite calculado: <b>${esc(fmtShort(p.dueAt))}</b> · ${esc(p.dueSource)}</small>${abierta}`
+                       : `<small>${esc(motivoNo(p))}</small>`}</div>
       <span class="st ${tono}">${esc(txt)}</span></div>`;
   };
+  // A quien se le anuló la aprobación no se le puede volver a pedir hasta que apruebe: se
+  // le dice cuándo se anuló (en vez de «Todavía no lo ha aprobado», que confunde).
+  function motivoNo(p){
+    return p.voidedAt ? `Su aprobación fue anulada el ${fmtLong(p.voidedAt)}: no se le puede volver a pedir que lo repita hasta que apruebe.`
+                      : (p.reasonNot || 'No se le puede pedir.');
+  }
+  const anuladas = gente.filter(p => !p.canRequest && p.voidedAt).length;
   const cuantos = aptas.length === 1 ? '1 persona' : aptas.length + ' personas';
   $('#rtBody').innerHTML = `
     <div class="rt-people" role="list" aria-label="Personas">${gente.map(fila).join('') || '<div class="empty">Nadie.</div>'}</div>
-    ${aptas.length ? '' : `<p class="callout warn">Nadie de la lista ha aprobado este curso: no hay nada que pedir que repita.</p>`}
-    ${aptas.length && aptas.length < gente.length ? `<p class="dlg-hint">Se le pedirá a ${cuantos}; las demás todavía no lo han aprobado.</p>` : ''}
+    ${aptas.length ? '' : `<p class="callout warn">${anuladas === gente.length
+      ? (gente.length === 1 ? 'Su aprobación fue anulada: no se le puede volver a pedir que lo repita hasta que apruebe.'
+                            : 'A todas se les anuló la aprobación: no se les puede volver a pedir que lo repitan hasta que aprueben.')
+      : 'Nadie de la lista tiene una aprobación vigente de este curso: no hay nada que pedir que repita.'}</p>`}
+    ${aptas.length && aptas.length < gente.length ? `<p class="dlg-hint">Se le pedirá a ${cuantos}; las demás todavía no lo han aprobado${anuladas ? ' o tienen la aprobación anulada' : ''}.</p>` : ''}
     <div class="rt-q" id="rtQ">¿El adiestramiento anterior sigue siendo válido?</div>
     <div role="radiogroup" aria-labelledby="rtQ">
       <button type="button" class="radio" role="radio" aria-checked="false" data-m="renewal" aria-label="Sí, fue válido (renovación anticipada)"><i></i><div><b>Sí, fue válido (renovación anticipada)</b>
@@ -2986,7 +3029,7 @@ async function pedirRepetir(o){
     <label for="rtReason">Motivo <span class="opc" id="rtReasonOpc">(opcional)</span><span class="opc count" id="rtCount">0/500</span></label>
     <textarea id="rtReason" class="field" rows="3" maxlength="500" placeholder="Por ejemplo: lo completó otra persona con su cuenta"></textarea>
     <label for="rtDue">Fecha límite</label>
-    <input id="rtDue" type="date" class="field" style="max-width:200px" min="${hoyIso()}" value="${esc(S.due)}" />
+    <input id="rtDue" type="date" class="field" style="max-width:200px" min="${hoyPR()}" value="${esc(S.due)}" />
     <p class="dlg-hint" id="rtDueHint">${iguales
       ? (aptas[0] ? 'Calculada con ' + esc(aptas[0].dueSource) + '.' : '')
       : 'Cada persona tiene su fecha calculada (arriba). Si la cambias, todas quedan con la misma.'}</p>
@@ -3016,7 +3059,7 @@ async function pedirRepetir(o){
     if (!S.mode){ err.textContent = 'Responde si el adiestramiento anterior sigue siendo válido.'; return; }
     const motivo = S.reason.trim();
     if (S.mode === 'void' && !motivo){ err.textContent = 'Escribe el motivo de la anulación.'; $('#rtReason').focus(); return; }
-    if (S.dueTouched && (!S.due || S.due < hoyIso())){ err.textContent = 'La fecha límite tiene que ser hoy o un día futuro.'; $('#rtDue').focus(); return; }
+    if (S.dueTouched && (!S.due || S.due < hoyPR())){ err.textContent = 'La fecha límite tiene que ser hoy o un día futuro.'; $('#rtDue').focus(); return; }
     const body = { trainingId: o.trainingId, mode: S.mode, reason: motivo || null, dueAt: S.dueTouched ? S.due : null };
     if (o.groupId) body.groupId = o.groupId; else body.userIds = aptas.map(p => p.userId);
     try{
@@ -3140,7 +3183,7 @@ function renderRecRetakes(){
   box.innerHTML = `<div class="rtbox"><h3>${propio ? 'Te pidieron repetir' : 'Solicitudes abiertas para repetir'} · ${recRetakes.length}</h3>
     <div class="list" style="margin-top:6px">${recRetakes.map(s => {
       const [tono, txt] = RT_MODO[s.mode] || ['gray', s.mode];
-      const partes = [(s.overdue ? 'venció el ' : 'antes del ') + fmtDia(s.dueAt),
+      const partes = [(s.overdue ? 'venció el ' : 'antes del ') + fmtShort(s.dueAt),
         'pedida el ' + fmtShort(s.createdAt) + (s.createdByName ? ' por ' + s.createdByName : '')];
       if (s.reason) partes.push('motivo: «' + s.reason + '»');
       return `<div class="li"><div class="crow-ic">${ic('refresh', 18)}</div>
@@ -3163,7 +3206,7 @@ function renderRecord(){
 }
 function certCard(r, i, propio){
   const ext = r.origen !== 'plataforma';
-  const emit = diaLocal(r.issuedOn), exp = r.expiresOn ? diaLocal(r.expiresOn) : null;
+  const emit = fecha(r.issuedOn), exp = fecha(r.expiresOn);
   // «Pedir que lo repita»: anulado (rojo) o reemplazado al aprobar de nuevo (gris).
   const anulado = r.status === 'voided', reemplazado = r.status === 'superseded', fuera = anulado || reemplazado;
   const vencida = r.vigente === false && !fuera;
@@ -3348,15 +3391,15 @@ const DIAS_SEMANA = [['Monday','lunes'],['Tuesday','martes'],['Wednesday','miér
 function compRowsAll(){ return compSummary ? [...(compSummary.overdue || []), ...(compSummary.dueSoon || []), ...(compSummary.notStarted || [])] : []; }
 // Fecha de una fila del panel: txt para la lista, short para las pastillas de Grupos.
 function compWhen(r){
-  const f = r.date ? new Date(r.date) : null, lim = r.dateKind === 'due';
-  // «Pedir que lo repita»: la fecha es la límite de la solicitud (un día, en UTC).
+  const f = fecha(r.date), lim = r.dateKind === 'due';
+  // «Pedir que lo repita»: la fecha es la límite de la solicitud (un día de Puerto Rico).
   if (r.retake && r.bucket !== 'overdue' && f){
     const n = r.days != null ? r.days : daysUntil(f);
     if (r.retake === 'void')
-      return { tone:'err', short:'anulado', txt:'anulado · repítelo antes del ' + fmtDia(f) };
+      return { tone:'err', short:'anulado', txt:'anulado · repítelo antes del ' + fmtShort(f) };
     if (r.bucket === 'current')
-      return { tone:'ok', short:'renovación pedida', txt:'al día · renovación pedida antes del ' + fmtDia(f) };
-    return { tone:'warn', short:'renovación pedida', txt:'renovación pedida · límite ' + enDias(n) + ' · ' + fmtDia(f) };
+      return { tone:'ok', short:'renovación pedida', txt:'al día · renovación pedida antes del ' + fmtShort(f) };
+    return { tone:'warn', short:'renovación pedida', txt:'renovación pedida · límite ' + enDias(n) + ' · ' + fmtShort(f) };
   }
   if (r.bucket === 'overdue'){
     const hace = r.days > 0 ? ` · hace ${r.days} ${r.days === 1 ? 'día' : 'días'}` : '';
@@ -3375,17 +3418,16 @@ function compWhen(r){
 // ----- Banner rojo del inicio -----
 // «Ocultar hasta mañana»: se guarda por curso el día de hoy; mañana ya no coincide.
 // Es una comodidad de este navegador (localStorage), no cambia nada para los demás.
-function hoyKey(){ const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
 function alertStoreKey(){ return 'tp_alerts_hidden_' + ((user && user.tenantId) || ''); }
 function hiddenAlerts(){
   try{
-    const m = JSON.parse(localStorage.getItem(alertStoreKey()) || '{}') || {}, h = hoyKey();
+    const m = JSON.parse(localStorage.getItem(alertStoreKey()) || '{}') || {}, h = hoyPR();
     return new Set(Object.keys(m).filter(k => m[k] === h));
   }catch{ return new Set(); }
 }
 function hideAlerts(ids){
   try{
-    const h = hoyKey(), m = JSON.parse(localStorage.getItem(alertStoreKey()) || '{}') || {};
+    const h = hoyPR(), m = JSON.parse(localStorage.getItem(alertStoreKey()) || '{}') || {};
     Object.keys(m).forEach(k => { if (m[k] !== h) delete m[k]; });   // limpia lo de días anteriores
     (ids || []).forEach(id => m[id] = h);
     localStorage.setItem(alertStoreKey(), JSON.stringify(m));
@@ -3993,7 +4035,7 @@ function nombreUsuario(id){ const u = usuariosVistos[id]; return u ? (u.name || 
 function esAdminPlataforma(u){ return !!u && !u.tenantId && u.role === 'Admin'; }
 function recargarUsuarios(){ return isCompanyAdmin() ? loadCompanyUsers() : loadUsers(); }
 function fmtVence(d){
-  return d ? 'el ' + new Date(d).toLocaleString('es-PR', { day:'numeric', month:'long', hour:'numeric', minute:'2-digit' }) : 'en 72 horas';
+  return fecha(d) ? 'el ' + fmtTz(d, { day:'numeric', month:'long', hour:'numeric', minute:'2-digit' }) : 'en 72 horas';
 }
 const ROLES = [['Admin','Administrador'],['Author','Autor'],['Moderator','Moderador'],['Learner','Aprendiz']];
 
@@ -4204,10 +4246,9 @@ function swRow(key, on, title, hint, onclick){
 
 // ----- Vigencia: textos y la misma regla de caducidad del servidor -----
 function mesesTxt(n){ return n===12 ? 'anual' : n===24 ? 'cada 2 años' : n===6 ? 'semestral' : n===1 ? 'mensual' : `cada ${n} meses`; }
-// ExpiresOn es una fecha de calendario: «2026-12-31» se lee en hora local, sin que la zona la corra un día.
-function diaLocal(s){ const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s); }
+// ExpiresOn es una fecha de calendario (diaCal): «2026-12-31» es ese día, sin que la zona lo corra.
 function vigShort(t){
-  if (t.expiresOn) return `vence ${fmtShort(diaLocal(t.expiresOn))}` + (t.recurrenceMonths ? `, ${mesesTxt(t.recurrenceMonths)}` : '');
+  if (t.expiresOn) return `vence ${fmtShort(diaCal(t.expiresOn))}` + (t.recurrenceMonths ? `, ${mesesTxt(t.recurrenceMonths)}` : '');
   if (t.recurrenceMonths) return mesesTxt(t.recurrenceMonths);
   return 'no caduca';
 }
@@ -4215,13 +4256,15 @@ function vigLong(t){
   const s = vigShort(t), cap = s.charAt(0).toUpperCase() + s.slice(1);
   return (t.expiresOn || t.recurrenceMonths) ? `${cap} · reabre ${t.renewLeadDays} días antes` : cap;
 }
+// Sobre las partes UTC, como DateTime.AddMonths en el servidor (todo se guarda en UTC).
 function addMonths(d, n){
-  const x = new Date(d), dia = x.getDate();
-  x.setDate(1); x.setMonth(x.getMonth() + n);
-  x.setDate(Math.min(dia, new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate()));   // 31 ene + 1 = 28/29 feb, como .NET
+  const x = new Date(fecha(d)), dia = x.getUTCDate();
+  x.setUTCDate(1); x.setUTCMonth(x.getUTCMonth() + n);
+  x.setUTCDate(Math.min(dia, new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth() + 1, 0)).getUTCDate()));   // 31 ene + 1 = 28/29 feb, como .NET
   return x;
 }
-// Copia de CatalogLogic.VigenciaDe (Notifications.cs): cuándo caduca una aprobación.
+// Copia de CatalogLogic.VigenciaDe (Notifications.cs): cuándo caduca una aprobación. `fija` es
+// el comienzo del día de la fecha fija en Puerto Rico (inicioDiaPR), como en el servidor.
 function vigenciaDe(fija, meses, aprobado, ahora){
   if (!fija && !meses) return null;
   if (!fija) return addMonths(aprobado, meses);
@@ -4236,12 +4279,6 @@ function cuandoTxt(d){
   const n = -daysUntil(d);
   return n <= 0 ? 'hoy' : n === 1 ? 'ayer' : fmtShort(d);
 }
-function fmtFecha(d){
-  if (!d) return '—';
-  const x = new Date(d);
-  return x.toLocaleDateString('es-PR', { day:'numeric', month:'short', year:'numeric' }).replace('.', '') + ' · '
-       + x.toLocaleTimeString('es-PR', { hour:'numeric', minute:'2-digit' });
-}
 
 // Vigentes / por vencer / vencidos de un curso. /trainings/{id}/attempts no trae el id
 // del usuario, así que se agrupa por nombre: la última aprobación de cada persona y su
@@ -4253,14 +4290,14 @@ function courseStats(t, attempts){
   let lastPass = null;
   (attempts || []).forEach(a => {
     if (!(a.passed && a.completedAt)) return;
-    const d = new Date(a.completedAt);
+    const d = fecha(a.completedAt);
     if (!lastPass || d > lastPass) lastPass = d;
     const k = (a.learnerName || '').trim().toLowerCase() || a.id;
     if (!porPersona[k] || d > porPersona[k]) porPersona[k] = d;
   });
   let ok = 0, soon = 0, exp = 0;
   Object.values(porPersona).forEach(d => {
-    const v = vigenciaDe(t.expiresOn ? diaLocal(t.expiresOn) : null, t.recurrenceMonths, d, ahora);
+    const v = vigenciaDe(t.expiresOn ? inicioDiaPR(t.expiresOn) : null, t.recurrenceMonths, d, ahora);
     if (!v || v > ahora){ ok++; if (v && v <= lim) soon++; } else exp++;
   });
   if (compSummary){
@@ -5125,7 +5162,7 @@ async function setOpt(k){
 // ----- Vigencia, audiencia y avisos -----
 function initV(){
   const t = fichaT(), n = F.notif || {};
-  const fija = t.expiresOn ? String(t.expiresOn).slice(0, 10) : '';
+  const fija = t.expiresOn ? String(t.expiresOn).slice(0, 10) : '';   // día del calendario (no un instante)
   V = { mode: fija ? 'fixed' : (t.recurrenceMonths ? 'months' : 'none'),
         months: t.recurrenceMonths || 12, date: fija, roll: fija ? (t.recurrenceMonths || '') : '',
         lead: t.renewLeadDays == null ? 30 : t.renewLeadDays,
@@ -5361,9 +5398,9 @@ el('certPreviewBtn').onclick = () => {
   const cfg = certFormBody();
   const now = new Date();
   let validity = 'permanent', expiresAt = null;
-  if (certRecMonths){ validity = 'valid'; const e = new Date(now); e.setMonth(e.getMonth()+certRecMonths); expiresAt = e.toISOString(); }
+  if (certRecMonths){ validity = 'valid'; expiresAt = addMonths(now, certRecMonths).toISOString(); }
   const view = {
-    serial: 'CERT-'+now.getFullYear()+'-EJEMPLO',
+    serial: 'CERT-'+hoyPR().slice(0, 4)+'-EJEMPLO',
     learnerName: 'Nombre del Participante',
     trainingTitle: certCourseTitle,
     scorePercent: 95,
@@ -5416,7 +5453,7 @@ function renderResultados(){
     <div class="list">${lista.length ? lista.map(a => {
       const k = resKind(a), pill = RES_PILL[k];
       const sub = [fmtFecha(a.completedAt || a.startedAt), a.activeSeconds > 0 ? fmtTime(a.activeSeconds) + ' frente al curso' : null,
-        a.voidedAt ? 'anulado el ' + fmtDia(a.voidedAt) + (a.voidReason ? ': «' + a.voidReason + '»' : '') : null].filter(Boolean).join(' · ');
+        a.voidedAt ? 'anulado el ' + fmtShort(a.voidedAt) + (a.voidReason ? ': «' + a.voidReason + '»' : '') : null].filter(Boolean).join(' · ');
       const pts = a.status === 'completed' ? `<b class="num">${a.score} pts</b>` : '<b>—</b>';
       const chk = sel && resElegible(a)
         ? `<input type="checkbox" class="rtchk" data-u="${esc(a.userId)}" ${resSel.has(a.userId) ? 'checked' : ''} onchange="resSelToggle(this.dataset.u,this.checked)" aria-label="Seleccionar a ${esc(a.learnerName || 'la persona')}" />`
@@ -5461,7 +5498,7 @@ function exportResults(){
   const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
   const lineas = [['Empleado','Estado','Puntos','Inicio','Fin','Minutos frente al curso'].map(q).join(',')]
     .concat(rows.map(a => [a.learnerName || '', RES_PILL[resKind(a)][1], a.status === 'completed' ? a.score : '',
-      a.startedAt || '', a.completedAt || '', Math.round((a.activeSeconds || 0) / 60)].map(q).join(',')));
+      fechaHoraPR(a.startedAt), fechaHoraPR(a.completedAt), Math.round((a.activeSeconds || 0) / 60)].map(q).join(',')));
   const blob = new Blob(['﻿' + lineas.join('\r\n')], { type:'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -6418,7 +6455,6 @@ function openReview(attemptId, title){
 }
 
 // ===== Historial / resultados =====
-function fmt(d){ return d ? new Date(d).toLocaleString() : '—'; }
 function fmtTime(s){ s=Math.max(0,Math.round(s||0)); const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60; if(h>0)return h+'h '+m+'m'; if(m>0)return m+'m '+sec+'s'; return sec+'s'; }
 el('refreshHistBtn').onclick = loadMyHistory;
 // Intentos del empleado con su estado. De un intento aprobado se puede reenviar el enlace
@@ -6438,7 +6474,7 @@ async function loadMyHistory(){
                  : HIST_PILL[a.status] || ['gray', a.status];
       const sub = [fmtFecha(a.completedAt || a.startedAt),
         a.activeSeconds > 0 ? fmtTime(a.activeSeconds) + ' frente al curso' : null,
-        a.voidedAt ? 'anulado el ' + fmtDia(a.voidedAt) + (a.voidReason ? ': «' + a.voidReason + '»' : '') : null,
+        a.voidedAt ? 'anulado el ' + fmtShort(a.voidedAt) + (a.voidReason ? ': «' + a.voidReason + '»' : '') : null,
         a.status === 'cancellation-requested' && a.cancelRequestComment ? 'motivo: «' + a.cancelRequestComment + '»' : null,
         a.status === 'cancelled' && a.cancelApprovalComment ? 'aprobó: «' + a.cancelApprovalComment + '»' : null].filter(Boolean).join(' · ');
       const acts = [];

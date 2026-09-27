@@ -156,8 +156,9 @@ public static class CertificateService
     }
 
     // Folio legible y único. El GUID hace la unicidad; el índice único lo garantiza.
+    // El año es el de la aprobación en la hora de la aplicación (el mismo del certificado).
     private static string MakeSerial(DateTime when)
-        => $"CERT-{when:yyyy}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}";
+        => $"CERT-{HoraLocal.De(when).Year}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}";
 
     // Réplica de la suma de puntos del set tomado (misma lógica que Phase2.SetTotalAsync).
     private static async Task<int> SetTotalAsync(TenantDbContext db, Attempt attempt)

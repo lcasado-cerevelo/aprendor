@@ -55,6 +55,11 @@
          display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
          font-family:system-ui,sans-serif; transform:rotate(-8deg); opacity:.9; }
   .seal .s1{ font-size:10px; letter-spacing:2px; } .seal .s2{ font-size:20px; font-weight:700; }
+  /* Certificado anulado o reemplazado: el sello dice ANULADO (rojo) o REEMPLAZADO (gris),
+     sin la palomita ni el mínimo (igual que CertificatePdf.Sello con palabra). */
+  .seal .sw{ font-size:15px; font-weight:700; letter-spacing:1px; }
+  .seal.void{ border-color:#b91c1c; color:#b91c1c; }
+  .seal.sup{ border-color:#6b7280; color:#6b7280; } .seal.sup .sw{ font-size:9.5px; }
   .serial{ position:absolute; bottom:34px; left:0; right:0; text-align:center; font-size:11px;
            letter-spacing:1px; color:#9ca3af; font-family:system-ui,monospace; line-height:1.5; }
   .platform{ font-size:10px; letter-spacing:.5px; color:#b0b7c3; }
@@ -91,14 +96,23 @@
 <script>
 const qs = new URLSearchParams(location.search);
 const token = localStorage.getItem('tp_token');
-// Las fechas son UTC. Si la cadena no trae zona (API anterior), se le añade Z: new Date la
-// leería como hora local y, entre las 20:00 y la medianoche de Puerto Rico, mostraría el día
-// siguiente, distinto del PDF del correo (CertificatePdf.Fecha).
-const fmt = iso => {
-  if(!iso) return '';
-  const s = String(iso);
-  const d = new Date(/T/.test(s) && !/(Z|[+-]\d{2}:?\d{2})$/i.test(s) ? s + 'Z' : s);
-  return isNaN(d) ? '' : d.toLocaleDateString('es', {day:'2-digit',month:'long',year:'numeric'});
+// Fechas: las del servidor son instantes UTC (si la cadena no trae zona, se le añade Z; sin
+// eso new Date la leería como hora local) y se muestran en la hora de Puerto Rico, la de la
+// aplicación (App:TimeZone), se abra desde donde se abra: el mismo día que el PDF del correo
+// (CertificatePdf.Fecha) y que el expediente de index.html. «AAAA-MM-DD» sin hora es un día
+// del calendario y no se corre.
+const TZ_APP = 'America/Puerto_Rico';
+function fecha(v){
+  if(v == null || v === '') return null;
+  if(v instanceof Date) return isNaN(v) ? null : v;
+  const s = String(v), dia = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  const d = dia ? new Date(Date.UTC(+dia[1], +dia[2] - 1, +dia[3], 12))
+                : new Date(/T/.test(s) && !/(Z|[+-]\d{2}:?\d{2})$/i.test(s) ? s + 'Z' : s);
+  return isNaN(d) ? null : d;
+}
+const fmt = v => {
+  const d = fecha(v);
+  return d ? d.toLocaleDateString('es', {day:'2-digit',month:'long',year:'numeric',timeZone:TZ_APP}) : '';
 };
 const esc = s => (s??'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // Logo y firma: solo imágenes embebidas png/jpeg/webp/gif (la misma regla del servidor).
@@ -187,8 +201,10 @@ function render(c, isPreview){
         </div>
         <div class="foot">
           ${sign}
-          <div class="seal"><span class="s1">APROBADO</span><span class="s2">✓</span>
-            <span class="s1">${Number(c.passPercent)||0}% mín.</span></div>
+          ${anulado ? '<div class="seal void"><span class="sw">ANULADO</span></div>'
+            : reemplazado ? '<div class="seal sup"><span class="sw">REEMPLAZADO</span></div>'
+            : `<div class="seal"><span class="s1">APROBADO</span><span class="s2">✓</span>
+            <span class="s1">${Number(c.passPercent)||0}% mín.</span></div>`}
         </div>
       </div>
       <div class="serial">Folio: ${esc(c.serial)} · Verificable con el emisor<br>

@@ -449,6 +449,37 @@ Solo cambia `wwwroot/index.html`; usa los endpoints de S1–S3 tal cual.
   ítems (nombre de archivo, opciones y pareo, vista previa del logo y la firma). Los selectores de foto
   de lámina, logo y firma solo aceptan PNG, JPG, GIF o WebP (lo que el servidor conserva) y avisan si no.
 
+## Zona horaria de la aplicación (`App:TimeZone`, septiembre 2026)
+
+Todo se guarda en UTC. Lo que se **muestra** y los **días del calendario** se cuentan en la zona de
+la aplicación, no en la de la máquina (el servidor en la nube puede estar en UTC):
+
+- **Clave**: `App:TimeZone` (variable `APRENDOR_App__TimeZone`), por defecto `America/Puerto_Rico`.
+  Acepta el id IANA o el de Windows (.NET 8 los resuelve en los dos sistemas). Si no se encuentra, se
+  usa `SA Western Standard Time` (UTC-4, Puerto Rico en Windows) y, si tampoco, UTC-4 fija; en los
+  dos casos queda un aviso en la bitácora al arrancar.
+- **Servidor** (`HoraLocal.cs`): el PDF del certificado, todas las fechas de los correos
+  (certificado, recordatorios, vencidos, resumen del oficial, «Pedir que lo repita», avisos de
+  seguridad con fecha y hora «(hora de Puerto Rico)»), el «hoy» de las validaciones, los días que
+  faltan de los avisos y del panel, la hora y el día del resumen (`DigestHour`) y el año del folio.
+  No se usa `ToLocalTime` ni `DateTime.Now` para mostrar.
+- **Fechas límite**: un día elegido o calculado vence al **final de ese día en Puerto Rico**
+  (23:59:59 locales guardadas en UTC): «Pedir que lo repita» (el día de hoy es válido hasta la
+  medianoche de Puerto Rico), el plazo del plan del grupo y el de ingreso (`OnboardingDays`). La
+  **fecha fija** de vigencia de un curso (`Training.ExpiresOn`) vence al **comenzar** ese día en
+  Puerto Rico. Las solicitudes de repetir creadas antes quedaron a las 23:59:59 UTC, que en Puerto
+  Rico es el mismo día.
+- **Front** (`index.html`, `certificate.html`): un solo juego de funciones formatea con
+  `Intl.DateTimeFormat` en `America/Puerto_Rico`; una fecha con hora y sin zona se lee como UTC y
+  una «AAAA-MM-DD» sin hora (certificaciones externas del expediente) como ese día del calendario.
+  El mínimo de los campos de fecha límite es el día de hoy en Puerto Rico. El CSV de resultados
+  exporta inicio y fin en hora de Puerto Rico (`AAAA-MM-DD HH:mm`).
+- **Probar horas**: `/admin/email-preview?kind=certificate&at=2026-09-27T02:30:00Z` arma el correo
+  como si fuera esa hora (sin zona se toma como UTC): debe decir 26/09/2026.
+- **Avisos ya enviados**: las claves de idempotencia de los avisos (`dueN:`, `overdue:`,
+  `officer-expired:`) usan el día de Puerto Rico. Un vencimiento que caía entre las 20:00 y la
+  medianoche de Puerto Rico puede repetir su aviso una vez tras publicar.
+
 ## Comprobar la publicación (IIS)
 
 Publica **completo**: la carpeta de `dotnet publish -c Release` (binarios, `wwwroot/` y `web.config`)

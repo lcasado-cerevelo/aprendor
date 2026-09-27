@@ -232,6 +232,8 @@ public static class CatalogLogic
     //   - `everyone` con Training.OnboardingDays: fechaIngreso + OnboardingDays
     //                 (fechaIngreso = UserCompany.CreatedAt; si no se pasa, sin límite).
     //   - si aplican ambas, la más temprana.
+    //   Los días se cuentan en el calendario de la aplicación (HoraLocal, App:TimeZone) y la
+    //   fecha límite es el final (23:59:59) de ese día allí, igual que en «Pedir que lo repita».
     // Quien ya tenía el curso aprobado y vigente al entrar al grupo no lo vuelve a
     // deber: DueAt queda en null y el estado sigue siendo current/done.
     // Estado `overdue`: not-started / in-progress / failed con DueAt ya pasado.
@@ -296,7 +298,8 @@ public static class CatalogLogic
                 var desde = membresias.FirstOrDefault(m => m.UserGroupId == c.UserGroupId)?.JoinedAt ?? now;
                 if (c.AddedAt > desde) desde = c.AddedAt;
                 var dias = c.DueDays ?? (grupos.TryGetValue(c.UserGroupId, out var d) ? d : 7);
-                var limite = desde.AddDays(Math.Max(0, dias));
+                // Como toda fecha límite, vence al final de ese día en la hora de la aplicación.
+                var limite = HoraLocal.FinDelDia(HoraLocal.DiaDe(desde).AddDays(Math.Max(0, dias)));
                 if (!limitesPorGrupo.TryGetValue(c.TrainingId, out var actual) || limite < actual)
                     limitesPorGrupo[c.TrainingId] = limite;
             }
@@ -367,7 +370,7 @@ public static class CatalogLogic
                 if (limitesPorGrupo.TryGetValue(tId, out var porGrupo)) dueAt = porGrupo;
                 if (v.Audience != "groups" && v.OnboardingDays is int od && fechaIngreso is DateTime ingreso)
                 {
-                    var porIngreso = ingreso.AddDays(Math.Max(0, od));
+                    var porIngreso = HoraLocal.FinDelDia(HoraLocal.DiaDe(ingreso).AddDays(Math.Max(0, od)));
                     if (dueAt is null || porIngreso < dueAt) dueAt = porIngreso;
                 }
                 if (dueAt is DateTime limite && now >= limite) status = "overdue";
@@ -400,18 +403,20 @@ public static class CatalogLogic
     //   fecha fija + meses      -> la fecha fija rodando de ciclo en ciclo (31/dic cada 12 meses),
     //                              y si alguien aprueba dentro del último ciclo antes del corte,
     //                              se le cuenta el ciclo siguiente para no exigirle repetirlo en días.
+    // La fecha fija es un día del calendario: vence al comenzar ese día (00:00) en la hora de
+    // la aplicación (HoraLocal), no a medianoche UTC (que en Puerto Rico es la víspera a las 20:00).
     public static DateTime? VigenciaDe(DateTime? fechaFija, int? meses, DateTime aprobadoEn, DateTime ahora)
     {
         if (fechaFija is null && meses is null) return null;
         if (fechaFija is null) return aprobadoEn.AddMonths(meses!.Value);
 
-        var corte = fechaFija.Value;
-        if (meses is null) return corte;                 // fecha fija que no se repite
+        var dia = fechaFija.Value.Date;
+        if (meses is null) return HoraLocal.InicioDelDia(dia);                 // fecha fija que no se repite
 
         var paso = Math.Max(1, meses.Value);
-        while (corte <= aprobadoEn) corte = corte.AddMonths(paso);   // el corte vigente para esa aprobación
-        while (corte <= ahora) corte = corte.AddMonths(paso);        // y no devolver un corte ya pasado
-        return corte;
+        while (HoraLocal.InicioDelDia(dia) <= aprobadoEn) dia = dia.AddMonths(paso);   // el corte vigente para esa aprobación
+        while (HoraLocal.InicioDelDia(dia) <= ahora) dia = dia.AddMonths(paso);        // y no devolver un corte ya pasado
+        return HoraLocal.InicioDelDia(dia);
     }
 }
 
@@ -567,7 +572,7 @@ public static class EmailTemplates
             Titulo(titulo) +
             $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
             $"<p style=\"margin:0;\">{Enc(texto)}</p>" +
-            Recuadro($"<div><span style=\"color:#64748b;\">Fecha:</span> <b>{cuandoUtc:yyyy-MM-dd HH:mm} UTC</b></div>") +
+            Recuadro($"<div><span style=\"color:#64748b;\">Fecha:</span> <b>{HoraLocal.FechaHora(cuandoUtc)}</b></div>") +
             "<p style=\"margin:0;color:#64748b;font-size:13px;\">Si no fuiste tú, cambia tu contraseña enseguida y avisa al administrador de tu compañía.</p>";
         return Render(body, titulo + ".");
     }
@@ -616,7 +621,7 @@ public static class EmailTemplates
             Titulo("Quitamos tu app autenticadora") +
             $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
             $"<p style=\"margin:0;\">{Enc(texto)}</p>" +
-            Recuadro($"<div><span style=\"color:#64748b;\">Fecha:</span> <b>{cuandoUtc:yyyy-MM-dd HH:mm} UTC</b></div>") +
+            Recuadro($"<div><span style=\"color:#64748b;\">Fecha:</span> <b>{HoraLocal.FechaHora(cuandoUtc)}</b></div>") +
             "<p style=\"margin:0;\">Si tu compañía exige la verificación en dos pasos, al entrar te pediremos registrar una app autenticadora nueva.</p>" +
             "<p style=\"margin:10px 0 0;color:#64748b;font-size:13px;\">Si no fuiste tú ni lo pediste, cambia tu contraseña enseguida y avisa al administrador de tu compañía.</p>";
         return Render(body, "Se quitó la app autenticadora de tu cuenta.");
@@ -641,7 +646,7 @@ public static class EmailTemplates
             Recuadro(
                 $"<div><span style=\"color:#64748b;\">Usuario:</span> <b>{Enc(userEmail)}</b></div>" +
                 $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Compañía:</span> <b>{Enc(companyName)}</b></div>" +
-                $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Fecha:</span> <b>{cuandoUtc:yyyy-MM-dd HH:mm} UTC</b></div>" +
+                $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Fecha:</span> <b>{HoraLocal.FechaHora(cuandoUtc)}</b></div>" +
                 (string.IsNullOrWhiteSpace(ip) ? "" : $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">IP:</span> <b>{Enc(ip!)}</b></div>")) +
             "<p style=\"margin:0;color:#64748b;font-size:13px;\">Si no esperabas este cambio, confirma con la persona que fue ella. " +
             "Desde Usuarios puedes reiniciar su doble factor o restablecer su contraseña.</p>";
@@ -678,7 +683,7 @@ public static class EmailTemplates
         string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
         if (tipo == "overdue")
         {
-            var cuando = expiresAt is DateTime f ? $" el <b>{f:dd/MM/yyyy}</b>" : "";
+            var cuando = expiresAt is DateTime f ? $" el <b>{HoraLocal.Fecha(f)}</b>" : "";
             var cuerpoVencido = esLimite
                 ? $"El plazo para completar el adiestramiento <b>{Enc(title)}</b> terminó{cuando} y todavía no lo has aprobado."
                 : $"Tu aprobación del adiestramiento <b>{Enc(title)}</b> venció{cuando}. Necesitas tomarlo de nuevo para estar al día.";
@@ -688,7 +693,7 @@ public static class EmailTemplates
                 $"<p style=\"margin:0;\">{cuerpoVencido}</p>" +
                 (expiresAt is DateTime fv
                     ? Recuadro($"<span style=\"color:#64748b;\">{(esLimite ? "Fecha límite:" : "Venció el:")}</span> " +
-                               $"<b style=\"color:#b91c1c;\">{fv:dd/MM/yyyy}</b>")
+                               $"<b style=\"color:#b91c1c;\">{HoraLocal.Fecha(fv)}</b>")
                     : "") +
                 "<p style=\"margin:0;color:#475569;\">Complétalo lo antes posible: tu oficial de cumplimiento recibe el listado de adiestramientos vencidos.</p>" +
                 Boton("Tomar el adiestramiento", appUrl ?? "");
@@ -704,7 +709,7 @@ public static class EmailTemplates
             : ($"Te quedan {dias} días",
                $"El adiestramiento <b>{Enc(title)}</b> vence en <b>{dias} días</b> y todavía no lo has completado.");
         var vence = expiresAt is DateTime d
-            ? Recuadro($"<span style=\"color:#64748b;\">{(esLimite ? "Fecha límite:" : "Fecha de vencimiento:")}</span> <b>{d:dd/MM/yyyy}</b>")
+            ? Recuadro($"<span style=\"color:#64748b;\">{(esLimite ? "Fecha límite:" : "Fecha de vencimiento:")}</span> <b>{HoraLocal.Fecha(d)}</b>")
             : "";
         var body =
             Titulo(encabezado) +
@@ -721,7 +726,7 @@ public static class EmailTemplates
         DateTime dueAt, string? reason, string? appUrl)
     {
         string Enc(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
-        var fecha = dueAt.ToString("dd/MM/yyyy");
+        var fecha = HoraLocal.Fecha(dueAt);
         var motivo = string.IsNullOrWhiteSpace(reason) ? "" : reason!.Trim();
         string asunto, titulo, cuerpo, pre;
         if (modo == "void")
@@ -786,8 +791,8 @@ public static class EmailTemplates
         return
             $"<div style=\"font:700 16px/1.4 Segoe UI,Arial,sans-serif;color:#0f172a;\">{Enc(trainingTitle)}</div>" +
             (paraArchivo ? $"<div style=\"margin-top:8px;\"><span style=\"color:#64748b;\">Empleado:</span> <b>{Enc(learnerName)}</b></div>" : "") +
-            $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Emitido:</span> <b>{issuedAt.ToLocalTime():dd/MM/yyyy}</b></div>" +
-            (expiresAt is DateTime v ? $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Vigente hasta:</span> <b>{v.ToLocalTime():dd/MM/yyyy}</b></div>" : "") +
+            $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Emitido:</span> <b>{HoraLocal.Fecha(issuedAt)}</b></div>" +
+            (expiresAt is DateTime v ? $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Vigente hasta:</span> <b>{HoraLocal.Fecha(v)}</b></div>" : "") +
             $"<div style=\"margin-top:6px;\"><span style=\"color:#64748b;\">Folio:</span> <b style=\"font-family:Consolas,monospace;\">{Enc(serial)}</b></div>";
     }
 
@@ -854,7 +859,7 @@ public static class EmailTemplates
             foreach (var f in filas.Take(max))
             {
                 var grupo = f.Groups.Count > 0 ? string.Join(", ", f.Groups) : "—";
-                var fecha = f.Date is DateTime d ? d.ToString("dd/MM/yyyy") : "—";
+                var fecha = f.Date is DateTime d ? HoraLocal.Fecha(d) : "—";
                 var dias = f.Days is int n ? n.ToString() : "—";
                 var etiqueta = ComplianceState.EtiquetaRetake(f.Retake) is string et
                     ? $"<br><span style=\"display:inline-block;margin-top:3px;padding:1px 7px;border-radius:999px;font-size:11px;" +
@@ -1022,7 +1027,6 @@ public static class ReminderRunner
             var opts = new DbContextOptionsBuilder<TenantDbContext>().UseSqlServer(tenant.ConnectionString).Options;
             await using var db = new TenantDbContext(opts);
 
-            var hoy = DateTime.UtcNow;
             foreach (var u in usuarios)
             {
                 List<PendingItem> pendientes;
@@ -1059,8 +1063,8 @@ public static class ReminderRunner
                     var esLimite = EsLimite(p);
                     if (fechaAviso is DateTime vence && reglas.DaysBefore.Count > 0)
                     {
-                        var dias = (vence.Date - hoy.Date).TotalDays;
-                        var sello = vence.ToString("yyyyMMdd");
+                        var dias = HoraLocal.DiasHasta(vence);   // días del calendario de la aplicación
+                        var sello = HoraLocal.Sello(vence);
                         foreach (var d in reglas.DaysBefore.OrderByDescending(x => x))
                             if (dias <= d && dias >= 0)
                             {
@@ -1122,7 +1126,8 @@ public static class ReminderRunner
 }
 
 // ---- Aviso al empleado con un curso vencido ----
-// Idempotencia con NotificationLog (UserId, TrainingId, Kind = overdue:{yyyyMMdd}). A
+// Idempotencia con NotificationLog (UserId, TrainingId, Kind = overdue:{yyyyMMdd en la hora
+// de la aplicación, HoraLocal.Sello}). A
 // diferencia de los demás avisos, la fila se RENUEVA (SentAt) cada N días mientras el
 // curso siga vencido. El sello es la fecha de caducidad (expired) o la fecha límite
 // (overdue): si cambia (nuevo plazo, nueva aprobación que vuelve a vencer) es otro aviso.
@@ -1136,7 +1141,7 @@ public static class OverdueReminder
         _ => null
     };
 
-    public static string Kind(DateTime vencio) => $"overdue:{vencio:yyyyMMdd}";
+    public static string Kind(DateTime vencio) => $"overdue:{HoraLocal.Sello(vencio)}";
 
     // Reserva el envío: true si toca mandarlo ahora (fila nueva, o el último hace
     // `cadaDias` días o más). Con `forzar` (botón «Recordar ahora») se reserva siempre
@@ -1226,7 +1231,7 @@ public class WeeklyDigestService : BackgroundService
         {
             try
             {
-                var now = DateTime.Now;
+                var now = HoraLocal.Ahora();   // la hora de envío es la de la aplicación, no la del servidor
                 if (TryDigestKey(now, freq, hour, dayOfWeek, dayOfMonth, out var key))
                 {
                     var last = File.Exists(marker) ? (await File.ReadAllTextAsync(marker, ct)).Trim() : "";
@@ -1385,7 +1390,7 @@ public static class ComplianceState
             {
                 if (Clasificar(p, ahora, dueSoonDays) is not { } c) continue;
                 int? dias = c.fecha is DateTime f
-                    ? (c.bucket == "overdue" ? (ahora.Date - f.Date).Days : (f.Date - ahora.Date).Days)
+                    ? (c.bucket == "overdue" ? -HoraLocal.DiasHasta(f) : HoraLocal.DiasHasta(f))
                     : null;
                 DateTime? aprobado = aprobaciones.TryGetValue((u.Id, p.TrainingId), out var fa) ? fa : null;
                 string? folio = null; var caducado = false;
@@ -1506,7 +1511,7 @@ public static class ComplianceDigestRunner
         var siguen = new List<ComplianceRow>();
         foreach (var f in filas.Where(f => f.Bucket == "overdue" && f.Date is not null).OrderBy(f => f.Date))
         {
-            var kind = $"{KindPrefix}{f.TrainingId}:{f.Date:yyyyMMdd}";
+            var kind = $"{KindPrefix}{f.TrainingId}:{HoraLocal.Sello(f.Date!.Value)}";
             if (!registros.TryGetValue((f.UserId, f.TrainingId, kind), out var log))
             {
                 nuevos.Add(f);
@@ -1605,7 +1610,7 @@ public class ComplianceDigestService : BackgroundService
         using var scope = _sp.CreateScope();
         var catalog = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
         var tenants = await catalog.Tenants.Where(t => t.Status == "active").ToListAsync(ct);
-        var ahora = DateTime.Now;
+        var ahora = HoraLocal.Ahora();   // DigestHour y el día son de la hora de la aplicación
 
         foreach (var t in tenants)
         {
@@ -1744,7 +1749,7 @@ public static class ComplianceEndpoints
                 else
                 {
                     var fecha = ReminderRunner.FechaDeAviso(p);
-                    var dias = fecha is DateTime f ? (f.Date - ahora.Date).Days : -1;
+                    var dias = fecha is DateTime f ? HoraLocal.DiasHasta(f) : -1;
                     tipo = dias >= 0 ? $"due{dias}" : "open";
                     await email.SendAsync(persona.Email, persona.Name, $"Recordatorio: {p.Title}",
                         EmailTemplates.CourseReminder(persona.Name, p.Title, tipo, fecha, appUrl,
