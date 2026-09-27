@@ -382,6 +382,12 @@ app.MapPost("/auth/login", async (LoginRequest? req, HttpContext http, Turnstile
     }
     await Bloqueos.LimpiarLoginAsync(catalog, user.Id);
 
+    // Cuenta desactivada: se dice solo después de comprobar la contraseña (así no sirve
+    // para averiguar qué correos existen).
+    if (user.DeactivatedAt is not null)
+        return Results.Json(new { error = "Esta cuenta está desactivada. Si crees que es un error, habla con el administrador de tu compañía." },
+            statusCode: StatusCodes.Status403Forbidden);
+
     // La contraseña temporal que generó el admin vence a las 72 h.
     if (user.MustChangePassword && user.TempPasswordExpiresAt is DateTime vence && vence <= DateTime.UtcNow)
         return Results.Json(new { error = "La contraseña temporal venció. Usa «¿Olvidaste tu contraseña?» o pide al administrador una nueva." },
@@ -1398,10 +1404,10 @@ app.MapGet("/admin/users", async (Guid? tenantId, ITenantContext tc, ClaimsPrinc
         var gente = await catalog.Users
             .Where(u => (u.TenantId == suya || extras.Contains(u.Id)) && !(u.TenantId == null && u.Role == "Admin"))
             .OrderBy(u => u.Name)
-            .Select(u => new { u.Id, u.Email, u.Name, u.Role, u.TenantId, u.MustChangePassword, TwoFactorEnabled = u.TwoFactorMode == "totp" && u.TwoFactorConfirmedAt != null }).ToListAsync();
+            .Select(u => new { u.Id, u.Email, u.Name, u.Role, u.TenantId, u.MustChangePassword, TwoFactorEnabled = u.TwoFactorMode == "totp" && u.TwoFactorConfirmedAt != null, u.DeactivatedAt, u.DeactivationReason }).ToListAsync();
         var ids = gente.Select(u => u.Id).ToList();
         var aqui = await catalog.UserCompanies.Where(m => m.TenantId == suya && ids.Contains(m.UserId))
-            .Select(m => new { m.Id, m.UserId, m.TenantId, m.Role, m.IsComplianceOfficer }).ToListAsync();
+            .Select(m => new { m.Id, m.UserId, m.TenantId, m.Role, m.IsComplianceOfficer, m.DeactivatedAt }).ToListAsync();
 
         return Results.Ok(gente.Select(u =>
         {
@@ -1415,6 +1421,9 @@ app.MapGet("/admin/users", async (Guid? tenantId, ITenantContext tc, ClaimsPrinc
                 u.MustChangePassword,
                 twoFactorEnabled = u.TwoFactorEnabled,
                 isComplianceOfficer = m?.IsComplianceOfficer == true,
+                // Desactivado aquí: la cuenta, o su membresía en esta compañía.
+                deactivatedAt = u.DeactivatedAt ?? (principalAqui ? null : m?.DeactivatedAt),
+                deactivationReason = u.DeactivationReason,
                 memberships = m is null ? Array.Empty<object>() : new object[]
                 {
                     new { membershipId = m.Id, tenantId = m.TenantId, role = principalAqui ? u.Role : m.Role,
@@ -1427,13 +1436,13 @@ app.MapGet("/admin/users", async (Guid? tenantId, ITenantContext tc, ClaimsPrinc
     var q = catalog.Users.AsQueryable();
     if (tenantId is not null) q = q.Where(u => u.TenantId == tenantId);
     var users = await q.OrderBy(u => u.Name)
-        .Select(u => new { u.Id, u.Email, u.Name, u.Role, u.TenantId, u.MustChangePassword, TwoFactorEnabled = u.TwoFactorMode == "totp" && u.TwoFactorConfirmedAt != null })
+        .Select(u => new { u.Id, u.Email, u.Name, u.Role, u.TenantId, u.MustChangePassword, TwoFactorEnabled = u.TwoFactorMode == "totp" && u.TwoFactorConfirmedAt != null, u.DeactivatedAt, u.DeactivationReason })
         .ToListAsync();
 
     // Membresías (UserCompany) de esos usuarios, con la marca de oficial de cumplimiento.
     var todos = users.Select(u => u.Id).ToList();
     var membresias = await catalog.UserCompanies.Where(m => todos.Contains(m.UserId))
-        .Select(m => new { m.Id, m.UserId, m.TenantId, m.Role, m.IsComplianceOfficer }).ToListAsync();
+        .Select(m => new { m.Id, m.UserId, m.TenantId, m.Role, m.IsComplianceOfficer, m.DeactivatedAt }).ToListAsync();
 
     return Results.Ok(users.Select(u =>
     {
@@ -1443,6 +1452,8 @@ app.MapGet("/admin/users", async (Guid? tenantId, ITenantContext tc, ClaimsPrinc
         {
             u.Id, u.Email, u.Name, u.Role, u.TenantId, u.MustChangePassword,
             twoFactorEnabled = u.TwoFactorEnabled,
+            deactivatedAt = u.DeactivatedAt ?? (tenantId is Guid ft && ft != u.TenantId ? suyas.FirstOrDefault(m => m.TenantId == ft)?.DeactivatedAt : null),
+            deactivationReason = u.DeactivationReason,
             // Oficial de cumplimiento en la compañía filtrada (o, sin filtro, en su principal).
             isComplianceOfficer = suyas.Any(m => m.TenantId == compañia && m.IsComplianceOfficer),
             memberships = suyas.Select(m => new
@@ -1451,7 +1462,8 @@ app.MapGet("/admin/users", async (Guid? tenantId, ITenantContext tc, ClaimsPrinc
                 tenantId = m.TenantId,
                 role = m.TenantId == u.TenantId ? u.Role : m.Role,
                 principal = m.TenantId == u.TenantId,
-                isComplianceOfficer = m.IsComplianceOfficer
+                isComplianceOfficer = m.IsComplianceOfficer,
+                deactivatedAt = m.DeactivatedAt
             })
         };
     }));
@@ -1522,40 +1534,80 @@ app.MapPost("/admin/users/{id:guid}/reset-password", async (Guid id, ResetPasswo
     return Results.Ok(new { temporaryPassword = generada ? temporal : null, expiresAt = user.TempPasswordExpiresAt });
 }).RequireAuthorization("Admin");
 
-// Eliminar un usuario (no puedes eliminarte a ti mismo). El Admin de una compañía no
-// borra cuentas que también existen en otra: a quien llega por UserCompany solo lo saca
-// de su compañía; a quien la tiene de principal pero pertenece a otras, no lo toca.
-app.MapDelete("/admin/users/{id:guid}", async (Guid id, ITenantContext tc, ClaimsPrincipal principal,
-    CatalogDbContext catalog, IMemoryCache cache) =>
+// Dar de baja a un usuario: DESACTIVA, nunca borra. Si después viene una auditoría, su
+// expediente, sus intentos y sus certificados tienen que seguir ahí. La persona no puede
+// entrar, sus sesiones se cierran y deja de contar en listas, cumplimiento, recordatorios
+// y asignaciones; se puede reactivar. No puedes darte de baja a ti mismo.
+// El Admin de una compañía no toca cuentas que también existen en otra: a quien llega por
+// UserCompany solo lo desactiva en su compañía; a quien la tiene de principal pero
+// pertenece a otras, no lo toca (lo hace el admin de plataforma).
+// DELETE queda por compatibilidad y hace lo mismo que /deactivate sin motivo.
+async Task<IResult> Desactivar(Guid id, string? motivo, ITenantContext tc, ClaimsPrincipal principal,
+    CatalogDbContext catalog, IMemoryCache cache)
 {
-    if (tc.UserId == id) return Results.BadRequest("No puedes eliminar tu propio usuario.");
+    if (tc.UserId == id) return Results.BadRequest("No puedes darte de baja a ti mismo.");
     var alcance = await AdminUsuarios.AlcanceAsync(tc, principal, catalog, cache);
     if (alcance is null) return Results.Forbid();
     var user = await catalog.Users.FindAsync(id);
     if (user is null) return Results.NotFound();
     if (!await AdminUsuarios.PuedeGestionarAsync(alcance, user, catalog)) return Results.Forbid();
+    motivo = string.IsNullOrWhiteSpace(motivo) ? null : motivo.Trim()[..Math.Min(motivo.Trim().Length, 300)];
+    var ahora = DateTime.UtcNow;
 
     var membresias = await catalog.UserCompanies.Where(m => m.UserId == id).ToListAsync();
     if (alcance.Compañia is Guid suya)
     {
         if (user.TenantId != suya)
         {
-            catalog.UserCompanies.RemoveRange(membresias.Where(m => m.TenantId == suya));
+            foreach (var m in membresias.Where(m => m.TenantId == suya)) m.DeactivatedAt ??= ahora;
             Sesiones.Rotar(catalog, user, cache);   // la baja de la membresía cierra sus sesiones
-            catalog.AuditLogs.Add(new CatalogAuditLog { Action = "membership-removed", Detail = user.Email, UserId = tc.UserId });
+            catalog.AuditLogs.Add(new CatalogAuditLog { Action = "membership-deactivated", Detail = user.Email + (motivo is null ? "" : $" — {motivo}"), UserId = tc.UserId });
             await catalog.SaveChangesAsync();
-            return Results.Ok(new { removedMembership = true });
+            return Results.Ok(new { deactivatedMembership = true });
         }
-        if (membresias.Any(m => m.TenantId != suya))
+        if (membresias.Any(m => m.TenantId != suya && m.DeactivatedAt == null))
             return Results.Conflict("Esta persona también pertenece a otra compañía; pide al administrador de la plataforma que la dé de baja.");
     }
 
-    catalog.UserCompanies.RemoveRange(membresias);
-    catalog.Users.Remove(user);
-    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "user-deleted", Detail = user.Email, UserId = tc.UserId });
+    user.DeactivatedAt ??= ahora;
+    user.DeactivationReason = motivo;
+    // Invitaciones y enlaces de contraseña pendientes dejan de servir.
+    catalog.PasswordResetTokens.RemoveRange(await catalog.PasswordResetTokens.Where(t => t.UserId == id && t.UsedAt == null).ToListAsync());
+    Sesiones.Rotar(catalog, user, cache);
+    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "user-deactivated", Detail = user.Email + (motivo is null ? "" : $" — {motivo}"), UserId = tc.UserId });
     await catalog.SaveChangesAsync();
-    Sesiones.Olvidar(cache, id);   // sin usuario, sus tokens dejan de valer en la próxima petición
-    return Results.Ok();
+    return Results.Ok(new { deactivated = true });
+}
+app.MapPost("/admin/users/{id:guid}/deactivate", (Guid id, DeactivateRequest? req, ITenantContext tc, ClaimsPrincipal principal,
+    CatalogDbContext catalog, IMemoryCache cache) => Desactivar(id, req?.Reason, tc, principal, catalog, cache)).RequireAuthorization("Admin");
+app.MapDelete("/admin/users/{id:guid}", (Guid id, ITenantContext tc, ClaimsPrincipal principal,
+    CatalogDbContext catalog, IMemoryCache cache) => Desactivar(id, null, tc, principal, catalog, cache)).RequireAuthorization("Admin");
+
+// Reactivar: vuelve a contar y puede entrar con su contraseña de antes (si la olvidó,
+// «¿Olvidaste tu contraseña?» o el admin le genera una temporal).
+app.MapPost("/admin/users/{id:guid}/reactivate", async (Guid id, ITenantContext tc, ClaimsPrincipal principal,
+    CatalogDbContext catalog, IMemoryCache cache) =>
+{
+    var alcance = await AdminUsuarios.AlcanceAsync(tc, principal, catalog, cache);
+    if (alcance is null) return Results.Forbid();
+    var user = await catalog.Users.FindAsync(id);
+    if (user is null) return Results.NotFound();
+    if (!await AdminUsuarios.PuedeGestionarAsync(alcance, user, catalog)) return Results.Forbid();
+
+    if (alcance.Compañia is Guid suya && user.TenantId != suya)
+    {
+        foreach (var m in await catalog.UserCompanies.Where(m => m.UserId == id && m.TenantId == suya).ToListAsync())
+            m.DeactivatedAt = null;
+        catalog.AuditLogs.Add(new CatalogAuditLog { Action = "membership-reactivated", Detail = user.Email, UserId = tc.UserId });
+        await catalog.SaveChangesAsync();
+        return Results.Ok(new { reactivatedMembership = true });
+    }
+    user.DeactivatedAt = null;
+    user.DeactivationReason = null;
+    Sesiones.Rotar(catalog, user, cache);   // lo que se leyó de la cuenta mientras estaba desactivada, fuera
+    catalog.AuditLogs.Add(new CatalogAuditLog { Action = "user-reactivated", Detail = user.Email, UserId = tc.UserId });
+    await catalog.SaveChangesAsync();
+    return Results.Ok(new { reactivated = true });
 }).RequireAuthorization("Admin");
 
 // Política de doble factor de una compañía: la decide la compañía, no cada usuario.
@@ -1866,6 +1918,7 @@ static class Compañias
     public static async Task<List<Membresia>> DeUsuarioAsync(CatalogDbContext catalog, AppUser user)
     {
         var lista = new List<Membresia>();
+        if (user.DeactivatedAt is not null) return lista;   // cuenta desactivada: ninguna
 
         if (user.TenantId is Guid principal)
         {
@@ -1874,7 +1927,7 @@ static class Compañias
         }
 
         var extras = await (from m in catalog.UserCompanies
-                            where m.UserId == user.Id
+                            where m.UserId == user.Id && m.DeactivatedAt == null
                             join t in catalog.Tenants on m.TenantId equals t.Id
                             where t.Status == "active"
                             select new { t.Id, t.Name, m.Role, t.TwoFactorPolicy }).ToListAsync();
@@ -2258,7 +2311,7 @@ static class AdminUsuarios
     {
         if (alcance.Compañia is not Guid tid) return true;
         if (u.TenantId is null && u.Role == "Admin") return false;   // admin de plataforma
-        return await Membresias.EsMiembroAsync(catalog, tid, u.Id);
+        return await Membresias.EsMiembroAsync(catalog, tid, u.Id, incluirDesactivados: true);
     }
 
     // ¿La persona pertenece a alguna compañía distinta de "suya" (principal o UserCompany)?
@@ -2297,3 +2350,4 @@ record CompanyMembershipRequest(Guid UserId, Guid TenantId, string Role);
 record ComplianceOfficerRequest(bool IsOfficer, Guid? TenantId = null);
 record DisableTwoFactorRequest(string? CurrentPassword);
 record StatusRequest(string Status);
+record DeactivateRequest(string? Reason);

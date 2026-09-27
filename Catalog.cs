@@ -304,6 +304,11 @@ public class UserCompany
     // principal (mismo rol y misma fecha de alta que la cuenta): la principal sigue
     // mandando en todo lo demás.
     public bool IsComplianceOfficer { get; set; }
+
+    // Desactivada en ESTA compañía (el Admin de la compañía da de baja a alguien cuya
+    // compañía principal es otra): deja de contar aquí, pero su cuenta y su historial
+    // siguen. Null = activa. Ver Desactivacion.
+    public DateTime? DeactivatedAt { get; set; }
 }
 
 // Identity + routing live centrally so we know the tenant before connecting to its DB.
@@ -354,6 +359,13 @@ public class AppUser
     // Vencimiento de una contraseña temporal generada por el admin (72 h). Null = la
     // contraseña la escogió el propio usuario.
     public DateTime? TempPasswordExpiresAt { get; set; }
+
+    // Cuenta desactivada («Eliminar» en la interfaz ya no borra): no puede entrar, sus
+    // sesiones se cierran y deja de contar en listas, cumplimiento, recordatorios y
+    // asignaciones, pero su expediente, intentos y certificados se conservan para una
+    // auditoría posterior. Se puede reactivar. Null = activa.
+    public DateTime? DeactivatedAt { get; set; }
+    public string? DeactivationReason { get; set; }
 }
 
 // Reto de segundo factor: se crea al validar la contraseña y se consume con el código.
@@ -432,17 +444,20 @@ public static class AuditoriaIp
 // AppUser.TenantId, para que un usuario multicompañía cuente en las dos.
 public static class CompanyUsers
 {
-    public record Miembro(Guid Id, string Email, string Name, string Role);
+    public record Miembro(Guid Id, string Email, string Name, string Role, bool Desactivado = false);
 
-    public static async Task<List<Miembro>> OfAsync(CatalogDbContext catalog, Guid tenantId)
+    // Solo los activos, salvo incluirDesactivados (p. ej. para poner el nombre de alguien
+    // que ya se fue en su historial). Desactivado = la cuenta o su membresía aquí.
+    public static async Task<List<Miembro>> OfAsync(CatalogDbContext catalog, Guid tenantId, bool incluirDesactivados = false)
     {
-        var principales = await catalog.Users.Where(u => u.TenantId == tenantId)
-            .Select(u => new Miembro(u.Id, u.Email, u.Name, u.Role)).ToListAsync();
+        var principales = await catalog.Users.Where(u => u.TenantId == tenantId && (incluirDesactivados || u.DeactivatedAt == null))
+            .Select(u => new Miembro(u.Id, u.Email, u.Name, u.Role, u.DeactivatedAt != null)).ToListAsync();
 
         var extras = await (from m in catalog.UserCompanies
                             where m.TenantId == tenantId
                             join u in catalog.Users on m.UserId equals u.Id
-                            select new Miembro(u.Id, u.Email, u.Name, m.Role)).ToListAsync();
+                            where incluirDesactivados || (m.DeactivatedAt == null && u.DeactivatedAt == null)
+                            select new Miembro(u.Id, u.Email, u.Name, m.Role, m.DeactivatedAt != null || u.DeactivatedAt != null)).ToListAsync();
 
         return principales.Concat(extras).GroupBy(x => x.Id).Select(g => g.First()).ToList();
     }
@@ -456,10 +471,11 @@ public static class ComplianceOfficers
     public static async Task<List<CompanyUsers.Miembro>> OfAsync(CatalogDbContext catalog, Guid tenantId)
     {
         var lista = await (from m in catalog.UserCompanies
-                           where m.TenantId == tenantId && m.IsComplianceOfficer
+                           where m.TenantId == tenantId && m.IsComplianceOfficer && m.DeactivatedAt == null
                            join u in catalog.Users on m.UserId equals u.Id
+                           where u.DeactivatedAt == null
                            // Si es su compañía principal, el rol que vale es el de la cuenta.
-                           select new CompanyUsers.Miembro(u.Id, u.Email, u.Name, u.TenantId == tenantId ? u.Role : m.Role))
+                           select new CompanyUsers.Miembro(u.Id, u.Email, u.Name, u.TenantId == tenantId ? u.Role : m.Role, false))
                           .ToListAsync();
         return lista.GroupBy(x => x.Id).Select(g => g.First()).ToList();
     }
@@ -467,7 +483,7 @@ public static class ComplianceOfficers
     public static Task<bool> EsOficialAsync(CatalogDbContext catalog, Guid? userId, Guid? tenantId)
         => userId is null || tenantId is null
             ? Task.FromResult(false)
-            : catalog.UserCompanies.AnyAsync(m => m.UserId == userId && m.TenantId == tenantId && m.IsComplianceOfficer);
+            : catalog.UserCompanies.AnyAsync(m => m.UserId == userId && m.TenantId == tenantId && m.IsComplianceOfficer && m.DeactivatedAt == null);
 }
 
 public class CatalogDbContext : DbContext
@@ -521,6 +537,7 @@ public class CatalogDbContext : DbContext
         b.Entity<TwoFactorChallenge>().HasIndex(c => c.UserId);
         b.Entity<UserCompany>().ToTable("UserCompany");
         b.Entity<UserCompany>().HasIndex(m => new { m.UserId, m.TenantId }).IsUnique();
+        b.Entity<AppUser>().Property(u => u.DeactivationReason).HasMaxLength(300);
 
         // Las filas que ya existían toman "{}" (config por defecto) al migrar.
         b.Entity<Tenant>().Property(t => t.ComplianceConfigJson).HasDefaultValue("{}");

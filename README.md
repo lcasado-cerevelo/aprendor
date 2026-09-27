@@ -153,6 +153,18 @@ encendida, cada lámina nueva se lee sola hasta pulsar «Pausar» (nunca avanza 
   `content/` suman unos 67 mil. `dotnet TrainingPlatform.dll voz-texto content/<curso>/course.json`
   muestra lo que se leerá en cada lámina y el total, sin tocar la base ni Azure.
 
+### Dar de baja usuarios: desactivar, nunca borrar (migración `UserDeactivation`)
+«Eliminar» ya no borra la cuenta: la **desactiva** (`User.DeactivatedAt` y `DeactivationReason`; si la
+persona llega por membresía y su principal es otra compañía, `UserCompany.DeactivatedAt` solo en esta).
+Una cuenta desactivada no puede entrar (403 después de comprobar la contraseña), sus sesiones se
+cierran (la instantánea de sesión la trata como inexistente) y deja de contar: `CompanyUsers.OfAsync`
+y `Membresias.EsMiembroAsync` devuelven solo activos salvo `incluirDesactivados`, así que cumplimiento,
+recordatorios, alertas, oficiales, asignaciones y grupos la dejan fuera. Su expediente, intentos y
+certificados se conservan (`/record/{id}` no exige que esté activa) para una auditoría posterior.
+`POST /admin/users/{id}/deactivate { reason }` y `POST /admin/users/{id}/reactivate`; `DELETE` hace lo
+mismo que desactivar sin motivo. En la lista de usuarios salen ocultos tras «Mostrar desactivados», con
+«Expediente» y «Reactivar». Para borrar de verdad (datos de prueba): `tools/sql/limpiar-pruebas.sql`.
+
 ### Reglas de cumplimiento por compañía (`Tenant.ComplianceConfigJson`)
 JSON tolerante (`ComplianceConfig` en `Catalog.cs`), editable con `GET/PUT /company/compliance`
 (el Admin de la compañía escribe; los oficiales sólo leen). Valores por defecto:

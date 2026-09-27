@@ -543,9 +543,11 @@ public static class Sesiones
         var leidaEn = Stopwatch.GetTimestamp();   // antes de consultar: cuenta el inicio de la lectura
         var catalog = sp.GetRequiredService<CatalogDbContext>();
         var u = await catalog.Users.AsNoTracking().Where(x => x.Id == uid)
-            .Select(x => new { x.SecurityStamp, x.Role, x.TenantId }).FirstOrDefaultAsync();
-        if (u is null) return null;
-        var ms = await catalog.UserCompanies.AsNoTracking().Where(m => m.UserId == uid)
+            .Select(x => new { x.SecurityStamp, x.Role, x.TenantId, x.DeactivatedAt }).FirstOrDefaultAsync();
+        // Cuenta desactivada: sus sesiones dejan de valer, igual que si no existiera.
+        if (u is null || u.DeactivatedAt is not null) return null;
+        // Una membresía desactivada no da acceso a esa compañía.
+        var ms = await catalog.UserCompanies.AsNoTracking().Where(m => m.UserId == uid && m.DeactivatedAt == null)
             .Select(m => new { m.TenantId, m.Role }).ToListAsync();
         return new Instantanea(u.SecurityStamp, u.Role, u.TenantId,
             ms.GroupBy(m => m.TenantId).ToDictionary(g => g.Key, g => g.First().Role), leidaEn);

@@ -4169,8 +4169,10 @@ function filaUsuario(u, o){
   const sel = `<select class="field" style="max-width:150px;padding:6px 8px" aria-label="Rol de ${esc(u.name || u.email)}"
       onchange="changeRole('${id}',this.value)" ${me ? 'disabled title="Tu propio rol lo cambia otro administrador"' : ''}>
       ${ROLES.map(([v, l]) => `<option value="${v}" ${v === u.role ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+  const off = !!u.deactivatedAt;
   const tags = [
-    u.mustChangePassword ? '<span class="st xs warn">cambio de clave pendiente</span>' : '',
+    off ? `<span class="st xs gray" title="${esc(u.deactivationReason ? 'Motivo: ' + u.deactivationReason : 'Desactivado')}">Desactivado ${esc(fmtShort(u.deactivatedAt))}</span>` : '',
+    !off && u.mustChangePassword ? '<span class="st xs warn">cambio de clave pendiente</span>' : '',
     u.twoFactorEnabled ? '<span class="st xs ok">2FA</span>' : '',
     u.isComplianceOfficer ? '<span class="st xs info">Oficial</span>' : ''
   ].filter(Boolean).join(' ');
@@ -4184,13 +4186,32 @@ function filaUsuario(u, o){
   const soloMembresia = !o.plataforma && (u.memberships || []).some(m => m.principal === false);
   // A esa persona la contraseña y el doble factor los gestiona su compañía principal (el
   // servidor responde 409), así que no se ofrecen.
-  const acciones = me ? '' : `
+  // Desactivado: nada de roles ni contraseñas; se puede ver su expediente (Admin de la
+  // compañía) y reactivarlo.
+  const expediente = !o.plataforma ? `<button class="btn sm ghost" onclick="verExpedienteUsuario('${id}')">${ic('doc',14)} Expediente</button>` : '';
+  const acciones = me ? '' : off ? `${expediente}
+      <button class="btn sm" onclick="reactivarUsuario('${id}')">${ic('refresh',14)} Reactivar</button>` : `
       ${soloMembresia ? '' : `<button class="btn sm ghost" onclick="resetUserPwd('${id}')">${ic('key',14)} Contraseña</button>`}
       ${u.twoFactorEnabled && !esAdminPlataforma(u) && !soloMembresia ? `<button class="btn sm ghost" onclick="reset2FA('${id}')">${ic('refresh',14)} Reiniciar doble factor</button>` : ''}
-      <button class="btn sm danger" onclick="deleteUser('${id}')">${soloMembresia ? 'Quitar de la compañía' : 'Eliminar'}</button>`;
-  return `<div class="item" style="flex-wrap:wrap">
+      ${expediente}
+      <button class="btn sm danger" onclick="deleteUser('${id}')">Desactivar</button>`;
+  return `<div class="item" style="flex-wrap:wrap${off ? ';opacity:.75' : ''}">
     <div style="flex:1;min-width:200px"><b>${esc(u.name || '(sin nombre)')}</b> ${tags}<br><span class="hint">${esc(u.email)}${donde}${me ? ' · tú' : ''}</span></div>
-    <span class="sp" style="flex-wrap:wrap;align-items:center">${oficial}${sel}${acciones}</span></div>`;
+    <span class="sp" style="flex-wrap:wrap;align-items:center">${off ? '' : oficial + sel}${acciones}</span></div>`;
+}
+// Lista de usuarios: los desactivados se ocultan salvo que se pidan (enlace al final).
+let verDesactivados = false;
+function listaUsuariosHtml(us, o){
+  const off = us.filter(u => u.deactivatedAt), on = us.filter(u => !u.deactivatedAt);
+  const vis = verDesactivados ? on.concat(off) : on;
+  const toggle = off.length
+    ? `<div style="margin-top:10px;text-align:center"><button type="button" class="linkbtn" onclick="verDesactivados=!verDesactivados;recargarUsuarios()">${verDesactivados ? 'Ocultar' : 'Mostrar'} desactivados (${off.length})</button></div>` : '';
+  return (vis.length ? vis.map(u => filaUsuario(u, o)).join('') : `<div class="empty">${o.plataforma ? 'No hay usuarios activos.' : 'Aún no hay usuarios activos.'}</div>`) + toggle;
+}
+function verExpedienteUsuario(id){
+  const u = usuariosVistos[id] || {};
+  recTarget = { id, name: (u.name || u.email || '(empleado)') + (u.deactivatedAt ? ' (desactivado)' : '') };
+  showSection('sec-record');
 }
 async function loadUsers(){
   const f = el('userFilter').value;
@@ -4198,7 +4219,7 @@ async function loadUsers(){
   try{
     const us = (await api('/admin/users' + (f ? ('?tenantId=' + encodeURIComponent(f)) : '')).finally(listo)) || [];
     us.forEach(u => usuariosVistos[u.id] = u);
-    el('usersList').innerHTML = us.length ? us.map(u => filaUsuario(u, { plataforma:true, filtro:f })).join('') : `<div class="empty">No hay usuarios.</div>`;
+    el('usersList').innerHTML = us.length ? listaUsuariosHtml(us, { plataforma:true, filtro:f }) : `<div class="empty">No hay usuarios.</div>`;
   }catch(e){ if (e.status !== 401) el('usersList').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
 }
 async function changeRole(id, role){
@@ -4251,16 +4272,28 @@ async function reset2FA(id){
     recargarUsuarios();
   }catch(e){ toast(e.message,'err'); }
 }
+// Dar de baja = DESACTIVAR (nunca se borra: su expediente se conserva para una auditoría).
 async function deleteUser(id){
   const u = usuariosVistos[id] || {}, name = nombreUsuario(id);
   const soloMembresia = isCompanyAdmin() && (u.memberships || []).some(m => m.principal === false);
-  const ok = soloMembresia
-    ? await confirmModal('¿Quitar a ' + name + ' de la compañía?', 'Deja de entrar a esta compañía; su cuenta sigue en las otras.', { danger:true, icon:'trash', okText:'Quitar' })
-    : await confirmModal('¿Eliminar a ' + name + '?', 'Esta acción no se puede deshacer.', { danger:true, icon:'trash', okText:'Eliminar' });
-  if (!ok) return;
+  const d = await dialog({ title:'¿Desactivar a ' + name + '?', icon:'lock', okText:'Desactivar', tone:'danger',
+    text: soloMembresia
+      ? 'Deja de entrar a esta compañía y de contar en ella; su cuenta sigue en las otras. Su expediente se conserva y lo puedes reactivar cuando quieras.'
+      : 'No podrá entrar y se cierran sus sesiones. Deja de contar en cumplimiento, recordatorios y asignaciones. Su expediente, sus intentos y sus certificados se conservan, y lo puedes reactivar cuando quieras.',
+    fields:[{ name:'motivo', label:'Motivo (opcional)', type:'text', placeholder:'Por ejemplo: dejó de trabajar en la compañía' }] });
+  if (!d) return;
   try{
-    const r = await api('/admin/users/'+encodeURIComponent(id),'DELETE');
-    toast(r && r.removedMembership ? name + ' ya no pertenece a la compañía.' : 'Usuario eliminado.');
+    const r = await api('/admin/users/'+encodeURIComponent(id)+'/deactivate','POST',{ reason:(d.values.motivo || '').trim() || null });
+    toast(r && r.deactivatedMembership ? name + ' quedó desactivado en esta compañía.' : name + ' quedó desactivado.');
+    recargarUsuarios();
+  }catch(e){ toast(e.message,'err'); }
+}
+async function reactivarUsuario(id){
+  const name = nombreUsuario(id);
+  if (!await confirmModal('¿Reactivar a ' + name + '?', 'Vuelve a entrar con su contraseña de antes y a contar en cumplimiento y asignaciones.', { icon:'refresh', okText:'Reactivar' })) return;
+  try{
+    await api('/admin/users/'+encodeURIComponent(id)+'/reactivate','POST');
+    toast(name + ' está activo otra vez.');
     recargarUsuarios();
   }catch(e){ toast(e.message,'err'); }
 }
@@ -4311,7 +4344,7 @@ async function loadCompanyUsers(){
   try{
     const us = (await api('/admin/users?tenantId=' + encodeURIComponent(user.tenantId)).finally(listo)) || [];
     us.forEach(u => usuariosVistos[u.id] = u);
-    box.innerHTML = us.length ? us.map(u => filaUsuario(u, { plataforma:false })).join('') : `<div class="empty">Aún no hay usuarios.</div>`;
+    box.innerHTML = us.length ? listaUsuariosHtml(us, { plataforma:false }) : `<div class="empty">Aún no hay usuarios.</div>`;
   }catch(e){ if (e.status !== 401) box.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
 }
 async function crearUsuarioCompania(invitar){
@@ -6102,7 +6135,7 @@ let grpSearch = '';
 function grpOf(id){ return grpList.find(g => g.id === id) || null; }
 function grpGrad(g){ return GRADS[hashStr(g.name) % GRADS.length]; }
 function grpUserName(uid){
-  const u = grpUsers.find(x => x.id === uid); if (u) return u.name || u.email;
+  const u = grpUsers.find(x => x.id === uid); if (u) return (u.name || u.email) + (u.desactivado ? ' (desactivado)' : '');
   const r = compRowsAll().find(x => x.userId === uid);
   return r ? r.name : '(persona)';
 }
@@ -6119,7 +6152,7 @@ function groupStats(g){
 async function loadGroups(){
   el('grpGrid').innerHTML = loadingHtml();
   try{
-    const [gs, us, trs] = await Promise.all([api('/user-groups'), api('/tenant-users').catch(() => []), api('/trainings').catch(() => [])]);
+    const [gs, us, trs] = await Promise.all([api('/user-groups'), api('/tenant-users?incluirDesactivados=true').catch(() => []), api('/trainings').catch(() => [])]);
     grpList = Array.isArray(gs) ? gs : []; grpUsers = Array.isArray(us) ? us : []; grpTrainings = Array.isArray(trs) ? trs : [];
   }catch(e){
     el('grpGrid').innerHTML = stateBox('alert','err','No se pudieron cargar los grupos', e.message);
@@ -6273,7 +6306,7 @@ function renderGrpPick(){
   const q = grpSearch.trim().toLowerCase();
   if (!q){ box.innerHTML = ''; return; }
   const dentro = new Set(g.memberIds || []);
-  const res = grpUsers.filter(u => !dentro.has(u.id) &&
+  const res = grpUsers.filter(u => !u.desactivado && !dentro.has(u.id) &&
     ((u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))).slice(0, 8);
   box.innerHTML = `<div class="pick" role="list">${res.length ? res.map(u => `<div class="li" role="listitem"><div class="av">${esc(initials(u.name || u.email))}</div>
       <div class="t">${esc(u.name || u.email)}<small>${esc(u.email)} · ${esc(roleLabel(u.role))}</small></div>
@@ -6430,7 +6463,7 @@ let curTraining = null, curSets = [], curItems = [], curAssign = [], curPublishe
 
 function amsg(m){ el('assignMsg').textContent = m || ''; el('assignMsg').className = 'msg err'; }
 function initSetsPanel(){
-  asgUsers = grpUsers; asgGroups = grpList;
+  asgUsers = grpUsers.filter(u => !u.desactivado); asgGroups = grpList;
   const sel = el('setTraining'); if (!sel) return;
   const prev = curTraining;
   const trs = grpTrainings.filter(t => t.status !== 'archived').sort((a, b) => a.title.localeCompare(b.title, 'es'));

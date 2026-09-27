@@ -126,10 +126,13 @@ public sealed class PlatformAdminHandler : AuthorizationHandler<PlatformAdminReq
 // UserCompany. Se usa para validar ids de usuario que llegan del cliente.
 public static class Membresias
 {
-    public static async Task<bool> EsMiembroAsync(CatalogDbContext catalog, Guid tenantId, Guid? userId)
+    // Solo miembros activos, salvo incluirDesactivados (su expediente y su historial se
+    // siguen consultando y completando después de desactivarlos).
+    public static async Task<bool> EsMiembroAsync(CatalogDbContext catalog, Guid tenantId, Guid? userId, bool incluirDesactivados = false)
     {
         if (userId is not Guid id || id == Guid.Empty) return false;
-        return await catalog.Users.AnyAsync(u => u.Id == id && u.TenantId == tenantId)
-            || await catalog.UserCompanies.AnyAsync(m => m.UserId == id && m.TenantId == tenantId);
+        return await catalog.Users.AnyAsync(u => u.Id == id && u.TenantId == tenantId && (incluirDesactivados || u.DeactivatedAt == null))
+            || await catalog.UserCompanies.AnyAsync(m => m.UserId == id && m.TenantId == tenantId
+                && (incluirDesactivados || (m.DeactivatedAt == null && catalog.Users.Any(u => u.Id == id && u.DeactivatedAt == null))));
     }
 }

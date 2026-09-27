@@ -469,7 +469,7 @@ public static class RetakeEndpoints
 
             var tids = filas.Select(r => r.TrainingId).Distinct().ToList();
             var titulos = await db.Trainings.Where(x => tids.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.Title);
-            var nombres = (await CompanyUsers.OfAsync(catalog, tid)).ToDictionary(x => x.Id, x => string.IsNullOrWhiteSpace(x.Name) ? x.Email : x.Name);
+            var nombres = (await CompanyUsers.OfAsync(catalog, tid, incluirDesactivados: true)).ToDictionary(x => x.Id, x => string.IsNullOrWhiteSpace(x.Name) ? x.Email : x.Name);
 
             return Results.Ok(filas.Select(r => new
             {
@@ -499,7 +499,7 @@ public static class RetakeEndpoints
             r.CancelledAt = DateTime.UtcNow;
             r.CancelledByUserId = tc.UserId;
             var titulo = await db.Trainings.Where(t => t.Id == r.TrainingId).Select(t => t.Title).FirstOrDefaultAsync();
-            var persona = (await CompanyUsers.OfAsync(catalog, tid)).FirstOrDefault(u => u.Id == r.UserId);
+            var persona = (await CompanyUsers.OfAsync(catalog, tid, incluirDesactivados: true)).FirstOrDefault(u => u.Id == r.UserId);
             db.AuditLogs.Add(new TenantAuditLog
             {
                 Action = "retake-cancelled",

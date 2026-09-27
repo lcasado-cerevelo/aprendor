@@ -1807,7 +1807,7 @@ public static class ComplianceEndpoints
             if (!await ComplianceAccess.PuedeVerAsync(catalog, tc)) return Results.Forbid();
             var tenant = await catalog.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tc.TenantId);
             var yo = await catalog.Users.AsNoTracking().Where(u => u.Id == tc.UserId)
-                .Select(u => new CompanyUsers.Miembro(u.Id, u.Email, u.Name, u.Role)).FirstOrDefaultAsync();
+                .Select(u => new CompanyUsers.Miembro(u.Id, u.Email, u.Name, u.Role, false)).FirstOrDefaultAsync();
             if (tenant is null || yo is null) return Results.NotFound();
 
             var r = await ComplianceDigestRunner.RunTenantAsync(catalog, email, tenant, config["App:BaseUrl"], prueba: yo);

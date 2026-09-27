@@ -538,7 +538,7 @@ public static class Phase2Endpoints
 
             var proposito = (purpose ?? "course").Trim().ToLowerInvariant();
             if (proposito is not ("course" or "record")) return Results.BadRequest("purpose debe ser course o record.");
-            if (proposito == "record" && ownerUserId is not null && !await Membresias.EsMiembroAsync(catalog, tc.TenantId!.Value, ownerUserId))
+            if (proposito == "record" && ownerUserId is not null && !await Membresias.EsMiembroAsync(catalog, tc.TenantId!.Value, ownerUserId, incluirDesactivados: true))
                 return Results.BadRequest("La persona no pertenece a esta compañía.");
 
             var ext = Path.GetExtension(file.FileName ?? "").ToLowerInvariant();
@@ -728,7 +728,7 @@ public static class Phase2Endpoints
                 return Results.BadRequest("Sube el documento o enlaza el que está en el otro sistema.");
             if (req.ExpiresOn is DateTime e && e.Date < req.IssuedOn.Date)
                 return Results.BadRequest("La fecha de vencimiento no puede ser anterior a la de emisión.");
-            if (!await Membresias.EsMiembroAsync(catalog, tc.TenantId!.Value, req.UserId))
+            if (!await Membresias.EsMiembroAsync(catalog, tc.TenantId!.Value, req.UserId, incluirDesactivados: true))
                 return Results.BadRequest("La persona no pertenece a esta compañía.");
             if (!UrlExternaValida(req.ExternalUrl))
                 return Results.BadRequest("El enlace del documento debe ser una dirección http o https completa.");
@@ -998,12 +998,14 @@ public static class Phase2Endpoints
 
         // ============ Versiones (sets) y asignación ============
 
-        // Usuarios del tenant (para asignar).
-        app.MapGet("/tenant-users", async (ITenantContext tc, CatalogDbContext catalog) =>
+        // Usuarios del tenant (para asignar). Solo los activos; con incluirDesactivados
+        // también los dados de baja (desactivado: true), para nombrarlos donde todavía
+        // aparecen (p. ej. en un grupo).
+        app.MapGet("/tenant-users", async (bool? incluirDesactivados, ITenantContext tc, CatalogDbContext catalog) =>
         {
             if (!CanAuthor(tc.Role)) return Results.Forbid();
             if (tc.TenantId is null) return Results.BadRequest("No tenant context.");
-            var users = (await CompanyUsers.OfAsync(catalog, tc.TenantId.Value))
+            var users = (await CompanyUsers.OfAsync(catalog, tc.TenantId.Value, incluirDesactivados == true))
                 .OrderBy(u => u.Name).ToList();
             return Results.Ok(users);
         }).RequireAuthorization();
