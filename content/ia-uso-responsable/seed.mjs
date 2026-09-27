@@ -103,12 +103,26 @@ async function api(pathname, method = 'GET', body = null) {
 }
 
 // ---- Subida de ítems, en orden (sin afterItemId se añaden al final) --------
-async function uploadItems(trainingId) {
+// Clave para reconocer «la misma lámina» entre el borrador anterior y el curso: tipo,
+// título, pregunta y los primeros 80 caracteres del texto (igual que Seed-Curso.ps1).
+function claveItem(type, p) {
+  const html = (p.blocks || []).map(b => b && b.html || '').join(' ');
+  const txt = html.replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(+d)).replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ').trim().slice(0, 80);
+  return `${type}|${p.title || ''}|${p.question || ''}|${txt}`;
+}
+
+async function uploadItems(trainingId, voces = new Map()) {
   let n = 0;
   for (const it of course.items) {
+    const k = claveItem(it.type, it.payload);
+    const payload = voces.has(k) ? { ...it.payload, narration: voces.get(k) } : it.payload;
+    voces.delete(k);
     await api(`/trainings/${trainingId}/items`, 'POST', {
       type: it.type,
-      payloadJson: JSON.stringify(it.payload),
+      payloadJson: JSON.stringify(payload),
       points: it.points ?? 0,
       required: true,
       active: it.active !== false,
@@ -173,13 +187,22 @@ async function updateExisting() {
   console.log('Título, descripción, recurrencia, certificado y opciones del reproductor actualizados.');
 
   const draft = await api(`/trainings/${existing.id}/draft`);
+  // Voz ya grabada: se guarda antes de borrar y se vuelve a poner en la lámina nueva que
+  // parece la misma; el servidor comprueba el texto (hash) y la descarta si cambió. Así
+  // --voz solo graba lo nuevo o lo que cambió.
+  const voces = new Map();
+  for (const it of draft.items) {
+    let p; try { p = JSON.parse(it.payloadJson); } catch { continue; }
+    const k = claveItem(it.type, p);
+    if (p.narration && !voces.has(k)) voces.set(k, p.narration);
+  }
   console.log(`Borrando ${draft.items.length} ítems existentes del borrador...`);
   for (const it of draft.items) {
     await api(`/items/${it.id}`, 'DELETE');
   }
 
   console.log('Subiendo el contenido actualizado:');
-  const n = await uploadItems(existing.id);
+  const n = await uploadItems(existing.id, voces);
   console.log(`${n} ítems nuevos creados (reemplazan a los anteriores).`);
   await grabarVoz(existing.id);
 

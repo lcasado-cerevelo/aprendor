@@ -2,7 +2,7 @@
 // «Qué incluir en el reporte» y «Qué pasa después» van juntas.
 // PENDIENTE DE LA EMPRESA: el canal real para reportar. Mientras tanto la lámina dice
 // «tu supervisor o el departamento de sistemas».
-import { slide, T, mod, mc, off, bullets } from '../_shared/authoring.mjs';
+import { slide, T, mod, mc, off, bullets, heading } from '../_shared/authoring.mjs';
 
 export default [
   mod('Módulo 8 — Reporte y Respuesta a Incidentes',
@@ -83,4 +83,16 @@ export default [
   mc('En el caso de la página que pide la contraseña, ¿qué NO debe hacer el empleado?',
     ['Reportarlo', 'Cambiar su contraseña', 'Ingresar sus credenciales', 'Contactar a TI'], 'c', 1),
   off({ type: 'OpenResponse', points: 0, payload: { question: '¿Alguna vez dudaste si debías reportar algo? ¿Qué señales aprendiste hoy que te ayudarán a decidir más rápido?', graded: false } }),
+
+  // Lámina final antes del resultado (como en los cursos de cumplimiento). Enlaces
+  // verificados el 27 sep 2026.
+  slide({ layout: 'dark', title: 'Recursos adicionales' },
+    T(`${heading('Recursos adicionales')}
+       <p>Material complementario, opcional, para seguir aprendiendo:</p>
+       ${bullets([
+         '<a href="https://consumidor.ftc.gov/articulos/como-reconocer-y-evitar-las-estafas-de-phishing" target="_blank" rel="noopener">Cómo reconocer y evitar las estafas de phishing</a> — Comisión Federal de Comercio (FTC), en español.',
+         '<a href="https://www.cisa.gov/secure-our-world" target="_blank" rel="noopener">Secure Our World</a> — cuatro prácticas básicas de la agencia de ciberseguridad de EE. UU. (CISA), en inglés.',
+         'Videos del curso: <a href="https://www.youtube.com/watch?v=fkrsaWn5tjo" target="_blank" rel="noopener">el triángulo CIA</a>, <a href="https://www.youtube.com/watch?v=g6tO3ObVvEc" target="_blank" rel="noopener">el factor humano</a> y <a href="https://www.youtube.com/watch?v=s6xbg6jbTKo" target="_blank" rel="noopener">el phishing</a>.',
+       ])}
+       <p><b>Recuerda:</b> si algo no se ve bien, no lo ocultes ni lo arregles por tu cuenta. Repórtalo enseguida a tu supervisor o al departamento de sistemas.</p>`)),
 ];

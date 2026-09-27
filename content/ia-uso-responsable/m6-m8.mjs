@@ -5,7 +5,7 @@
 // los prompts usan ejemplos de logística.
 // M8 (9 → 6): PENDIENTE DE LA EMPRESA si hay una política de IA escrita. Mientras tanto las
 // láminas no nombran herramientas autorizadas ni sanciones concretas.
-import { slide, T, mod, bullets } from '../_shared/authoring.mjs';
+import { slide, T, mod, bullets, heading } from '../_shared/authoring.mjs';
 import * as Q from './preguntas.mjs';
 
 const caso = texto => slide({ layout: 'callout', kicker: 'Caso práctico' }, T(`<p>${texto}</p>`));
@@ -81,4 +81,15 @@ export const m8 = [
   ...Q.m8.slice(0, 7),
   caso('Un empleado usa ChatGPT público para resumir un contrato interno.'),
   ...Q.m8.slice(7),
+
+  // Lámina final antes del resultado (como en los cursos de cumplimiento). Enlaces
+  // verificados el 27 sep 2026.
+  slide({ layout: 'dark', title: 'Recursos adicionales' },
+    T(`${heading('Recursos adicionales')}
+       <p>Material complementario, opcional, para seguir aprendiendo:</p>
+       ${bullets([
+         '<a href="https://consumidor.ftc.gov/alertas-para-consumidores/2024/09/operacion-ai-comply-como-detectar-fraudes-y-enganos-con-inteligencia-artificial-aplicada" target="_blank" rel="noopener">Cómo detectar fraudes y engaños con inteligencia artificial</a> — Comisión Federal de Comercio (FTC), en español.',
+         '<a href="https://consumidor.ftc.gov/articulos/como-reconocer-y-evitar-las-estafas-de-phishing" target="_blank" rel="noopener">Cómo reconocer y evitar las estafas de phishing</a> — la IA también se usa para hacer mensajes falsos más creíbles.',
+       ])}
+       <p><b>Recuerda:</b> nunca compartas con una IA pública información de la empresa, de clientes o de empleados, y verifica siempre lo que te responda. Si tienes dudas, pregunta a tu supervisor antes de usarla.</p>`)),
 ];

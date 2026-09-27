@@ -3381,6 +3381,21 @@
         ],
         "correctOptionId": "a"
       }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Recursos adicionales",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<h3>Recursos adicionales</h3>\n       <p>Material complementario, opcional, para seguir aprendiendo:</p>\n       <ul><li><a href=\"https://consumidor.ftc.gov/alertas-para-consumidores/2024/09/operacion-ai-comply-como-detectar-fraudes-y-enganos-con-inteligencia-artificial-aplicada\" target=\"_blank\" rel=\"noopener\">Cómo detectar fraudes y engaños con inteligencia artificial</a> — Comisión Federal de Comercio (FTC), en español.</li><li><a href=\"https://consumidor.ftc.gov/articulos/como-reconocer-y-evitar-las-estafas-de-phishing\" target=\"_blank\" rel=\"noopener\">Cómo reconocer y evitar las estafas de phishing</a> — la IA también se usa para hacer mensajes falsos más creíbles.</li></ul>\n       <p><b>Recuerda:</b> nunca compartas con una IA pública información de la empresa, de clientes o de empleados, y verifica siempre lo que te responda. Si tienes dudas, pregunta a tu supervisor antes de usarla.</p>",
+            "span": "full"
+          }
+        ]
+      }
     }
   ]
 }

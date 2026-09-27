@@ -183,6 +183,16 @@ function Verificar-Borrador($trainingId) {
     Write-Output "Borrador verificado: $($got.Count) items en el orden de course.json$(if ($conIntro) { ', pantalla de entrada primero' })."
 }
 
+# Clave para reconocer "la misma lamina" entre el borrador anterior y course.json: tipo,
+# titulo, pregunta y los primeros 80 caracteres del texto (sin etiquetas).
+function Clave-Item($type, $p) {
+    $html = (@($p.blocks) | Where-Object { $_ } | ForEach-Object { "$($_.html)" }) -join ' '
+    $txt = [System.Net.WebUtility]::HtmlDecode(([regex]::Replace($html, '<[^>]+>', ' ')))
+    $txt = ([regex]::Replace($txt, '\s+', ' ')).Trim()
+    if ($txt.Length -gt 80) { $txt = $txt.Substring(0, 80) }
+    return "$type|$($p.title)|$($p.question)|$txt"
+}
+
 # Voz de las laminas (-Voz): el servidor graba unas pocas por llamada; se repite hasta que
 # no quede ninguna. Si Azure pide esperar (nivel gratis), el servidor responde 'wait'.
 function Grabar-Voz($trainingId) {
@@ -233,13 +243,32 @@ if ($Update) {
     Write-Output "Titulo, descripcion, recurrencia y certificado actualizados."
 
     $draft = Invoke-Api -Path "/trainings/$($existing.id)/draft"
+    # Voz ya grabada: se guarda antes de borrar y se le vuelve a poner a la lamina nueva que
+    # parece la misma (tipo, titulo, pregunta y comienzo del texto). El servidor comprueba
+    # que el texto coincide con lo grabado (hash) y si no, la descarta; asi -Voz solo graba
+    # lo nuevo o lo que cambio.
+    $voces = @{}
+    foreach ($old in $draft.items) {
+        try { $op = $old.payloadJson | ConvertFrom-Json } catch { continue }
+        if ($op.narration) {
+            $k = Clave-Item $old.type $op
+            if (-not $voces.ContainsKey($k)) { $voces[$k] = $op.narration }
+        }
+    }
     Write-Output "Borrando $($draft.items.Count) items existentes del borrador..."
     foreach ($old in $draft.items) {
         Invoke-Api -Path "/items/$($old.id)" -Method 'DELETE' | Out-Null
     }
 
     $n = 0
+    $conVoz = 0
     foreach ($it in $items) {
+        $k = Clave-Item $it.type $it.payload
+        if ($voces.ContainsKey($k)) {
+            $it.payload | Add-Member -NotePropertyName narration -NotePropertyValue $voces[$k] -Force
+            $voces.Remove($k)
+            $conVoz++
+        }
         $payloadJson = $it.payload | ConvertTo-Json -Depth 30 -Compress
         Invoke-Api -Path "/trainings/$($existing.id)/items" -Method 'POST' -Body @{
             type = $it.type; payloadJson = $payloadJson; points = [int]$it.points; required = $true; active = ($it.active -ne $false)
@@ -248,7 +277,7 @@ if ($Update) {
         Write-Progress -Activity 'Subiendo contenido actualizado' -Status "$n de $($items.Count)" -PercentComplete ($n * 100 / $items.Count)
     }
     Write-Progress -Activity 'Subiendo contenido actualizado' -Completed
-    Write-Output "$n items nuevos creados (reemplazan a los anteriores)."
+    Write-Output "$n items nuevos creados (reemplazan a los anteriores); $conVoz conservan su voz si el texto no cambio."
 
     Publicar-SiCorresponde $existing.id
     exit 0

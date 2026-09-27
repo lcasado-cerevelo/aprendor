@@ -1803,6 +1803,21 @@
         "question": "¿Alguna vez dudaste si debías reportar algo? ¿Qué señales aprendiste hoy que te ayudarán a decidir más rápido?",
         "graded": false
       }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Recursos adicionales",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<h3>Recursos adicionales</h3>\n       <p>Material complementario, opcional, para seguir aprendiendo:</p>\n       <ul><li><a href=\"https://consumidor.ftc.gov/articulos/como-reconocer-y-evitar-las-estafas-de-phishing\" target=\"_blank\" rel=\"noopener\">Cómo reconocer y evitar las estafas de phishing</a> — Comisión Federal de Comercio (FTC), en español.</li><li><a href=\"https://www.cisa.gov/secure-our-world\" target=\"_blank\" rel=\"noopener\">Secure Our World</a> — cuatro prácticas básicas de la agencia de ciberseguridad de EE. UU. (CISA), en inglés.</li><li>Videos del curso: <a href=\"https://www.youtube.com/watch?v=fkrsaWn5tjo\" target=\"_blank\" rel=\"noopener\">el triángulo CIA</a>, <a href=\"https://www.youtube.com/watch?v=g6tO3ObVvEc\" target=\"_blank\" rel=\"noopener\">el factor humano</a> y <a href=\"https://www.youtube.com/watch?v=s6xbg6jbTKo\" target=\"_blank\" rel=\"noopener\">el phishing</a>.</li></ul>\n       <p><b>Recuerda:</b> si algo no se ve bien, no lo ocultes ni lo arregles por tu cuenta. Repórtalo enseguida a tu supervisor o al departamento de sistemas.</p>",
+            "span": "full"
+          }
+        ]
+      }
     }
   ]
 }
