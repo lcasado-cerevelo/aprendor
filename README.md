@@ -199,6 +199,8 @@ las altas devuelven una clave temporal), `APRENDOR_AllowedHosts` (dominio públi
 | `Security:TrustedProxies` | `[]` | IPs o rangos CIDR de proxies, además de loopback, cuyo `X-Forwarded-For` (o la cabecera configurada) se cree. Solo si el proxy o `cloudflared` corre en otra máquina, o con los rangos de Cloudflare si el DNS está en nube naranja. Con IIS publicado directo no hace falta. |
 | `Security:RedirectHttps` | `false` | Redirige http a https (308) salvo lo que entra por `localhost`. Encenderlo con IIS publicado directo a internet; apagado detrás de un túnel. |
 | `Security:HttpsPort` | `443` | Puerto https al que redirige `Security:RedirectHttps`. |
+| `Email:LogoUrl` | vacío | URL https fija del logo de los correos. Vacío en producción (se usa `App:BaseUrl` + `/img/logo-email.png`); en desarrollo apunta al logo publicado, porque Gmail no muestra el logo incrustado. |
+| `Email:FromName` | `Aprendor` | Nombre del remitente de los correos. Si falta, también sale «Aprendor». |
 | `Security:ForwardedForHeader` | vacío (`X-Forwarded-For`) | `CF-Connecting-IP` con Cloudflare. De aquí sale la IP real para los límites, la auditoría y las redes de confianza. |
 | `Security:TrustedNetworks` | `[]` | Redes de confianza de la instancia (CIDR o IP sola). Desde ellas no se pide el doble factor ni Turnstile. Loopback no cuenta salvo que se liste. |
 | `Security:MaxRequestBytes` / `Security:AuthoringMaxRequestBytes` | 1 MB / 8 MB | Tamaño máximo del cuerpo en general y en el contenido del autor. |

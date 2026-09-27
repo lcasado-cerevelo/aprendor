@@ -349,7 +349,7 @@ app.MapPost("/auth/login", async (LoginRequest? req, HttpContext http, Turnstile
             statusCode: StatusCodes.Status401Unauthorized);
 
     var compañias = await Compañias.DeUsuarioAsync(catalog, user);
-    var politica = Compañias.PoliticaEfectiva(compañias);
+    var politica = Compañias.PoliticaParaUsuario(user, compañias);   // administradores: siempre required
     var tiene2fa = user.TwoFactorMode == "totp" && user.TwoFactorConfirmedAt is not null;
 
     // Red de confianza: ni código ni alta del doble factor, aunque la política lo exija.
@@ -398,9 +398,12 @@ app.MapPost("/me/switch-company", async (SwitchCompanyRequest req, HttpContext h
 
     var expira = RespuestaSesion.ExpiracionDe(principal);
     var amr = principal.FindFirst("amr")?.Value ?? Amr.Pwd;
-    var confianzaDestino = amr == Amr.MfaTrusted
+    // Ser Admin en la compañía destino exige el doble factor igual que una política required,
+    // y a un administrador no le vale la red de confianza.
+    var adminDestino = destino.Rol == "Admin";
+    var confianzaDestino = !adminDestino && amr == Amr.MfaTrusted
         && await RedesConfianza.ParaCompañiaAsync(catalog, destino.TenantId, ClientIp.Of(http));
-    if (destino.Politica2FA == "required" && !confianzaDestino)
+    if ((destino.Politica2FA == "required" || adminDestino) && !confianzaDestino)
     {
         if (!(user.TwoFactorMode == "totp" && user.TwoFactorConfirmedAt is not null))
             return Results.BadRequest($"{destino.Nombre} exige verificación en dos pasos. Actívala en tu perfil antes de entrar.");
@@ -843,9 +846,14 @@ app.MapPost("/me/2fa/disable", async (DisableTwoFactorRequest? req, ITenantConte
     }
     Bloqueos.OkSensible(reserva);
 
-    // Si alguna de sus compañías lo exige, no puede quitárselo.
-    var exigen = (await Compañias.DeUsuarioAsync(catalog, user))
-        .Where(c => c.Politica2FA == "required").Select(c => c.Nombre).ToList();
+    // Si alguna de sus compañías lo exige, o si es administrador, no puede quitárselo.
+    var suyas = await Compañias.DeUsuarioAsync(catalog, user);
+    if (Compañias.EsAdministrador(user, suyas))
+    {
+        await catalog.SaveChangesAsync();
+        return Results.BadRequest("No se puede desactivar: los administradores deben tener verificación en dos pasos.");
+    }
+    var exigen = suyas.Where(c => c.Politica2FA == "required").Select(c => c.Nombre).ToList();
     if (exigen.Count > 0)
     {
         await catalog.SaveChangesAsync();
@@ -1830,6 +1838,15 @@ static class Compañias
     // usuario (required > optional > off). Así no se evita el doble factor entrando por
     // una compañía que lo tiene apagado y cambiando después a otra que lo exige. Sin
     // compañías activas (admin de plataforma) queda "optional".
+    // Los administradores (de plataforma, sin compañía, o Admin en alguna compañía) llevan
+    // SIEMPRE doble factor, sin importar la política de sus compañías: son las cuentas que
+    // más daño pueden hacer si alguien adivina o roba la contraseña.
+    public static bool EsAdministrador(AppUser user, IEnumerable<Membresia> compañias)
+        => user.Role == "Admin" || compañias.Any(c => c.Rol == "Admin");
+
+    public static string PoliticaParaUsuario(AppUser user, IEnumerable<Membresia> compañias)
+        => EsAdministrador(user, compañias) ? "required" : PoliticaEfectiva(compañias);
+
     public static string PoliticaEfectiva(IEnumerable<Membresia> compañias)
     {
         var politicas = compañias.Select(c => string.IsNullOrWhiteSpace(c.Politica2FA) ? "optional" : c.Politica2FA).ToList();
@@ -1886,10 +1903,10 @@ static class DosFactores
         {
             var (asunto, html) = proposito switch
             {
-                "verify-email" => ("Valida tu correo en Aprendor", EmailTemplates.VerifyEmail(user.Name, codigo, VigenciaMinutos)),
-                "recover-2fa" => ("Código para recuperar tu acceso a Aprendor", EmailTemplates.RecoveryCode(user.Name, codigo, VigenciaMinutos)),
-                "enroll-2fa" => ("Código para registrar tu app autenticadora en Aprendor", EmailTemplates.EnrollCode(user.Name, codigo, VigenciaMinutos)),
-                _ => ("Tu código de verificación de Aprendor", EmailTemplates.TwoFactorCode(user.Name, codigo, VigenciaMinutos)),
+                "verify-email" => (EmailTemplates.AsuntoConCodigo(codigo, "tu código para validar tu correo en Aprendor"), EmailTemplates.VerifyEmail(user.Name, codigo, VigenciaMinutos)),
+                "recover-2fa" => (EmailTemplates.AsuntoConCodigo(codigo, "tu código para recuperar tu acceso a Aprendor"), EmailTemplates.RecoveryCode(user.Name, codigo, VigenciaMinutos)),
+                "enroll-2fa" => (EmailTemplates.AsuntoConCodigo(codigo, "tu código para registrar tu app autenticadora en Aprendor"), EmailTemplates.EnrollCode(user.Name, codigo, VigenciaMinutos)),
+                _ => (EmailTemplates.AsuntoConCodigo(codigo, "tu código de verificación de Aprendor"), EmailTemplates.TwoFactorCode(user.Name, codigo, VigenciaMinutos)),
             };
             try
             {

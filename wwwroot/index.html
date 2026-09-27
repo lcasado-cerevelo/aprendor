@@ -635,7 +635,7 @@
     <!-- Antesala: quién la exige, qué cambia y qué hace falta (no es un cambio de contraseña) -->
     <div id="enIntro" class="tfa-intro">
       <div class="tfa-escudo" id="enEscudo" aria-hidden="true"></div>
-      <h2><span id="enCompania">Tu compañía</span> protege tu cuenta con verificación en dos pasos</h2>
+      <h2 id="enTitulo">Tu compañía protege tu cuenta con verificación en dos pasos</h2>
       <p class="sub">Además de tu contraseña, te pediremos un código de 6 dígitos de tu teléfono <span id="enCuando">cada vez que entres</span>.</p>
       <p class="sub">Es obligatorio y toma unos 2 minutos. Tu contraseña no cambia.</p>
       <div class="tfa-necesitas">
@@ -1547,6 +1547,26 @@ function ocupar(b){
   };
 }
 function estaOcupado(b){ return !!(b && b._ocupado); }
+// Campos de código de 6 dígitos (autocomplete=one-time-code): al pegar se toman solo los
+// dígitos, así «400 912», «400-912» o el asunto entero del correo («400912 es tu código…»)
+// dejan el código completo; antes el maxlength=6 lo cortaba. Al escribir se quitan también
+// los caracteres que no son dígitos.
+document.addEventListener('paste', e => {
+  const t = e.target;
+  if (!(t instanceof HTMLInputElement) || t.autocomplete !== 'one-time-code') return;
+  const texto = (e.clipboardData && e.clipboardData.getData('text')) || '';
+  const digitos = texto.replace(/\D/g, '').slice(0, 6);
+  if (!digitos) return;
+  e.preventDefault();
+  t.value = digitos;
+  t.dispatchEvent(new Event('input', { bubbles: true }));
+}, true);
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (!(t instanceof HTMLInputElement) || t.autocomplete !== 'one-time-code') return;
+  const limpio = t.value.replace(/\D/g, '').slice(0, 6);
+  if (limpio !== t.value) t.value = limpio;
+}, true);
 // Un fetch cualquiera con la barra de carga (y el botón del clic, si lo hay).
 async function conCarga(promesa){
   const soltar = ocupar(Carga.boton);
@@ -2321,7 +2341,12 @@ function antesala2FA(){
 async function mostrarAlta2FA(){
   el('enMsg').textContent = '';
   el('enEscudo').innerHTML = ic('shield', 30);
-  el('enCompania').textContent = compañiaQueExige2FA();
+  // A los administradores (de plataforma o de una compañía) el servidor siempre les exige el
+  // doble factor, aunque la compañía no lo pida: la antesala lo dice así.
+  const esAdmin = !!user && (user.role === 'Admin' || (user.companies || []).some(c => c.rol === 'Admin'));
+  el('enTitulo').textContent = esAdmin
+    ? 'Tu cuenta de administrador necesita verificación en dos pasos'
+    : compañiaQueExige2FA() + ' protege tu cuenta con verificación en dos pasos';
   antesala2FA();
   mostrarSolo('enrollView');
   // Qué cambia (con redes de confianza, solo fuera de la oficina) y si hará falta el código

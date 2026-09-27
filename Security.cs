@@ -620,7 +620,7 @@ public static class RespuestaSesion
         string amr, Guid? tenantId, Func<string, DateTime?> tope)
     {
         var compañias = await Compañias.DeUsuarioAsync(catalog, user);
-        var politica = Compañias.PoliticaEfectiva(compañias);
+        var politica = Compañias.PoliticaParaUsuario(user, compañias);
         var compañia = tenantId ?? user.TenantId;
         var rol = compañia is Guid t && t != user.TenantId
             ? compañias.FirstOrDefault(c => c.TenantId == t)?.Rol ?? user.Role
@@ -874,11 +874,14 @@ public static class RedesConfianza
     // de TODAS sus compañías que usan el doble factor (política distinta de off; si ninguna
     // lo usa, todas sus compañías). Así una compañía no puede quitarle el doble factor que
     // le exige otra. Sin compañías (admin de plataforma): solo las de la instancia.
+    // Los administradores (de plataforma o de cualquier compañía) nunca están en red de
+    // confianza: siempre se les pide el código y el alta del doble factor.
     public static async Task<bool> ParaUsuarioAsync(CatalogDbContext c, AppUser u, string? ip)
     {
+        var compañias = await Compañias.DeUsuarioAsync(c, u);
+        if (Compañias.EsAdministrador(u, compañias)) return false;
         if (EnInstancia(ip)) return true;
         if (!System.Net.IPAddress.TryParse(ip ?? "", out _)) return false;
-        var compañias = await Compañias.DeUsuarioAsync(c, u);
         var relevantes = compañias.Where(x => x.Politica2FA != "off").Select(x => x.TenantId).ToList();
         if (relevantes.Count == 0) relevantes = compañias.Select(x => x.TenantId).ToList();
         if (relevantes.Count == 0) return false;
@@ -892,8 +895,9 @@ public static class RedesConfianza
     // alta: «al entrar desde fuera de la oficina» en vez de «cada vez que entres».
     public static async Task<bool> HayParaUsuarioAsync(CatalogDbContext c, AppUser u)
     {
-        if (_instancia.Count > 0) return true;
         var compañias = await Compañias.DeUsuarioAsync(c, u);
+        if (Compañias.EsAdministrador(u, compañias)) return false;   // a ellos siempre se les pide
+        if (_instancia.Count > 0) return true;
         var relevantes = compañias.Where(x => x.Politica2FA != "off").Select(x => x.TenantId).ToList();
         if (relevantes.Count == 0) relevantes = compañias.Select(x => x.TenantId).ToList();
         if (relevantes.Count == 0) return false;

@@ -36,7 +36,7 @@ public class SmtpEmailSender : IEmailSender
         if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(toEmail)) return;
 
         var fromEmail = _cfg["Email:From"] ?? "no-reply@local";
-        var fromName = _cfg["Email:FromName"] ?? "Training Platform";
+        var fromName = string.IsNullOrWhiteSpace(_cfg["Email:FromName"]) ? "Aprendor" : _cfg["Email:FromName"]!;   // nombre del remitente: Aprendor si no se configura otro
         var port = int.TryParse(_cfg["Email:Port"], out var p) ? p : 587;
         var ssl = !bool.TryParse(_cfg["Email:UseSsl"], out var s) || s; // default true
 
@@ -44,7 +44,7 @@ public class SmtpEmailSender : IEmailSender
         {
             From = new MailAddress(fromEmail, fromName),
             Subject = subject,
-            Body = EmailTemplates.ConLogoPublico(htmlBody, _cfg["App:BaseUrl"]),
+            Body = EmailTemplates.ConLogoPublico(htmlBody, _cfg["App:BaseUrl"], _cfg["Email:LogoUrl"]),
             IsBodyHtml = true
         };
         msg.To.Add(new MailAddress(toEmail, string.IsNullOrWhiteSpace(toName) ? toEmail : toName));
@@ -93,7 +93,7 @@ public class BrevoApiEmailSender : IEmailSender
         if (string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(toEmail)) return;
 
         var fromEmail = _cfg["Email:From"] ?? "no-reply@local";
-        var fromName = _cfg["Email:FromName"] ?? "Training Platform";
+        var fromName = string.IsNullOrWhiteSpace(_cfg["Email:FromName"]) ? "Aprendor" : _cfg["Email:FromName"]!;   // nombre del remitente: Aprendor si no se configura otro
 
         var payload = new JsonObject
         {
@@ -104,7 +104,7 @@ public class BrevoApiEmailSender : IEmailSender
                 ["name"] = string.IsNullOrWhiteSpace(toName) ? toEmail : toName
             }),
             ["subject"] = subject,
-            ["htmlContent"] = EmailTemplates.ConLogoPublico(htmlBody, _cfg["App:BaseUrl"])
+            ["htmlContent"] = EmailTemplates.ConLogoPublico(htmlBody, _cfg["App:BaseUrl"], _cfg["Email:LogoUrl"])
         };
 
         var lista = attachments?.ToList();
@@ -472,9 +472,14 @@ public static class EmailTemplates
 
     // Lo llaman los IEmailSender justo antes de enviar: con App:BaseUrl absoluto (http o
     // https) el logo pasa a ser <BaseUrl>/img/logo-email.png; si no, se deja el data URL.
-    public static string ConLogoPublico(string html, string? baseUrl)
+    // Email:LogoUrl (opcional) fija la URL del logo a mano: sirve en desarrollo, donde no hay
+    // App:BaseUrl público y el data URL sale roto en Gmail, para apuntar al logo de producción.
+    public static string ConLogoPublico(string html, string? baseUrl, string? logoUrl = null)
     {
         if (string.IsNullOrEmpty(html) || !html.Contains(LogoDataUri)) return html;
+        if (!string.IsNullOrWhiteSpace(logoUrl)
+            && Uri.TryCreate(logoUrl.Trim(), UriKind.Absolute, out var fija) && fija.Scheme == Uri.UriSchemeHttps)
+            return html.Replace(LogoDataUri, System.Net.WebUtility.HtmlEncode(fija.AbsoluteUri));
         if (string.IsNullOrWhiteSpace(baseUrl)
             || !Uri.TryCreate(baseUrl.Trim().TrimEnd('/'), UriKind.Absolute, out var b)
             || (b.Scheme != Uri.UriSchemeHttps && b.Scheme != Uri.UriSchemeHttp)) return html;
@@ -591,7 +596,7 @@ public static class EmailTemplates
             "Al usarlo quitaremos la app autenticadora de tu cuenta y tendrás que registrarla de nuevo.</p>" +
             "<p style=\"margin:10px 0 0;color:#b91c1c;font-size:13px;\"><b>Si no fuiste tú, no compartas este código con nadie</b> " +
             "y cambia tu contraseña enseguida: alguien la conoce.</p>";
-        return Render(body, "Código para recuperar el acceso a tu cuenta de Aprendor.");
+        return Render(body, $"Tu código: {code}. Recupera el acceso a tu cuenta de Aprendor.");
     }
 
     // Código para registrar la app autenticadora por primera vez desde fuera de una red de
@@ -606,7 +611,7 @@ public static class EmailTemplates
             CodigoGrande(code) +
             $"<p style=\"margin:0;color:#64748b;font-size:13px;\">Vence en {minutos} minutos y solo se puede usar una vez.</p>" +
             "<p style=\"margin:6px 0 0;color:#64748b;font-size:13px;\">Si no fuiste tú, no compartas este código y cambia tu contraseña: alguien la conoce.</p>";
-        return Render(body, "Código para registrar tu app autenticadora en Aprendor.");
+        return Render(body, $"Tu código: {code}. Registra tu app autenticadora en Aprendor.");
     }
 
     // Aviso de que se quitó la app autenticadora de la cuenta.
@@ -653,11 +658,24 @@ public static class EmailTemplates
         return Render(body, titulo + ".");
     }
 
+    // El código de 6 dígitos en grande. Un botón «Copiar» no funciona dentro de un correo
+    // (Gmail y Outlook quitan los scripts), así que se facilita copiarlo de otras formas: va
+    // como una sola palabra (doble clic o mantener presionado lo selecciona entero; sin
+    // letter-spacing, que en algunos clientes se copia con espacios), con user-select:all
+    // donde el cliente lo respeta (un toque lo selecciona todo), y además va al principio
+    // del asunto y del preheader, donde Gmail y el correo del teléfono ofrecen «Copiar código».
     private static string CodigoGrande(string code)
         => "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" " +
-           "style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:18px 0;\"><tr>" +
-           "<td align=\"center\" style=\"padding:18px;font:700 32px/1 Consolas,Menlo,monospace;letter-spacing:8px;color:#0f172a;\">" +
-           $"{System.Net.WebUtility.HtmlEncode(code ?? "")}</td></tr></table>";
+           "style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:18px 0 6px;\"><tr>" +
+           "<td align=\"center\" style=\"padding:18px;font:700 34px/1 Consolas,Menlo,monospace;color:#0f172a;" +
+           "-webkit-user-select:all;user-select:all;\">" +
+           $"{System.Net.WebUtility.HtmlEncode(code ?? "")}</td></tr></table>" +
+           "<p style=\"margin:0 0 16px;text-align:center;color:#64748b;font-size:12px;\">" +
+           "Para copiarlo, haz doble clic sobre el código (en el teléfono, mantenlo presionado).</p>";
+
+    // Asunto con el código delante: el teléfono y Gmail lo detectan y ofrecen copiarlo desde
+    // la notificación, sin abrir el correo.
+    public static string AsuntoConCodigo(string code, string resto) => $"{code} es {resto}";
 
     public static string PasswordReset(string name, string link, int minutos)
     {
@@ -904,12 +922,9 @@ public static class EmailTemplates
             $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
             "<p style=\"margin:0;\">Escribe este código en la plataforma para confirmar que este correo es tuyo. " +
             "A esta dirección te enviaremos los certificados de los adiestramientos que apruebes.</p>" +
-            "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" " +
-            "style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:18px 0;\"><tr>" +
-            "<td align=\"center\" style=\"padding:18px;font:700 32px/1 Consolas,Menlo,monospace;letter-spacing:8px;color:#0f172a;\">" +
-            $"{Enc(code)}</td></tr></table>" +
+            CodigoGrande(code) +
             $"<p style=\"margin:0;color:#64748b;font-size:13px;\">Vence en {minutos} minutos.</p>";
-        return Render(body, "Código para validar tu correo en Aprendor.");
+        return Render(body, $"Tu código: {code}. Valida tu correo en Aprendor.");
     }
 
     public static string TwoFactorCode(string name, string code, int minutos)
@@ -919,13 +934,10 @@ public static class EmailTemplates
             Titulo("Tu código de verificación") +
             $"<p style=\"margin:0 0 10px;\">Hola {Enc(name)},</p>" +
             "<p style=\"margin:0;\">Usa este código para completar tu inicio de sesión:</p>" +
-            "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" " +
-            "style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:18px 0;\"><tr>" +
-            "<td align=\"center\" style=\"padding:18px;font:700 32px/1 Consolas,Menlo,monospace;letter-spacing:8px;color:#0f172a;\">" +
-            $"{Enc(code)}</td></tr></table>" +
+            CodigoGrande(code) +
             $"<p style=\"margin:0;color:#64748b;font-size:13px;\">Vence en {minutos} minutos y solo se puede usar una vez.</p>" +
             "<p style=\"margin:6px 0 0;color:#64748b;font-size:13px;\">Si no fuiste tú quien intentó entrar, cambia tu contraseña.</p>";
-        return Render(body, "Código de verificación de Aprendor.");
+        return Render(body, $"Tu código: {code}. Código de verificación de Aprendor.");
     }
 
     public static string Completion(string learnerName, string trainingTitle, int score, int total)
