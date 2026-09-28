@@ -1,6 +1,6 @@
 // Módulos 3 (mensajes y llamadas falsas, con voces clonadas con IA), 4 (la IA y tú) y
 // 5 (si algo pasa), y la lámina de recursos adicionales.
-import { slide, T, mod, mc, bullets, heading } from '../_shared/authoring.mjs';
+import { slide, T, mod, mc, bullets, heading, photo } from '../_shared/authoring.mjs';
 
 const caso = texto => slide({ layout: 'callout', kicker: 'Caso práctico' }, T(`<p>${texto}</p>`));
 
@@ -46,10 +46,13 @@ export const m4 = [
   mod('Módulo 4 — La inteligencia artificial y tú',
     'La inteligencia artificial ya está en el teléfono y en WhatsApp. Úsala a tu favor sin darle información que no le toca.'),
 
-  slide({ layout: 'dark', title: '¿Qué es la inteligencia artificial?' },
+  // Foto de Josh Sorenson en Unsplash (licencia de Unsplash), recortada a la pantalla.
+  slide({ layout: 'photo-left', title: '¿Qué es la inteligencia artificial?', kicker: 'Ya está a tu alrededor',
+          photo: photo(import.meta.url, './img/ia-carro.jpg'), photoPos: 'right center' },
     T(`<p>Son programas que escriben, responden preguntas, traducen o crean imágenes como si fueran una persona. Algunos conocidos:
        ChatGPT, Gemini, Copilot, y <b>Meta AI, que ya viene dentro de WhatsApp</b>.</p>
-       <p>No piensan ni entienden como una persona: predicen respuestas a partir de lo que aprendieron. Por eso a veces se equivocan.</p>`)),
+       <p>No piensan ni entienden como una persona: predicen respuestas a partir de lo que aprendieron. Por eso a veces se equivocan.</p>
+       <p>También está en los carros: la navegación que calcula la ruta y los sistemas que ayudan a manejar.</p>`)),
 
   slide({ layout: 'cards', title: 'Para qué te puede servir', kicker: 'Sin datos de nadie' },
     T(`<ul>

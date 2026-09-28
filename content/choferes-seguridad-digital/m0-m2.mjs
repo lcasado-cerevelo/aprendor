@@ -1,6 +1,6 @@
 // Entrada, portada, objetivos y módulos 1 (la tableta y la contraseña) y 2 (la información
 // que se lleva, con WhatsApp y el teléfono personal).
-import { slide, intro, T, mod, mc, bullets } from '../_shared/authoring.mjs';
+import { slide, intro, T, mod, mc, bullets, photo } from '../_shared/authoring.mjs';
 
 const caso = texto => slide({ layout: 'callout', kicker: 'Caso práctico' }, T(`<p>${texto}</p>`));
 
@@ -14,9 +14,11 @@ export const m0 = [
     minutes: 18,
   }),
 
-  slide({ layout: 'band', title: 'Seguridad Digital para Choferes', kicker: 'Adiestramiento' },
-    T(`<p>La tableta, el teléfono, WhatsApp y la inteligencia artificial: cómo usarlos en el trabajo sin poner en riesgo
-       tu información, la de los clientes ni la de la empresa.</p>`)),
+  // Portada: foto de Hazel J en Unsplash (licencia de Unsplash: uso comercial sin atribución),
+  // recortada a 16:9 y reducida a 1600 px. También es la foto de la tarjeta del curso y,
+  // atenuada, el fondo de la pantalla de entrada.
+  slide({ layout: 'cover', title: 'Seguridad Digital para Choferes',
+          photo: photo(import.meta.url, './img/portada.jpg') }),
 
   slide({ layout: 'cards', title: 'Lo que vas a aprender', kicker: 'Al terminar este curso podrás' },
     T(`<ul>
@@ -33,7 +35,9 @@ export const m1 = [
   mod('Módulo 1 — Tu tableta y tu contraseña',
     'La tableta es una herramienta de trabajo y tu contraseña es la llave. Cuidarlas es lo primero.'),
 
-  slide({ layout: 'dark', title: 'Tu tableta de trabajo' },
+  // Foto generada con Gemini (panel izquierdo de la imagen de tres).
+  slide({ layout: 'photo-left', title: 'Tu tableta de trabajo', kicker: 'Tu herramienta',
+          photo: photo(import.meta.url, './img/tableta.jpg'), photoPos: 'center top' },
     T(`<p>En la tableta están tus rutas, las órdenes y los datos de los clientes. Trátala como trataría la empresa un documento confidencial:</p>
        ${bullets([
          'Ponle bloqueo con PIN o huella, y bloquéala cada vez que la sueltes.',

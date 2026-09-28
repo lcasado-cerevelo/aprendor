@@ -17,8 +17,16 @@ y **WhatsApp**, que es lo que usan a diario.
      nunca darle, que se equivoca).
   5. Si algo pasa (qué avisar, los pasos, «no existe el error tonto») y recursos adicionales.
 - Cada módulo cierra con un caso práctico; la tercera pregunta del módulo es la del caso.
-- **Modo presentación en tema claro** (blanco y verde), sin fotos: portada en banda. Voz:
-  `es-PR-KarinaNeural` (unos 11,000 caracteres).
+- **Modo presentación en tema claro** (blanco y verde). Voz: `es-PR-KarinaNeural` (unos
+  11,000 caracteres).
+- Fotos en `img/`:
+  - `portada.jpg`: chofer con la navegación en el tablero, de Hazel J en Unsplash (licencia de
+    Unsplash, uso comercial sin atribución), recortada a 16:9 y reducida a 1600 px. También es
+    la foto de la tarjeta del curso.
+  - `tableta.jpg`: empleada con la tableta en el almacén (módulo 1), panel izquierdo de una
+    imagen generada con Gemini.
+  - `ia-carro.jpg`: pantalla de un carro con manejo asistido (módulo 4), de Josh Sorenson en
+    Unsplash, recortada a la pantalla.
 - Certificado como el de Seguridad de la Información; renovación anual.
 
 ## Asignación
