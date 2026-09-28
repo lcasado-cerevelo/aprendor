@@ -1,0 +1,478 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seguridad Digital para Choferes — vista previa</title>
+<style>
+  :root{color-scheme:light}
+  body{margin:0;background:#1a1a1a;color:#e5e5e5;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.5}
+  header{background:#000;color:#fff;padding:22px 20px;border-bottom:2px solid #059669}
+  header h1{margin:0 0 6px;font-size:20px}
+  header p{margin:0;opacity:.8;font-size:14px;max-width:900px}
+  main{max-width:1000px;margin:0 auto;padding:20px}
+  section{margin:22px 0}
+  .tag{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#9a9a9a;margin-bottom:6px}
+  .frame{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#ffffff;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+  .note{background:#fef9c3;color:#713f12;border-radius:10px;padding:12px 16px;font-size:14px}
+  /* Estilos del reproductor (copiados de wwwroot/player.html) */
+  
+  :root{--pbg:#0d0d0d;--pacc:#f97316;}
+  body.pres{overflow:hidden;background:var(--pbg);}
+  body.pres>header,body.pres>.progress,body.pres>main,body.pres>.nav{display:none !important;}
+  #presRoot{display:none;}
+  body.pres #presRoot{display:block;position:fixed;inset:0;background:var(--pbg);}
+  /* El escenario se coloca en píxeles enteros (--px/--py, ver presFit): con left:50% y
+     translate(-50%) una ventana de ancho impar dejaba la lámina en medio píxel y el texto
+     se veía borroso. */
+  .pstage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;transform:translate(var(--px,0px),var(--py,0px)) scale(var(--pk,1));overflow:hidden;background:var(--pbg);}
+  .player{position:absolute;inset:0;}
+  /* Transiciones cortas (~320 ms). Al terminar se quitan las clases: la lámina queda sin
+     transform y la saliente se retira siempre (transitionend con respaldo por tiempo).
+     isolation:isolate: cada lámina encierra sus z-index (el título del panel en split lleva
+     z-index:2). Sin esto la saliente, que ya no tiene transform, no crea contexto de
+     apilamiento y su título se pintaba ENCIMA de la entrante durante la transición (la
+     sombra o el título doble). Así el orden lo decide el DOM: la que va después, encima. */
+  .slide{position:absolute;inset:0;isolation:isolate;transition:transform .32s cubic-bezier(.2,.7,.2,1),opacity .28s ease;}
+  .slide.from-right{transform:translateX(100%);box-shadow:-16px 0 32px rgba(0,0,0,.35);}
+  .slide.from-right.in{transform:translateX(0);}
+  .slide.to-right{transform:translateX(100%);box-shadow:-16px 0 32px rgba(0,0,0,.35);}
+  .slide.fade-in{opacity:0;} .slide.fade-in.in{opacity:1;}
+  .slide.fade-out{opacity:0;}
+  /* Misma lámina de fondo (mismo layout, variante y título del panel o del encabezado): el
+     marco queda fijo y solo entra el contenido, sin arrastrar una copia del título. */
+  .slide.keep .sl-body{animation:slBodyIn .3s cubic-bezier(.2,.7,.2,1) both;}
+  @keyframes slBodyIn{from{opacity:0;transform:translateX(calc(var(--dx,1) * 28px));}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){ .slide{transition:none !important;} .slide.keep .sl-body{animation:none !important;} }
+
+  /* --- lámina: base --- */
+  .sl{position:absolute;inset:0;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:#fff;background:var(--pbg);line-height:1.25;}
+  .sl *{box-sizing:border-box;}
+  .sl-body{position:absolute;overflow:hidden;}
+  .sl-fit{transform-origin:top left;}
+  .sl-body p{margin:0 0 14px;}
+  .sl-body ul{margin:0 0 10px;padding-left:32px;} .sl-body li{margin:0 0 10px;}
+  .sl-body ul ul{margin:8px 0 0;list-style:disc;} .sl-body li li{margin:0 0 6px;font-size:.92em;}
+  .sl-body h2{font-size:30px;font-weight:700;margin:0 0 16px;line-height:1.15;}
+  .sl-body h3{font-size:28px;font-weight:700;text-transform:uppercase;margin:0 0 12px;line-height:1.2;}
+  .sl-body a{color:var(--pacc);}
+  .sl-body img,.sl-body video{max-width:100%;max-height:360px;border-radius:0;margin:10px 0;}
+  .sl-body .row2{margin:0;}
+  .sl-over{position:absolute;top:14px;right:14px;z-index:5;background:#dc2626;color:#fff;font:700 14px/1 system-ui,sans-serif;padding:8px 12px;border-radius:8px;}
+  .sl-kicker{margin:0;}
+
+  /* --- cover: foto a sangre + banda de título --- */
+  .sl-cover .cover-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .sl-cover .cover-band{position:absolute;left:0;right:0;top:548px;height:96px;background:rgba(255,255,255,.86);border-top:2px solid #2a2a2a;border-bottom:2px solid #2a2a2a;box-shadow:0 -5px 0 rgba(255,255,255,.75),0 5px 0 rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;text-align:center;padding:0 60px;}
+  .sl-cover .cover-band h1{margin:0;font-size:44px;font-weight:700;color:#111;line-height:1.1;}
+  .sl-cover .sl-body{left:90px;right:90px;top:660px;bottom:0;font-size:18px;}
+
+  /* --- dark: kicker en mayúsculas arriba, línea de acento, cuerpo --- */
+  .sl-dark .sl-kicker{position:absolute;left:100px;right:90px;top:44px;font-size:52px;font-weight:700;text-transform:uppercase;line-height:1.08;}
+  .sl-dark .sl-rule{position:absolute;left:88px;right:88px;top:190px;border-top:2px solid var(--pacc);}
+  .sl-dark .sl-body{left:96px;right:88px;top:216px;bottom:36px;font-size:24px;}
+  .sl-dark .sl-body h3{border-bottom:2px solid rgba(255,255,255,.45);padding-bottom:4px;margin-bottom:14px;}
+  .sl-dark.sl-mod .sl-kicker{top:250px;font-size:56px;} .sl-dark.sl-mod .sl-rule{top:400px;} .sl-dark.sl-mod .sl-body{top:420px;font-size:26px;color:#cfcfcf;}
+
+  /* --- pregunta: dark con marco de acento y opciones clicables --- */
+  .sl-q .sl-frame{position:absolute;inset:12px;border:2px solid var(--pacc);pointer-events:none;}
+  .sl-q .sl-kicker{position:absolute;left:100px;top:118px;font-size:64px;font-weight:400;text-transform:uppercase;line-height:1;}
+  .sl-q .sl-rule{position:absolute;left:14px;width:550px;top:212px;border-top:2px solid var(--pacc);}
+  .sl-q .sl-body{left:160px;right:90px;top:250px;bottom:36px;font-size:30px;}
+  .sl-q .qwrap{counter-reset:opt;}
+  .sl-q .qwrap+.qwrap{border-top:1px solid #333;margin-top:18px;padding-top:18px;}
+  .sl-q .qwrap>b{display:block;font-size:30px;font-weight:700;margin-bottom:26px;}
+  .sl-q .opt{counter-increment:opt;position:relative;display:flex;align-items:center;background:none;border:0;border-radius:8px;padding:6px 12px;margin:2px 0;font-size:30px;line-height:1.25;color:#fff;cursor:pointer;gap:0;}
+  .sl-q .opt::before{content:counter(opt,lower-alpha) ".";flex:none;width:46px;}
+  .sl-q .opt:hover{background:rgba(255,255,255,.08);}
+  .sl-q .opt:has(input:checked){background:color-mix(in srgb,var(--pacc) 18%,transparent);outline:2px solid var(--pacc);}
+  .sl-q .opt.correct{background:rgba(22,163,74,.25);} .sl-q .opt.wrong{background:rgba(220,38,38,.25);}
+  .sl-q .opt input{position:absolute;opacity:0;width:0;height:0;margin:0;}
+  .sl-q .opt .mk{margin-left:auto;color:#cfcfcf;font-size:16px;}
+  .sl-q .qwrap>.mk{color:#bbb;font-size:18px;}
+  .sl-q .matchrow{display:flex;gap:12px;align-items:center;margin:8px 0;} .sl-q .matchrow .mp{flex:1;font-size:24px;font-weight:600;}
+  .sl-q .matchrow select,.sl-q .opentext{background:#1c1c1c;color:#fff;border:1px solid #4a4a4a;font-size:22px;}
+  .sl-q .opentext{min-height:170px;} .sl-q .opentext-ro{background:#1c1c1c;border-color:#4a4a4a;font-size:22px;}
+  .sl-q .hintbox{font-size:18px;}
+
+  /* --- split: panel diagonal oscuro + contenido sobre blanco --- */
+  .sl-split{background:#fff;color:#111;}
+  .sl-split .panel{position:absolute;left:0;top:0;width:494px;height:720px;background:#1f1f1f;overflow:hidden;}
+  .sl-split .panel::before{content:"";position:absolute;inset:0;background:#2e2e2e;clip-path:polygon(18% 0,100% 0,100% 100%,69% 100%);}
+  /* centrado vertical con flex (no translateY(-50%), que deja medio píxel y texto borroso) */
+  .sl-split .ptitle{position:absolute;left:98px;width:340px;top:0;bottom:0;display:flex;align-items:center;margin:0;font-size:34px;font-weight:700;text-transform:uppercase;color:#fff;line-height:1.15;z-index:2;}
+  .sl-split .sl-body{left:575px;right:80px;top:50px;bottom:36px;font-size:24px;display:flex;flex-direction:column;}
+  .sl-split .sl-fit{margin:auto 0;}   /* centrado vertical seguro: si desborda, queda arriba */
+  .sl-split .sl-body p{margin-bottom:10px;} .sl-split .sl-body li{margin-bottom:8px;}
+  .sl-split .sl-body h2{font-size:30px;margin-bottom:14px;}
+  .sl-split .sl-body h3{font-size:26px;text-transform:none;margin:4px 0 8px;}
+  /* variante right: panel blanco a la izquierda con el título en negro, contenido sobre oscuro */
+  .sl-split.right .panel{left:auto;right:0;width:960px;background:transparent;}
+  .sl-split.right .panel::before{background:#6a6a6a;clip-path:polygon(31% 0,100% 0,100% 100%,0 100%);}
+  .sl-split.right .panel::after{content:"";position:absolute;inset:0;background:#262626;clip-path:polygon(34.5% 0,100% 0,100% 100%,3.6% 100%);}
+  .sl-split.right .ptitle{color:#111;width:380px;left:100px;}
+  .sl-split.right .sl-body{left:655px;right:50px;top:36px;bottom:24px;color:#fff;font-size:23px;}
+  .sl-split.right .sl-body li{margin-bottom:6px;}
+  /* variante lines: fondo oscuro, título del panel entre dos líneas de acento */
+  .sl-split.lines{background:var(--pbg);color:#fff;}
+  .sl-split.lines .panel{width:520px;background:transparent;}
+  .sl-split.lines .panel::before{background:transparent;clip-path:none;left:105px;right:0;top:150px;bottom:150px;border-top:2px solid var(--pacc);border-bottom:2px solid var(--pacc);}
+  .sl-split.lines .ptitle{left:118px;width:400px;font-size:40px;}
+  .sl-split.lines .sl-body{left:655px;right:80px;font-size:30px;}
+  .sl-split.lines .sl-body h2{font-size:38px;}
+  /* theme.panel=false: sin panel diagonal, contenido a lo ancho con el título del panel pequeño arriba */
+  .sl-split.no-panel .panel,.sl-split.no-panel .ptitle{display:none;}
+  .sl-split.no-panel .sl-body{left:90px;right:90px;top:70px;}
+  .sl-split.no-panel .sl-kicker{position:absolute;left:90px;top:28px;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;}
+
+  /* --- photo-left: foto a la izquierda, contenido a la derecha sobre blanco --- */
+  .sl-photo{background:#fff;color:#111;}
+  .sl-photo .photo{position:absolute;left:0;top:0;width:486px;height:720px;object-fit:cover;object-position:var(--ppos,50% 50%);}
+  .sl-photo .sl-kicker{position:absolute;left:535px;right:85px;top:100px;font-size:34px;font-weight:700;text-transform:uppercase;line-height:1.15;}
+  .sl-photo .sl-rule{position:absolute;left:535px;right:85px;top:218px;border-top:3px solid var(--pacc);}
+  .sl-photo .sl-body{left:535px;right:85px;top:255px;bottom:40px;font-size:24px;}
+  .sl-photo .sl-body h2{font-size:30px;}
+
+  /* --- resumen y resultado como láminas --- */
+  .sl-sum .sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 40px;}
+  .sl-sum .sumrow{display:flex;gap:10px;border-bottom:1px solid #333;font-size:19px;padding:8px 2px;} .sl-sum .sumrow .st{margin-left:auto;}
+  .sl .res{font-size:30px;font-weight:700;text-align:center;padding:12px;margin-top:14px;border-radius:12px;}
+  .sl .res.pass{background:transparent;color:#4ade80;} .sl .res.fail{background:transparent;color:#f87171;}
+  .sl .actions{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:24px;}
+  .sl-sum .actions{margin-top:14px;}   /* el resumen va justo de alto: que el aviso y los botones quepan */
+  .sl .tiempo{color:#bbb !important;font-size:18px !important;text-align:center;}
+  .sl .center{margin:20px 0 0;padding:0;color:#bbb;}
+  /* Lámina de resultado: todo centrado, con márgenes iguales a los dos lados. */
+  .sl-final .sl-kicker{left:90px;right:90px;text-align:center;}
+  .sl-final .sl-rule{left:90px;right:90px;}
+  .sl-final .sl-body{left:90px;right:90px;display:flex;flex-direction:column;}
+  .sl-final .sl-fit{margin:auto 0;text-align:center;}
+  .sl .hintbox{background:rgba(254,249,195,.12);border-color:#a16207;color:#fde68a;font-size:16px;}
+  .sl .btn,.pbtn{padding:13px 30px;border:0;border-radius:10px;background:var(--pacc);color:#fff;font:700 17px system-ui,sans-serif;cursor:pointer;text-decoration:none;display:inline-block;}
+  .sl .btn.ghost,.pbtn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);}
+  .sl .btn:disabled,.pbtn:disabled{opacity:.45;cursor:not-allowed;}
+
+  /* --- cromo del reproductor: contador, flechas, pantalla de inicio, aviso --- */
+  /* Contador «n / N»: va sobre una pastilla oscura translúcida para que se lea igual
+     sobre las láminas oscuras que sobre las de fondo blanco (split, photo-left). */
+  .pres-counter{position:fixed;right:16px;bottom:12px;color:#fff;background:rgba(15,15,15,.55);padding:3px 10px;border-radius:999px;font:600 13px system-ui,sans-serif;letter-spacing:.04em;pointer-events:none;z-index:20;}
+  .pres-counter:empty{display:none;}
+  .pres-arrow{position:fixed;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.5);color:#fff;font-size:22px;line-height:1;cursor:pointer;z-index:20;transition:opacity .4s;display:flex;align-items:center;justify-content:center;padding:0;}
+  .pres-arrow.l{left:14px;} .pres-arrow.r{right:14px;}
+  .pres-arrow:hover{background:rgba(0,0,0,.75);}
+  #presRoot.idle .pres-arrow{opacity:0;}
+  .pres-start{position:fixed;inset:0;z-index:30;background:var(--pbg);color:#fff;display:flex;flex-direction:column;overflow-y:auto;text-align:center;padding:20px;font-family:Arial,Helvetica,sans-serif;container-type:inline-size;}
+  .pres-start .ps-inner{position:relative;z-index:1;margin:auto;display:flex;flex-direction:column;align-items:center;width:100%;max-width:980px;}   /* margin:auto centra sin recortar arriba si no cabe */
+  .pres-start h1{font-size:34px;margin:0 0 12px;text-transform:uppercase;max-width:800px;}
+  .pres-start p{color:#a3a3a3;margin:0 0 28px;font-size:15px;max-width:520px;line-height:1.5;}
+  .pres-start .ps-resume{margin-top:14px;color:#e5e5e5;font-size:15px;}
+  /* pantalla de entrada del curso (ítem Info con layout 'intro'): foto atenuada, título,
+     descripción y fila de datos. Tamaños en cqw: se ajustan al ancho de la pantalla de
+     entrada (y al del marco en la vista previa de seed.mjs). */
+  .pres-start .ps-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.3;pointer-events:none;}
+  .pres-start .ps-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,color-mix(in srgb,var(--pbg) 78%,transparent) 55%,var(--pbg) 100%);pointer-events:none;}
+  .pres-start.intro h1{font-size:44px;font-size:clamp(28px,5cqw,62px);line-height:1.08;text-transform:none;max-width:none;margin:0 0 18px;}
+  .pres-start .ps-rule{width:120px;border-top:3px solid var(--pacc);margin:0 auto 22px;}
+  .pres-start .ps-desc{color:#e5e5e5;font-size:18px;font-size:clamp(15px,1.7cqw,21px);line-height:1.55;max-width:760px;margin:0 0 24px;}
+  .pres-start .ps-desc p{color:inherit;font-size:inherit;line-height:inherit;max-width:none;margin:0 0 10px;}
+  .pres-start .ps-desc b{color:#fff;}
+  .pres-start .ps-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 34px;padding:14px 10px;margin:0 0 28px;border-top:1px solid rgba(255,255,255,.2);border-bottom:1px solid rgba(255,255,255,.2);}
+  .pres-start .ps-stat b{display:block;font-size:30px;font-size:clamp(22px,2.7cqw,34px);font-weight:700;color:var(--pacc);line-height:1.1;}
+  .pres-start .ps-stat span{display:block;margin-top:4px;font:600 12px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#bdbdbd;}
+  .pres-start.intro .pbtn{font-size:19px;padding:15px 46px;}
+  .pres-start .ps-hint{margin-top:12px;font:13px system-ui,sans-serif;color:#9a9a9a;letter-spacing:.02em;}
+  .pres-toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:10px;font:600 14px system-ui,sans-serif;z-index:25;opacity:0;transition:opacity .25s;pointer-events:none;max-width:min(90vw,640px);text-align:center;}
+  .pres-toast.show{opacity:1;}
+
+  /* lista de módulos en la pantalla de entrada: número, título y qué trae cada uno */
+  .pres-start .ps-mods{list-style:none;margin:0 0 22px;padding:0;width:100%;max-width:900px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:0 28px;text-align:left;font-size:15px;font-size:clamp(13px,1.35cqw,16px);}
+  .pres-start .ps-mods li{display:flex;align-items:baseline;gap:10px;padding:7px 2px;border-bottom:1px solid rgba(255,255,255,.14);}
+  .pres-start .ps-mods b{flex:none;width:1.6em;color:var(--pacc);font-weight:700;}
+  .pres-start .ps-mods span{flex:1;color:#f1f1f1;}
+  .pres-start .ps-mods small{flex:none;color:#a8a8a8;font-size:.85em;white-space:nowrap;}
+  .plight .pres-start .ps-mods li{border-bottom-color:rgba(0,0,0,.1);}
+  .plight .pres-start .ps-mods b{color:var(--pacc-d);}
+  .plight .pres-start .ps-mods span{color:#1f2937;}
+  .plight .pres-start .ps-mods small{color:#6b7280;}
+
+  /* botón «Escuchar»: solo en las láminas que tienen voz grabada (payload.narration) */
+  .pres-voice{position:fixed;left:16px;bottom:12px;z-index:20;display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:rgba(15,15,15,.62);color:#fff;font:600 14px system-ui,sans-serif;cursor:pointer;}
+  .pres-voice:hover{background:rgba(15,15,15,.8);}
+  .pres-voice:focus-visible{outline:2px solid var(--pacc);outline-offset:2px;}
+  .pres-voice.on{background:var(--pacc-d,var(--pacc));border-color:transparent;}
+  .pres-voice .ic{font-size:12px;line-height:1;}
+
+  /* --- colores derivados del acento: --pacc-d (fuerte, para fondos con texto blanco) y
+     --pacc-t (tinte suave, para cajas y tarjetas). En tema claro, el fuerte se oscurece
+     para que el texto blanco encima y el texto de acento sobre blanco se lean. --- */
+  :root{--pacc-d:var(--pacc);--pacc-t:color-mix(in srgb,var(--pacc) 16%,var(--pbg));}
+
+  /* --- band: franja de acento arriba con rótulo y título, contenido debajo --- */
+  .sl-band .band{position:absolute;left:0;right:0;top:0;height:196px;background:var(--pacc-d);}
+  .sl-band .band::after{content:"";position:absolute;left:0;bottom:-12px;width:300px;height:12px;background:var(--pacc);}
+  .sl-band .sl-kicker{position:absolute;left:90px;right:90px;top:40px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.82);}
+  .sl-band .sl-title{position:absolute;left:90px;right:90px;top:72px;height:100px;display:flex;align-items:center;margin:0;font-size:42px;font-weight:700;line-height:1.1;color:#fff;}
+  .sl-band .sl-body{left:90px;right:90px;top:240px;bottom:36px;font-size:24px;}
+
+  /* --- cards: título arriba con barra corta de acento; cada viñeta de la lista es una tarjeta --- */
+  .sl-cards .sl-kicker{position:absolute;left:90px;right:90px;top:40px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--pacc);}
+  .sl-cards .sl-title{position:absolute;left:90px;right:90px;top:70px;margin:0;font-size:40px;font-weight:700;line-height:1.1;}
+  .sl-cards .sl-rule{position:absolute;left:90px;width:120px;top:150px;border-top:6px solid var(--pacc);}
+  .sl-cards .sl-body{left:90px;right:90px;top:184px;bottom:36px;font-size:22px;}
+  .sl-cards .sl-body ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;list-style:none;padding:0;margin:6px 0 14px;}
+  .sl-cards .sl-body ul>li{margin:0;padding:18px 22px;background:var(--pacc-t);border-top:5px solid var(--pacc);border-radius:12px;line-height:1.3;}
+  .sl-cards .sl-body li ul{display:block;list-style:disc;padding-left:26px;margin:8px 0 0;}
+  .sl-cards .sl-body li li{padding:0;background:none;border:0;border-radius:0;margin:0 0 4px;}
+
+  /* --- callout: una idea destacada en caja de acento, centrada en la lámina --- */
+  .sl-callout .sl-kicker{position:absolute;left:140px;right:140px;top:54px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--pacc);}
+  .sl-callout .sl-body{left:140px;right:140px;top:100px;bottom:70px;display:flex;flex-direction:column;}
+  .sl-callout .sl-fit{margin:auto 0;background:var(--pacc-t);border-left:14px solid var(--pacc);border-radius:0 18px 18px 0;padding:40px 52px;font-size:32px;line-height:1.3;}
+  .sl-callout .sl-body h2{font-size:38px;color:var(--pacc);margin-bottom:18px;}
+  .sl-callout .sl-body p:last-child,.sl-callout .sl-body ul:last-child{margin-bottom:0;}
+
+  /* --- tema claro (theme.mode 'light'): fondo blanco, texto oscuro, adornos de acento.
+     Clase .plight en <body>. Las láminas oscuras (dark, pregunta, resumen) pasan a
+     blanco; el panel diagonal se pinta con el acento. Pasos numerados en círculos. --- */
+  .plight{--pacc-d:color-mix(in srgb,var(--pacc) 72%,#000);--pacc-t:color-mix(in srgb,var(--pacc) 11%,#fff);}
+  .plight .sl{color:#1f2937;}
+  .plight .sl-body li::marker{color:var(--pacc);}
+  .plight .sl-body a{color:var(--pacc-d);}
+  .plight .sl-body ol{list-style:none;counter-reset:st;padding-left:0;margin:0 0 10px;}
+  .plight .sl-body ol>li{counter-increment:st;position:relative;padding-left:62px;min-height:44px;margin-bottom:14px;}
+  .plight .sl-body ol>li::before{content:counter(st);position:absolute;left:0;top:-5px;width:44px;height:44px;border-radius:50%;background:var(--pacc-d);color:#fff;font-weight:700;font-size:22px;display:flex;align-items:center;justify-content:center;}
+  .plight .sl-cover .cover-band{border-color:var(--pacc);box-shadow:0 -5px 0 rgba(255,255,255,.75),0 5px 0 rgba(255,255,255,.75);}
+  .plight .sl-dark::before{content:"";position:absolute;left:0;top:44px;width:16px;height:128px;background:var(--pacc);}
+  .plight .sl-dark .sl-kicker{color:#111;}
+  .plight .sl-dark .sl-body h3{border-bottom-color:#d1d5db;}
+  .plight .sl-dark.sl-mod .sl-body{color:#4b5563;}
+  .plight .sl-cards .sl-kicker,.plight .sl-callout .sl-kicker,.plight .sl-callout .sl-body h2{color:var(--pacc-d);}
+  .plight .sl-cards .sl-title{color:#111;}
+  .plight .sl-q .sl-kicker{color:#111;}
+  .plight .sl-q::before,.plight .sl-final::before{display:none;}
+  .plight .sl-dark.sl-mod::before{top:250px;height:140px;}
+  .plight .sl-q .qwrap+.qwrap{border-top-color:#e5e7eb;}
+  .plight .sl-q .opt{color:#1f2937;}
+  .plight .sl-q .opt:hover{background:rgba(0,0,0,.05);}
+  .plight .sl-q .opt:has(input:checked){background:var(--pacc-t);outline-color:var(--pacc-d);}
+  .plight .sl-q .opt.correct{background:#dcfce7;} .plight .sl-q .opt.wrong{background:#fee2e2;}
+  .plight .sl-q .opt .mk,.plight .sl-q .qwrap>.mk{color:#6b7280;}
+  .plight .sl-q .matchrow select,.plight .sl-q .opentext,.plight .sl-q .opentext-ro{background:#fff;color:#111;border-color:#cbd5e1;}
+  .plight .sl-split .panel{background:var(--pacc-d);}
+  .plight .sl-split .panel::before{background:var(--pacc);}
+  .plight .sl-split.right .panel{background:transparent;}
+  .plight .sl-split.right .panel::before{background:var(--pacc);}
+  .plight .sl-split.right .panel::after{background:var(--pacc-d);}
+  .plight .sl-split.lines{color:#1f2937;}
+  .plight .sl-split.lines .ptitle{color:#111;}
+  .plight .sl-split.no-panel .sl-kicker{color:var(--pacc-d);}
+  .plight .sl-photo .sl-kicker{color:#111;}
+  .plight .sl-sum .sumrow{border-bottom-color:#e5e7eb;}
+  .plight .sl .res.pass{color:#15803d;} .plight .sl .res.fail{color:#b91c1c;}
+  .plight .sl .tiempo{color:#6b7280 !important;} .plight .sl .center{color:#6b7280;}
+  .plight .sl .hintbox{background:#fef9c3;border-color:#fde68a;color:#854d0e;}
+  .plight .sl .btn,.plight .pbtn{background:var(--pacc-d);}
+  .plight .sl .btn.ghost,.plight .pbtn.ghost{background:transparent;color:#1f2937;border-color:rgba(0,0,0,.25);}
+  .plight .pres-start{color:#111;}
+  .plight .pres-start p{color:#4b5563;}
+  .plight .pres-start .ps-resume,.plight .pres-start .ps-desc{color:#374151;}
+  .plight .pres-start .ps-desc b{color:#111;}
+  .plight .pres-start .ps-photo{opacity:.22;}
+  .plight .pres-start .ps-shade{background:linear-gradient(180deg,rgba(255,255,255,.2) 0%,color-mix(in srgb,var(--pbg) 80%,transparent) 55%,var(--pbg) 100%);}
+  .plight .pres-start .ps-stats{border-color:rgba(0,0,0,.12);}
+  .plight .pres-start .ps-stat b{color:var(--pacc-d);}
+  .plight .pres-start .ps-stat span,.plight .pres-start .ps-hint{color:#6b7280;}
+  
+  /* La vista previa escala cada escenario al ancho de su marco, no a la ventana */
+  .frame .pstage{left:0;top:0;transform:scale(var(--pk,1));transform-origin:top left}
+  /* La pantalla de entrada ocupa el marco (en el reproductor cubre la ventana) */
+  .frame.entry .pres-start{position:absolute;overflow:hidden}
+</style></head><body class="plight">
+<header>
+  <h1>Seguridad Digital para Choferes</h1>
+  <p>Seguridad digital para choferes: cuidar la tableta y la contraseña, proteger la información de clientes y pacientes, usar WhatsApp con cuidado, reconocer mensajes y llamadas falsas (también con IA), usar la inteligencia artificial sin exponer información y qué hacer si algo pasa.</p>
+</header>
+<main>
+  <div class="note"><strong>Vista previa para revisión (modo presentación).</strong> Cada lámina se ve como en el
+  reproductor, con la respuesta correcta marcada en verde. Si el cuerpo de una lámina no cabe, aparece el aviso
+  <b>«Excede la lámina»</b> — hay que recortar el texto o repartirlo. 15 preguntas · 15 puntos · aprueba con 70%.</div>
+  <section><span class="tag">Pantalla de entrada · no cuenta como lámina</span>
+      <div class="frame entry"><div class="pres-start intro">
+        <div class="ps-inner"><h1>Seguridad Digital para Choferes</h1><div class="ps-rule"></div><div class="ps-desc"><p>Tu tableta, tu teléfono y WhatsApp son herramientas de trabajo, y por ellos pasa información de clientes y pacientes. En este adiestramiento verás cómo cuidarlos, cómo reconocer mensajes y llamadas falsas (también las hechas con <b>inteligencia artificial</b>), cómo usar la IA sin poner en riesgo a nadie y qué hacer si algo pasa.</p></div><ol class="ps-mods"><li><b>1</b><span>Tu tableta y tu contraseña</span><small>5 láminas · 3 preguntas</small></li><li><b>2</b><span>La información que llevas</span><small>5 láminas · 3 preguntas</small></li><li><b>3</b><span>Mensajes y llamadas falsas</span><small>5 láminas · 3 preguntas</small></li><li><b>4</b><span>La inteligencia artificial y tú</span><small>5 láminas · 3 preguntas</small></li><li><b>5</b><span>Si algo pasa</span><small>5 láminas · 3 preguntas</small></li></ol><div class="ps-stats"><div class="ps-stat"><b>5</b><span>módulos</span></div><div class="ps-stat"><b>27</b><span>láminas de contenido</span></div><div class="ps-stat"><b>15</b><span>preguntas</span></div><div class="ps-stat"><b>15</b><span>puntos</span></div><div class="ps-stat"><b>70 %</b><span>para aprobar</span></div><div class="ps-stat"><b>18 min</b><span>tiempo estimado</span></div></div>
+          <button class="pbtn" type="button">Comenzar</button>
+          <div class="ps-hint">Pantalla completa · avanza con → o Enter</div></div></div></div></section>
+  <section><span class="tag">Lámina 1 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">Adiestramiento</div><h1 class="sl-title">Seguridad Digital para Choferes</h1><div class="sl-body"><div class="sl-fit"><p>La tableta, el teléfono, WhatsApp y la inteligencia artificial: cómo usarlos en el trabajo sin poner en riesgo
+       tu información, la de los clientes ni la de la empresa.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 2 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Al terminar este curso podrás</div><h1 class="sl-title">Lo que vas a aprender</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Cuidar tu tableta y tu contraseña</b> y saber qué hacer si se pierden.</li>
+         <li><b>Proteger la información que llevas</b>: direcciones, órdenes y datos de pacientes.</li>
+         <li><b>Usar WhatsApp con cuidado</b> en el trabajo.</li>
+         <li><b>Reconocer mensajes y llamadas falsas</b>, también las hechas con IA.</li>
+         <li><b>Usar la IA sin darle información</b> de la empresa ni de los clientes.</li>
+         <li><b>Saber a quién avisar</b> si algo pasa.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 3 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 1 — Tu tableta y tu contraseña</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>La tableta es una herramienta de trabajo y tu contraseña es la llave. Cuidarlas es lo primero.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 4 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DIGITAL</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Tu tableta de trabajo</h3><p>En la tableta están tus rutas, las órdenes y los datos de los clientes. Trátala como trataría la empresa un documento confidencial:</p>
+       <ul><li>Ponle bloqueo con PIN o huella, y bloquéala cada vez que la sueltes.</li><li>No se la prestes a nadie, ni a un familiar ni a un compañero.</li><li>No le instales aplicaciones que la empresa no te dio.</li><li>Acepta las actualizaciones: arreglan fallas de seguridad.</li><li>No la dejes a la vista dentro del vehículo.</li></ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 5 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Nadie te la pide</div><div class="sl-body"><div class="sl-fit"><h2>Tu contraseña es solo tuya</h2><p>No se la des a nadie: ni a un compañero, ni a tu supervisor, ni a alguien que diga ser de sistemas. <b>Nadie de la
+       empresa te va a pedir tu contraseña por teléfono, mensaje ni correo.</b> Usa una frase larga, fácil de recordar para ti,
+       y distinta de la de tus cuentas personales.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 6 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Un candado más</div><h1 class="sl-title">Verificación en dos pasos</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Qué es</b><br>Además de la contraseña, un código de una app en tu teléfono. Si alguien roba tu contraseña, igual no puede entrar.</li>
+         <li><b>En la plataforma</b><br>Cuando te la pidan, actívala. El código cambia cada 30 segundos.</li>
+         <li><b>En tu WhatsApp</b><br>Actívala también: Ajustes, Cuenta, Verificación en dos pasos. Así nadie te roba la cuenta.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 7 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">SEGURIDAD DIGITAL</div><h1 class="sl-title">Si se pierde o te la roban</h1><div class="sl-body"><div class="sl-fit"><ol>
+         <li>Avisa enseguida a tu supervisor, aunque creas que la vas a encontrar.</li>
+         <li>Di qué se perdió, dónde y cuándo.</li>
+         <li>Si alguien pudo ver tu contraseña, cámbiala.</li>
+       </ol>
+       <p>Avisar rápido permite bloquear la tableta y quitarle el acceso antes de que alguien la use.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 8 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un compañero te pide la tableta y tu contraseña para «terminar unas entregas» porque la suya se quedó sin batería.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 9 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 1</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué debes hacer cuando te bajas del vehículo y dejas la tableta?</b><div><label class="opt ">Dejarla encendida para no perder la ruta</label><label class="opt correct">Bloquearla y no dejarla a la vista<span class="mk">✔ correcta</span></label><label class="opt ">Dejarla en el asiento</label><label class="opt ">Dársela al cliente para que firme sin mirar</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 10 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 2</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>Alguien llama diciendo que es de sistemas y te pide tu contraseña para «arreglar tu cuenta». ¿Qué haces?</b><div><label class="opt ">Se la das, porque es de la empresa</label><label class="opt correct">No se la das y avisas a tu supervisor<span class="mk">✔ correcta</span></label><label class="opt ">Se la das si te sabe tu nombre</label><label class="opt ">Le das solo la mitad</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 11 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 3</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del compañero sin batería, ¿qué es lo correcto?</b><div><label class="opt ">Prestarle la tableta y tu contraseña</label><label class="opt ">Darle solo la contraseña</label><label class="opt correct">No prestarle tu tableta ni tu contraseña; que avise al supervisor<span class="mk">✔ correcta</span></label><label class="opt ">Hacerle tú todas sus entregas sin decir nada</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 12 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 2 — La información que llevas</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>En cada ruta llevas información de clientes y pacientes. Por WhatsApp, por la tableta o en papel, se cuida igual.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 13 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Toda se cuida</div><h1 class="sl-title">Qué información llevas</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Direcciones y teléfonos</b><br>De clientes y pacientes.</li>
+         <li><b>Órdenes y facturas</b><br>Qué se entrega, a quién y cuándo.</li>
+         <li><b>Datos de salud</b><br>Un nombre junto a un medicamento o equipo médico es información protegida por HIPAA.</li>
+         <li><b>Firmas y fotos de entrega</b><br>También son datos de los clientes.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 14 · split</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-split"><div class="panel"></div><h1 class="ptitle">SEGURIDAD DIGITAL</h1><div class="sl-body"><div class="sl-fit"><h2>WhatsApp en el trabajo</h2><p><b>Sí:</b> avisar que vas en camino, que llegaste o que hay un retraso; coordinar con tu supervisor por el medio que te indique la empresa.</p>
+       <p><b>No:</b></p>
+       <ul><li>Mandar fotos de órdenes, etiquetas o documentos con datos de pacientes.</li><li>Reenviar información de clientes a grupos o a personas que no la necesitan.</li><li>Escribir el nombre de un paciente junto con lo que se le entrega.</li></ul>
+       <p>Lo que mandas por WhatsApp queda en teléfonos que la empresa no controla.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 15 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Teléfono personal</div><div class="sl-body"><div class="sl-fit"><h2>Las fotos se quedan en el teléfono</h2><p>No tomes fotos de órdenes médicas, recetas ni documentos de clientes con tu teléfono personal: se guardan en tu galería,
+       se copian a tu nube y se pueden ver o enviar sin querer. Si hace falta una foto de la entrega, usa la tableta o el medio que indique la empresa.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 16 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DIGITAL</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>En la entrega</h3><ul><li>Entrega a la persona correcta y confirma la dirección.</li><li>No dejes papeles con datos del paciente a la vista en el vehículo.</li><li>No comentes el pedido de un paciente frente a vecinos u otras personas.</li><li>Si algo se entregó donde no era, avísalo enseguida.</li></ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 17 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Un cliente te pide por WhatsApp una foto de la orden de su vecina «para ver si ya le llegó lo suyo».</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 18 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 4</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Cuál de estas es información protegida de un paciente?</b><div><label class="opt ">El nombre de la calle</label><label class="opt correct">El nombre del paciente junto con el medicamento que se le entrega<span class="mk">✔ correcta</span></label><label class="opt ">La hora de tu almuerzo</label><label class="opt ">El color del vehículo</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 19 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 5</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué sí puedes mandar por WhatsApp en el trabajo?</b><div><label class="opt ">Una foto de la orden médica del paciente</label><label class="opt correct">El aviso de que vas llegando<span class="mk">✔ correcta</span></label><label class="opt ">La lista de clientes con sus medicamentos</label><label class="opt ">La receta de un paciente</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 20 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 6</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del vecino que pide la foto de la orden, ¿qué haces?</b><div><label class="opt ">Se la mandas, porque son vecinos</label><label class="opt correct">No se la mandas: es información de otra persona<span class="mk">✔ correcta</span></label><label class="opt ">Le mandas solo el nombre del medicamento</label><label class="opt ">Se la mandas y la borras después</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 21 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 3 — Mensajes y llamadas falsas</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>Los estafadores escriben y llaman haciéndose pasar por alguien de confianza. Hoy también usan inteligencia artificial.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 22 · split</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-split"><div class="panel"></div><h1 class="ptitle">SEGURIDAD DIGITAL</h1><div class="sl-body"><div class="sl-fit"><h2>Mensajes falsos</h2><p>Llegan por mensaje de texto, WhatsApp o correo, con prisa y un enlace:</p>
+       <p><b>«Su paquete no pudo ser entregado. Verifique aquí.»</b></p>
+       <p>«Su cuenta será bloqueada. Actualice sus datos.»</p>
+       <p>No toques el enlace. Si tienes duda, pregunta a tu supervisor por el medio de siempre, no respondiendo el mensaje.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 23 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">El truco más común</div><div class="sl-body"><div class="sl-fit"><h2>Nunca compartas el código de WhatsApp</h2><p>Te escribe «un conocido» o «soporte» pidiéndote un código de 6 dígitos que te llegó por mensaje. <b>Ese código es la llave
+       de tu cuenta:</b> si lo das, te roban el WhatsApp y le escriben a tus contactos pidiendo dinero. Nadie legítimo te lo pide.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 24 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">SEGURIDAD DIGITAL</div><h1 class="sl-title">Llamadas falsas y voces clonadas con IA</h1><div class="sl-body"><div class="sl-fit"><p>Te llaman haciéndose pasar por tu supervisor, un banco o un familiar. Con inteligencia artificial pueden <b>copiar la voz
+       de una persona</b> a partir de un audio corto, como una nota de voz o un video.</p>
+       <p>Si te piden algo raro o urgente (un código, una contraseña, dinero, cambiar una entrega), <b>cuelga y llama tú</b> al número
+       que ya conoces de esa persona.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 25 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Si algo parece raro, probablemente lo es</div><h1 class="sl-title">Señales de alerta</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Prisa</b><br>«Hazlo ya o se bloquea».</li>
+         <li><b>Piden códigos o contraseñas</b><br>Nadie legítimo los pide.</li>
+         <li><b>Enlaces raros</b><br>Direcciones que no son las de siempre.</li>
+         <li><b>Número desconocido</b><br>O conocido pero con una petición extraña.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 26 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Recibes una nota de voz de WhatsApp con la voz de tu supervisor: «Cambia la entrega de hoy a esta otra dirección y no llames, estoy en una reunión».</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 27 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 7</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>Te llega un mensaje: «Su paquete no pudo ser entregado, verifique aquí». ¿Qué haces?</b><div><label class="opt ">Tocas el enlace para ver</label><label class="opt correct">No tocas el enlace y, si hay duda, preguntas por el medio de siempre<span class="mk">✔ correcta</span></label><label class="opt ">Lo reenvías a tus compañeros</label><label class="opt ">Respondes con tus datos</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 28 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 8</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>Alguien te pide por WhatsApp el código de 6 dígitos que te acaba de llegar. ¿Qué es?</b><div><label class="opt ">Un trámite normal</label><label class="opt correct">Un intento de robarte la cuenta de WhatsApp<span class="mk">✔ correcta</span></label><label class="opt ">Un mensaje de la empresa</label><label class="opt ">Un regalo</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 29 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 9</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso de la nota de voz del supervisor, ¿qué es lo correcto?</b><div><label class="opt ">Cambiar la entrega enseguida</label><label class="opt correct">Llamar tú al número que conoces de tu supervisor para confirmar<span class="mk">✔ correcta</span></label><label class="opt ">Responder la nota de voz con la dirección nueva</label><label class="opt ">Ignorar la ruta del día</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 30 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 4 — La inteligencia artificial y tú</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>La inteligencia artificial ya está en el teléfono y en WhatsApp. Úsala a tu favor sin darle información que no le toca.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 31 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DIGITAL</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>¿Qué es la inteligencia artificial?</h3><p>Son programas que escriben, responden preguntas, traducen o crean imágenes como si fueran una persona. Algunos conocidos:
+       ChatGPT, Gemini, Copilot, y <b>Meta AI, que ya viene dentro de WhatsApp</b>.</p>
+       <p>No piensan ni entienden como una persona: predicen respuestas a partir de lo que aprendieron. Por eso a veces se equivocan.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 32 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Sin datos de nadie</div><h1 class="sl-title">Para qué te puede servir</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li><b>Escribir un mensaje</b><br>«Ayúdame a avisar un retraso de forma amable».</li>
+         <li><b>Traducir</b><br>Instrucciones o un mensaje en inglés.</li>
+         <li><b>Entender algo</b><br>Qué significa una palabra o una instrucción.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 33 · split</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-split"><div class="panel"></div><h1 class="ptitle">SEGURIDAD DIGITAL</h1><div class="sl-body"><div class="sl-fit"><h2>Lo que nunca le das a una IA</h2><p>Todo lo que le escribes a una IA sale de tu teléfono y de la empresa, y no sabes quién lo puede ver después.</p>
+       <ul><li>Nombres, direcciones o teléfonos de clientes.</li><li>Datos de pacientes o fotos de órdenes y recetas.</li><li>Contraseñas o códigos.</li><li>Información de la empresa: rutas, precios, documentos.</li></ul>
+       <p>Esto incluye a <b>Meta AI dentro de WhatsApp</b>.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 34 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Verifica siempre</div><div class="sl-body"><div class="sl-fit"><h2>La IA se equivoca con seguridad</h2><p>Puede inventar direcciones, horarios o instrucciones y decirlos como si fueran ciertos. Lo que importa para tu trabajo
+       lo confirmas con tu supervisor o con la información oficial de la empresa, no con la IA.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 35 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Para ahorrar tiempo, un chofer le pide a la IA de WhatsApp que ordene sus entregas y le pega la lista con los nombres y direcciones de los clientes.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 36 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 10</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué es Meta AI en WhatsApp?</b><div><label class="opt ">Un contacto de la empresa</label><label class="opt correct">Un asistente de inteligencia artificial<span class="mk">✔ correcta</span></label><label class="opt ">Un grupo de trabajo</label><label class="opt ">Una aplicación de mapas</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 37 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 11</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué SÍ le puedes pedir a una IA?</b><div><label class="opt ">Que ordene tu lista de clientes con sus direcciones</label><label class="opt correct">Que te ayude a redactar un aviso de retraso sin datos de nadie<span class="mk">✔ correcta</span></label><label class="opt ">Que guarde tu contraseña</label><label class="opt ">Que lea la receta de un paciente</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 38 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 12</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso de la lista de entregas pegada en la IA, ¿qué pasó?</b><div><label class="opt ">Nada, la IA es de confianza</label><label class="opt correct">Se sacó información de clientes de la empresa sin autorización<span class="mk">✔ correcta</span></label><label class="opt ">Se ahorró tiempo sin riesgo</label><label class="opt ">Se protegió la información</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 39 · módulo</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-mod"><h1 class="sl-kicker">Módulo 5 — Si algo pasa</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><p>Equivocarse le pasa a cualquiera. Lo que causa el daño es esconderlo o avisar tarde.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 40 · cards</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-cards"><div class="sl-kicker">Aunque no estés seguro</div><h1 class="sl-title">¿Qué hay que avisar?</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><ul>
+         <li>Tocaste un enlace sospechoso.</li>
+         <li>Diste un código o tu contraseña.</li>
+         <li>Perdiste la tableta o el teléfono de trabajo.</li>
+         <li>Mandaste información a quien no era.</li>
+         <li>La tableta hace cosas raras.</li>
+         <li>Te robaron la cuenta de WhatsApp.</li>
+       </ul></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 41 · band</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-band"><div class="band"></div><div class="sl-kicker">SEGURIDAD DIGITAL</div><h1 class="sl-title">Qué hacer</h1><div class="sl-body"><div class="sl-fit"><ol>
+         <li>No lo escondas ni intentes arreglarlo solo.</li>
+         <li>Avisa enseguida a tu supervisor.</li>
+         <li>Cuenta qué pasó, cuándo y qué tocaste o enviaste.</li>
+         <li>Si diste tu contraseña, cámbiala en cuanto puedas.</li>
+       </ol></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 42 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Avisar protege a todos</div><div class="sl-body"><div class="sl-fit"><h2>No existe el error tonto</h2><p>Avisar rápido no es un castigo: permite bloquear el equipo, cambiar accesos y evitar que el problema crezca.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 43 · callout</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-callout"><div class="sl-kicker">Caso práctico</div><div class="sl-body"><div class="sl-fit"><p>Tocaste por error el enlace de un mensaje de «paquete no entregado» y la página te pidió tu usuario y contraseña. Los escribiste.</p></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 44 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 13</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Qué haces primero si perdiste la tableta?</b><div><label class="opt ">Esperar unos días a ver si aparece</label><label class="opt correct">Avisar enseguida a tu supervisor<span class="mk">✔ correcta</span></label><label class="opt ">Comprar otra sin decir nada</label><label class="opt ">Nada, tiene contraseña</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 45 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 14</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>¿Cuál de estas situaciones hay que avisar?</b><div><label class="opt correct">Mandaste por error la dirección de un cliente a otra persona<span class="mk">✔ correcta</span></label><label class="opt ">Terminaste tu ruta a tiempo</label><label class="opt ">Cargaste la tableta</label><label class="opt ">Llegó un cliente contento</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 46 · MultipleChoice · 1 pts</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark sl-q"><div class="sl-frame"></div><h1 class="sl-kicker">Pregunta 15</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><div class="qwrap"><b>En el caso del enlace donde escribiste tu contraseña, ¿qué debes hacer?</b><div><label class="opt ">Nada, seguramente no pasa nada</label><label class="opt correct">Avisar enseguida a tu supervisor y cambiar tu contraseña<span class="mk">✔ correcta</span></label><label class="opt ">Borrar el mensaje y olvidarlo</label><label class="opt ">Esperar a ver si alguien se queja</label></div></div></div></div></div></div></div></div></div></section>
+<section><span class="tag">Lámina 47 · dark</span>
+      <div class="frame"><div class="pstage"><div class="player"><div class="slide"><div class="sl sl-dark"><h1 class="sl-kicker">SEGURIDAD DIGITAL</h1><div class="sl-rule"></div><div class="sl-body"><div class="sl-fit"><h3>Recursos adicionales</h3>
+       <p>Material complementario, opcional:</p>
+       <ul><li><a href="https://faq.whatsapp.com/1920866721452534/?locale=es_LA" target="_blank" rel="noopener">Cómo activar la verificación en dos pasos en WhatsApp</a> — ayuda oficial de WhatsApp.</li><li><a href="https://consumidor.ftc.gov/articulos/como-reconocer-y-evitar-las-estafas-de-phishing" target="_blank" rel="noopener">Cómo reconocer y evitar las estafas de phishing</a> — Comisión Federal de Comercio (FTC), en español.</li><li><a href="https://consumidor.ftc.gov/alertas-para-consumidores/2024/09/operacion-ai-comply-como-detectar-fraudes-y-enganos-con-inteligencia-artificial-aplicada" target="_blank" rel="noopener">Cómo detectar fraudes con inteligencia artificial</a> — FTC, en español.</li></ul>
+       <p><b>Recuerda:</b> si algo no se ve bien, avisa enseguida a tu supervisor.</p></div></div></div></div></div></div></div></section>
+</main>
+<script>
+  // Escala cada escenario al ancho del marco y marca las láminas que desbordan
+  // (misma regla que presFitOverflow en player.html, sin encoger: aquí se avisa).
+  const root = document.documentElement;
+  root.style.setProperty('--pbg', "#ffffff");
+  root.style.setProperty('--pacc', "#059669");
+  // Solo los marcos con escenario: la tarjeta de entrada (.frame.entry) no tiene .pstage.
+  function fit(){ document.querySelectorAll('.frame').forEach(f => { const st = f.querySelector('.pstage'); if (st) st.style.setProperty('--pk', f.clientWidth / 1280); }); }
+  function check(){
+    document.querySelectorAll('.sl').forEach(s => {
+      const body = s.querySelector('.sl-body'), fitEl = s.querySelector('.sl-fit');
+      if (!body || !fitEl || s.querySelector('.sl-over')) return;
+      if (fitEl.scrollHeight > body.clientHeight + 1) { const b = document.createElement('div'); b.className = 'sl-over'; b.textContent = 'Excede la lámina'; s.appendChild(b); }
+    });
+  }
+  fit(); addEventListener('resize', fit); addEventListener('load', check); setTimeout(check, 300);
+</script>
+</body></html>

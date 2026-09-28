@@ -1,0 +1,898 @@
+{
+  "training": {
+    "title": "Seguridad Digital para Choferes",
+    "description": "Seguridad digital para choferes: cuidar la tableta y la contraseña, proteger la información de clientes y pacientes, usar WhatsApp con cuidado, reconocer mensajes y llamadas falsas (también con IA), usar la inteligencia artificial sin exponer información y qué hacer si algo pasa.",
+    "category": "Adiestramiento",
+    "recurrenceMonths": 12,
+    "renewLeadDays": 30,
+    "voice": "es-PR-KarinaNeural",
+    "certificate": {
+      "enabled": true,
+      "issuerName": "Advance Logistics",
+      "signatoryName": "Recursos Humanos",
+      "signatoryTitle": "Advance Logistics",
+      "statement": "Certifica haber completado el adiestramiento de Seguridad Digital para Choferes.",
+      "showScore": true,
+      "showValidity": true,
+      "accentColor": "#047857"
+    },
+    "playerConfig": {
+      "allowBack": true,
+      "presentation": {
+        "enabled": true,
+        "theme": {
+          "mode": "light",
+          "bg": "#ffffff",
+          "accent": "#059669",
+          "panel": true,
+          "panelTitle": "SEGURIDAD DIGITAL"
+        },
+        "transition": "cover"
+      }
+    }
+  },
+  "items": [
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "layout": "intro",
+        "title": "Seguridad Digital para Choferes",
+        "description": "<p>Tu tableta, tu teléfono y WhatsApp son herramientas de trabajo, y por ellos pasa información de clientes y pacientes. En este adiestramiento verás cómo cuidarlos, cómo reconocer mensajes y llamadas falsas (también las hechas con <b>inteligencia artificial</b>), cómo usar la IA sin poner en riesgo a nadie y qué hacer si algo pasa.</p>",
+        "minutes": 18
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Seguridad Digital para Choferes",
+        "layout": "band",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>La tableta, el teléfono, WhatsApp y la inteligencia artificial: cómo usarlos en el trabajo sin poner en riesgo\n       tu información, la de los clientes ni la de la empresa.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Adiestramiento"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Lo que vas a aprender",
+        "layout": "cards",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ul>\n         <li><b>Cuidar tu tableta y tu contraseña</b> y saber qué hacer si se pierden.</li>\n         <li><b>Proteger la información que llevas</b>: direcciones, órdenes y datos de pacientes.</li>\n         <li><b>Usar WhatsApp con cuidado</b> en el trabajo.</li>\n         <li><b>Reconocer mensajes y llamadas falsas</b>, también las hechas con IA.</li>\n         <li><b>Usar la IA sin darle información</b> de la empresa ni de los clientes.</li>\n         <li><b>Saber a quién avisar</b> si algo pasa.</li>\n       </ul>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Al terminar este curso podrás"
+      }
+    },
+    {
+      "type": "ModuleHeader",
+      "points": 0,
+      "payload": {
+        "title": "Módulo 1 — Tu tableta y tu contraseña",
+        "subtitle": "La tableta es una herramienta de trabajo y tu contraseña es la llave. Cuidarlas es lo primero."
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Tu tableta de trabajo",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>En la tableta están tus rutas, las órdenes y los datos de los clientes. Trátala como trataría la empresa un documento confidencial:</p>\n       <ul><li>Ponle bloqueo con PIN o huella, y bloquéala cada vez que la sueltes.</li><li>No se la prestes a nadie, ni a un familiar ni a un compañero.</li><li>No le instales aplicaciones que la empresa no te dio.</li><li>Acepta las actualizaciones: arreglan fallas de seguridad.</li><li>No la dejes a la vista dentro del vehículo.</li></ul>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Tu contraseña es solo tuya",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>No se la des a nadie: ni a un compañero, ni a tu supervisor, ni a alguien que diga ser de sistemas. <b>Nadie de la\n       empresa te va a pedir tu contraseña por teléfono, mensaje ni correo.</b> Usa una frase larga, fácil de recordar para ti,\n       y distinta de la de tus cuentas personales.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Nadie te la pide"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Verificación en dos pasos",
+        "layout": "cards",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ul>\n         <li><b>Qué es</b><br>Además de la contraseña, un código de una app en tu teléfono. Si alguien roba tu contraseña, igual no puede entrar.</li>\n         <li><b>En la plataforma</b><br>Cuando te la pidan, actívala. El código cambia cada 30 segundos.</li>\n         <li><b>En tu WhatsApp</b><br>Actívala también: Ajustes, Cuenta, Verificación en dos pasos. Así nadie te roba la cuenta.</li>\n       </ul>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Un candado más"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Si se pierde o te la roban",
+        "layout": "band",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ol>\n         <li>Avisa enseguida a tu supervisor, aunque creas que la vas a encontrar.</li>\n         <li>Di qué se perdió, dónde y cuándo.</li>\n         <li>Si alguien pudo ver tu contraseña, cámbiala.</li>\n       </ol>\n       <p>Avisar rápido permite bloquear la tableta y quitarle el acceso antes de que alguien la use.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Un compañero te pide la tableta y tu contraseña para «terminar unas entregas» porque la suya se quedó sin batería.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Caso práctico"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué debes hacer cuando te bajas del vehículo y dejas la tableta?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Dejarla encendida para no perder la ruta"
+          },
+          {
+            "id": "b",
+            "text": "Bloquearla y no dejarla a la vista"
+          },
+          {
+            "id": "c",
+            "text": "Dejarla en el asiento"
+          },
+          {
+            "id": "d",
+            "text": "Dársela al cliente para que firme sin mirar"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "Alguien llama diciendo que es de sistemas y te pide tu contraseña para «arreglar tu cuenta». ¿Qué haces?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Se la das, porque es de la empresa"
+          },
+          {
+            "id": "b",
+            "text": "No se la das y avisas a tu supervisor"
+          },
+          {
+            "id": "c",
+            "text": "Se la das si te sabe tu nombre"
+          },
+          {
+            "id": "d",
+            "text": "Le das solo la mitad"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso del compañero sin batería, ¿qué es lo correcto?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Prestarle la tableta y tu contraseña"
+          },
+          {
+            "id": "b",
+            "text": "Darle solo la contraseña"
+          },
+          {
+            "id": "c",
+            "text": "No prestarle tu tableta ni tu contraseña; que avise al supervisor"
+          },
+          {
+            "id": "d",
+            "text": "Hacerle tú todas sus entregas sin decir nada"
+          }
+        ],
+        "correctOptionId": "c"
+      }
+    },
+    {
+      "type": "ModuleHeader",
+      "points": 0,
+      "payload": {
+        "title": "Módulo 2 — La información que llevas",
+        "subtitle": "En cada ruta llevas información de clientes y pacientes. Por WhatsApp, por la tableta o en papel, se cuida igual."
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Qué información llevas",
+        "layout": "cards",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ul>\n         <li><b>Direcciones y teléfonos</b><br>De clientes y pacientes.</li>\n         <li><b>Órdenes y facturas</b><br>Qué se entrega, a quién y cuándo.</li>\n         <li><b>Datos de salud</b><br>Un nombre junto a un medicamento o equipo médico es información protegida por HIPAA.</li>\n         <li><b>Firmas y fotos de entrega</b><br>También son datos de los clientes.</li>\n       </ul>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Toda se cuida"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "WhatsApp en el trabajo",
+        "layout": "split",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p><b>Sí:</b> avisar que vas en camino, que llegaste o que hay un retraso; coordinar con tu supervisor por el medio que te indique la empresa.</p>\n       <p><b>No:</b></p>\n       <ul><li>Mandar fotos de órdenes, etiquetas o documentos con datos de pacientes.</li><li>Reenviar información de clientes a grupos o a personas que no la necesitan.</li><li>Escribir el nombre de un paciente junto con lo que se le entrega.</li></ul>\n       <p>Lo que mandas por WhatsApp queda en teléfonos que la empresa no controla.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Las fotos se quedan en el teléfono",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>No tomes fotos de órdenes médicas, recetas ni documentos de clientes con tu teléfono personal: se guardan en tu galería,\n       se copian a tu nube y se pueden ver o enviar sin querer. Si hace falta una foto de la entrega, usa la tableta o el medio que indique la empresa.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Teléfono personal"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "En la entrega",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ul><li>Entrega a la persona correcta y confirma la dirección.</li><li>No dejes papeles con datos del paciente a la vista en el vehículo.</li><li>No comentes el pedido de un paciente frente a vecinos u otras personas.</li><li>Si algo se entregó donde no era, avísalo enseguida.</li></ul>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Un cliente te pide por WhatsApp una foto de la orden de su vecina «para ver si ya le llegó lo suyo».</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Caso práctico"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Cuál de estas es información protegida de un paciente?",
+        "options": [
+          {
+            "id": "a",
+            "text": "El nombre de la calle"
+          },
+          {
+            "id": "b",
+            "text": "El nombre del paciente junto con el medicamento que se le entrega"
+          },
+          {
+            "id": "c",
+            "text": "La hora de tu almuerzo"
+          },
+          {
+            "id": "d",
+            "text": "El color del vehículo"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué sí puedes mandar por WhatsApp en el trabajo?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Una foto de la orden médica del paciente"
+          },
+          {
+            "id": "b",
+            "text": "El aviso de que vas llegando"
+          },
+          {
+            "id": "c",
+            "text": "La lista de clientes con sus medicamentos"
+          },
+          {
+            "id": "d",
+            "text": "La receta de un paciente"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso del vecino que pide la foto de la orden, ¿qué haces?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Se la mandas, porque son vecinos"
+          },
+          {
+            "id": "b",
+            "text": "No se la mandas: es información de otra persona"
+          },
+          {
+            "id": "c",
+            "text": "Le mandas solo el nombre del medicamento"
+          },
+          {
+            "id": "d",
+            "text": "Se la mandas y la borras después"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "ModuleHeader",
+      "points": 0,
+      "payload": {
+        "title": "Módulo 3 — Mensajes y llamadas falsas",
+        "subtitle": "Los estafadores escriben y llaman haciéndose pasar por alguien de confianza. Hoy también usan inteligencia artificial."
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Mensajes falsos",
+        "layout": "split",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Llegan por mensaje de texto, WhatsApp o correo, con prisa y un enlace:</p>\n       <p><b>«Su paquete no pudo ser entregado. Verifique aquí.»</b></p>\n       <p>«Su cuenta será bloqueada. Actualice sus datos.»</p>\n       <p>No toques el enlace. Si tienes duda, pregunta a tu supervisor por el medio de siempre, no respondiendo el mensaje.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Nunca compartas el código de WhatsApp",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Te escribe «un conocido» o «soporte» pidiéndote un código de 6 dígitos que te llegó por mensaje. <b>Ese código es la llave\n       de tu cuenta:</b> si lo das, te roban el WhatsApp y le escriben a tus contactos pidiendo dinero. Nadie legítimo te lo pide.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "El truco más común"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Llamadas falsas y voces clonadas con IA",
+        "layout": "band",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Te llaman haciéndose pasar por tu supervisor, un banco o un familiar. Con inteligencia artificial pueden <b>copiar la voz\n       de una persona</b> a partir de un audio corto, como una nota de voz o un video.</p>\n       <p>Si te piden algo raro o urgente (un código, una contraseña, dinero, cambiar una entrega), <b>cuelga y llama tú</b> al número\n       que ya conoces de esa persona.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Señales de alerta",
+        "layout": "cards",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ul>\n         <li><b>Prisa</b><br>«Hazlo ya o se bloquea».</li>\n         <li><b>Piden códigos o contraseñas</b><br>Nadie legítimo los pide.</li>\n         <li><b>Enlaces raros</b><br>Direcciones que no son las de siempre.</li>\n         <li><b>Número desconocido</b><br>O conocido pero con una petición extraña.</li>\n       </ul>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Si algo parece raro, probablemente lo es"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Recibes una nota de voz de WhatsApp con la voz de tu supervisor: «Cambia la entrega de hoy a esta otra dirección y no llames, estoy en una reunión».</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Caso práctico"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "Te llega un mensaje: «Su paquete no pudo ser entregado, verifique aquí». ¿Qué haces?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Tocas el enlace para ver"
+          },
+          {
+            "id": "b",
+            "text": "No tocas el enlace y, si hay duda, preguntas por el medio de siempre"
+          },
+          {
+            "id": "c",
+            "text": "Lo reenvías a tus compañeros"
+          },
+          {
+            "id": "d",
+            "text": "Respondes con tus datos"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "Alguien te pide por WhatsApp el código de 6 dígitos que te acaba de llegar. ¿Qué es?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Un trámite normal"
+          },
+          {
+            "id": "b",
+            "text": "Un intento de robarte la cuenta de WhatsApp"
+          },
+          {
+            "id": "c",
+            "text": "Un mensaje de la empresa"
+          },
+          {
+            "id": "d",
+            "text": "Un regalo"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso de la nota de voz del supervisor, ¿qué es lo correcto?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Cambiar la entrega enseguida"
+          },
+          {
+            "id": "b",
+            "text": "Llamar tú al número que conoces de tu supervisor para confirmar"
+          },
+          {
+            "id": "c",
+            "text": "Responder la nota de voz con la dirección nueva"
+          },
+          {
+            "id": "d",
+            "text": "Ignorar la ruta del día"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "ModuleHeader",
+      "points": 0,
+      "payload": {
+        "title": "Módulo 4 — La inteligencia artificial y tú",
+        "subtitle": "La inteligencia artificial ya está en el teléfono y en WhatsApp. Úsala a tu favor sin darle información que no le toca."
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "¿Qué es la inteligencia artificial?",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Son programas que escriben, responden preguntas, traducen o crean imágenes como si fueran una persona. Algunos conocidos:\n       ChatGPT, Gemini, Copilot, y <b>Meta AI, que ya viene dentro de WhatsApp</b>.</p>\n       <p>No piensan ni entienden como una persona: predicen respuestas a partir de lo que aprendieron. Por eso a veces se equivocan.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Para qué te puede servir",
+        "layout": "cards",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ul>\n         <li><b>Escribir un mensaje</b><br>«Ayúdame a avisar un retraso de forma amable».</li>\n         <li><b>Traducir</b><br>Instrucciones o un mensaje en inglés.</li>\n         <li><b>Entender algo</b><br>Qué significa una palabra o una instrucción.</li>\n       </ul>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Sin datos de nadie"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Lo que nunca le das a una IA",
+        "layout": "split",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Todo lo que le escribes a una IA sale de tu teléfono y de la empresa, y no sabes quién lo puede ver después.</p>\n       <ul><li>Nombres, direcciones o teléfonos de clientes.</li><li>Datos de pacientes o fotos de órdenes y recetas.</li><li>Contraseñas o códigos.</li><li>Información de la empresa: rutas, precios, documentos.</li></ul>\n       <p>Esto incluye a <b>Meta AI dentro de WhatsApp</b>.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "La IA se equivoca con seguridad",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Puede inventar direcciones, horarios o instrucciones y decirlos como si fueran ciertos. Lo que importa para tu trabajo\n       lo confirmas con tu supervisor o con la información oficial de la empresa, no con la IA.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Verifica siempre"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Para ahorrar tiempo, un chofer le pide a la IA de WhatsApp que ordene sus entregas y le pega la lista con los nombres y direcciones de los clientes.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Caso práctico"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué es Meta AI en WhatsApp?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Un contacto de la empresa"
+          },
+          {
+            "id": "b",
+            "text": "Un asistente de inteligencia artificial"
+          },
+          {
+            "id": "c",
+            "text": "Un grupo de trabajo"
+          },
+          {
+            "id": "d",
+            "text": "Una aplicación de mapas"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué SÍ le puedes pedir a una IA?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Que ordene tu lista de clientes con sus direcciones"
+          },
+          {
+            "id": "b",
+            "text": "Que te ayude a redactar un aviso de retraso sin datos de nadie"
+          },
+          {
+            "id": "c",
+            "text": "Que guarde tu contraseña"
+          },
+          {
+            "id": "d",
+            "text": "Que lea la receta de un paciente"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso de la lista de entregas pegada en la IA, ¿qué pasó?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Nada, la IA es de confianza"
+          },
+          {
+            "id": "b",
+            "text": "Se sacó información de clientes de la empresa sin autorización"
+          },
+          {
+            "id": "c",
+            "text": "Se ahorró tiempo sin riesgo"
+          },
+          {
+            "id": "d",
+            "text": "Se protegió la información"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "ModuleHeader",
+      "points": 0,
+      "payload": {
+        "title": "Módulo 5 — Si algo pasa",
+        "subtitle": "Equivocarse le pasa a cualquiera. Lo que causa el daño es esconderlo o avisar tarde."
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "¿Qué hay que avisar?",
+        "layout": "cards",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ul>\n         <li>Tocaste un enlace sospechoso.</li>\n         <li>Diste un código o tu contraseña.</li>\n         <li>Perdiste la tableta o el teléfono de trabajo.</li>\n         <li>Mandaste información a quien no era.</li>\n         <li>La tableta hace cosas raras.</li>\n         <li>Te robaron la cuenta de WhatsApp.</li>\n       </ul>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Aunque no estés seguro"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Qué hacer",
+        "layout": "band",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<ol>\n         <li>No lo escondas ni intentes arreglarlo solo.</li>\n         <li>Avisa enseguida a tu supervisor.</li>\n         <li>Cuenta qué pasó, cuándo y qué tocaste o enviaste.</li>\n         <li>Si diste tu contraseña, cámbiala en cuanto puedas.</li>\n       </ol>",
+            "span": "full"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "No existe el error tonto",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Avisar rápido no es un castigo: permite bloquear el equipo, cambiar accesos y evitar que el problema crezca.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Avisar protege a todos"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "",
+        "layout": "callout",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<p>Tocaste por error el enlace de un mensaje de «paquete no entregado» y la página te pidió tu usuario y contraseña. Los escribiste.</p>",
+            "span": "full"
+          }
+        ],
+        "kicker": "Caso práctico"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Qué haces primero si perdiste la tableta?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Esperar unos días a ver si aparece"
+          },
+          {
+            "id": "b",
+            "text": "Avisar enseguida a tu supervisor"
+          },
+          {
+            "id": "c",
+            "text": "Comprar otra sin decir nada"
+          },
+          {
+            "id": "d",
+            "text": "Nada, tiene contraseña"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "¿Cuál de estas situaciones hay que avisar?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Mandaste por error la dirección de un cliente a otra persona"
+          },
+          {
+            "id": "b",
+            "text": "Terminaste tu ruta a tiempo"
+          },
+          {
+            "id": "c",
+            "text": "Cargaste la tableta"
+          },
+          {
+            "id": "d",
+            "text": "Llegó un cliente contento"
+          }
+        ],
+        "correctOptionId": "a"
+      }
+    },
+    {
+      "type": "MultipleChoice",
+      "points": 1,
+      "payload": {
+        "question": "En el caso del enlace donde escribiste tu contraseña, ¿qué debes hacer?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Nada, seguramente no pasa nada"
+          },
+          {
+            "id": "b",
+            "text": "Avisar enseguida a tu supervisor y cambiar tu contraseña"
+          },
+          {
+            "id": "c",
+            "text": "Borrar el mensaje y olvidarlo"
+          },
+          {
+            "id": "d",
+            "text": "Esperar a ver si alguien se queja"
+          }
+        ],
+        "correctOptionId": "b"
+      }
+    },
+    {
+      "type": "Info",
+      "points": 0,
+      "payload": {
+        "title": "Recursos adicionales",
+        "layout": "dark",
+        "blocks": [
+          {
+            "type": "text",
+            "html": "<h3>Recursos adicionales</h3>\n       <p>Material complementario, opcional:</p>\n       <ul><li><a href=\"https://faq.whatsapp.com/1920866721452534/?locale=es_LA\" target=\"_blank\" rel=\"noopener\">Cómo activar la verificación en dos pasos en WhatsApp</a> — ayuda oficial de WhatsApp.</li><li><a href=\"https://consumidor.ftc.gov/articulos/como-reconocer-y-evitar-las-estafas-de-phishing\" target=\"_blank\" rel=\"noopener\">Cómo reconocer y evitar las estafas de phishing</a> — Comisión Federal de Comercio (FTC), en español.</li><li><a href=\"https://consumidor.ftc.gov/alertas-para-consumidores/2024/09/operacion-ai-comply-como-detectar-fraudes-y-enganos-con-inteligencia-artificial-aplicada\" target=\"_blank\" rel=\"noopener\">Cómo detectar fraudes con inteligencia artificial</a> — FTC, en español.</li></ul>\n       <p><b>Recuerda:</b> si algo no se ve bien, avisa enseguida a tu supervisor.</p>",
+            "span": "full"
+          }
+        ]
+      }
+    }
+  ]
+}
