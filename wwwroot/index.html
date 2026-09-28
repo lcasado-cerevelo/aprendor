@@ -1698,6 +1698,7 @@ function guardarSesion(r){
   if (user && r.scope) user.scope = r.scope;
   localStorage.setItem('tp_token', token);
   localStorage.setItem('tp_user', JSON.stringify(user));
+  Inactividad.marcar(true);
 }
 // Tras cambiar la clave, validar el correo o tocar el 2FA el servidor rota el sello de
 // la sesión y devuelve un token nuevo (con el alcance que corresponda): hay que usarlo.
@@ -2009,7 +2010,7 @@ function logout(){
   cerrarPasos2FA('en'); cerrarPasos2FA('tfa');
   el('tfaAcciones')?.classList.remove('hidden');
   token=null; user=null; retoActual=null; retoRecuperar=null; claveDelLogin='';
-  localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user');
+  localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user'); localStorage.removeItem('tp_actividad');
   el('profileModal')?.classList.add('hidden'); el('segModal')?.classList.add('hidden');
   el('loginMsg').textContent = '';
   mostrarSolo('loginView');
@@ -6186,6 +6187,7 @@ function grpCard(g){
 function grpMenu(btn, id){
   openMenu(btn, [
     { icon:'users', label:'Abrir', run:() => openGroup(id) },
+    { icon:'pencil', label:'Cambiar nombre', run:() => renameGroup(id) },
     { icon:'trash', label:'Eliminar grupo', danger:true, run:() => deleteGroup(id) }
   ]);
 }
@@ -6201,6 +6203,23 @@ async function newGroup(){
     grpList = await api('/user-groups');
     renderGroups(); initSetsPanel();
     if (g && g.id) openGroup(g.id);
+  }catch(e){ toast(e.message,'err'); }
+}
+async function renameGroup(id){
+  const g = grpOf(id); if (!g) return;
+  const r = await dialog({ title:'Cambiar nombre del grupo', icon:'pencil', okText:'Guardar',
+    text:'Solo cambia el nombre: los miembros, el plan y los sets siguen igual.',
+    fields:[{ name:'name', label:'Nombre del grupo', value:g.name }],
+    validate: v => String(v.name || '').trim().length < 2 ? 'Escribe el nombre del grupo.' : null });
+  if (!r) return;
+  const nombre = r.values.name.trim();
+  if (nombre === g.name) return;
+  try{
+    await api('/user-groups/'+id,'PUT',{ name:nombre });
+    g.name = nombre;
+    toast('Nombre cambiado.');
+    renderGroups(); initSetsPanel();
+    if (grpId === id) renderGrpHead();
   }catch(e){ toast(e.message,'err'); }
 }
 async function deleteGroup(id){
@@ -6264,7 +6283,7 @@ function renderGrpHead(){
         <span class="st info">Plazo del grupo: ${g.onboardingDays} ${g.onboardingDays === 1 ? 'día' : 'días'}</span>
         <span class="st gray">${cursos} ${cursos === 1 ? 'curso' : 'cursos'} en el plan</span>
         ${s ? `<span class="st ok">${s.alDia} al día</span>${s.venc ? `<span class="st err">${s.venc} con vencidos</span>` : ''}` : ''}</div></div>
-    <button type="button" class="more" aria-label="Más acciones" aria-haspopup="menu" onclick="openMenu(this,[{icon:'trash',label:'Eliminar grupo',danger:true,run:()=>deleteGroup(grpId)}])">⋯</button>`;
+    <button type="button" class="more" aria-label="Más acciones" aria-haspopup="menu" onclick="openMenu(this,[{icon:'pencil',label:'Cambiar nombre',run:()=>renameGroup(grpId)},{icon:'trash',label:'Eliminar grupo',danger:true,run:()=>deleteGroup(grpId)}])">⋯</button>`;
 }
 
 // Miembros: añadir por búsqueda, fecha de ingreso (JoinedAt) y estado en cada curso del plan.
@@ -6805,6 +6824,86 @@ showItemForm();
 if (tokenDeLaUrl()) mostrarRestablecer();
 else if (token && user && !tokenVencido()) irAlPasoPendiente();
 else { if (token) logout(); else mostrarSolo('loginView'); }
+
+// ---------- Cierre por inactividad ----------
+// La sesión se cierra en el navegador tras un rato sin actividad: 30 minutos para quien
+// administra, crea cursos o es oficial de cumplimiento (ve datos de otros) y 60 para el
+// aprendiz (una lámina narrada puede tardar sin que toque nada). Un minuto antes sale un
+// aviso con «Seguir aquí». La hora de la última actividad (tp_actividad) se comparte entre
+// pestañas por localStorage: tomar el curso en su pestaña cuenta para la app y cerrar la
+// sesión en una la cierra en todas. El tope de 8 horas del token lo sigue poniendo el
+// servidor. (El mismo bloque va en index.html y en player.html.)
+const Inactividad = (() => {
+  const CLAVE = 'tp_actividad', AVISO_MS = 60e3;
+  let escrita = 0, aviso = null, alCerrar = null;
+  const leer = k => { try{ return localStorage.getItem(k); }catch{ return null; } };
+  function limiteMs(){
+    let u = null; try{ u = JSON.parse(leer('tp_user') || 'null'); }catch{}
+    const personal = !u || u.role !== 'Learner' || u.isComplianceOfficer === true;
+    return (personal ? 30 : 60) * 60e3;
+  }
+  // Actividad: clic, tecla, rueda o toque (mover el ratón no cuenta). Se escribe como mucho
+  // cada 10 s, salvo con el aviso a la vista.
+  function marcar(forzar){
+    const ahora = Date.now();
+    if (!forzar && !aviso && ahora - escrita < 10e3) return;
+    escrita = ahora;
+    try{ localStorage.setItem(CLAVE, String(ahora)); }catch{}
+    quitarAviso();
+  }
+  function quitarAviso(){ if (aviso){ aviso.remove(); aviso = null; } }
+  function mostrarAviso(resto){
+    if (!aviso){
+      aviso = document.createElement('div');
+      aviso.setAttribute('role', 'alertdialog');
+      aviso.setAttribute('aria-live', 'assertive');
+      aviso.style.cssText = 'position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:1000;display:flex;gap:14px;align-items:center;'
+        + 'background:#0f172a;color:#fff;padding:12px 16px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);'
+        + 'font:500 14px system-ui,sans-serif;max-width:calc(100vw - 32px)';
+      aviso.innerHTML = '<span></span><button type="button" style="flex:none;border:0;border-radius:8px;padding:8px 14px;'
+        + 'background:#059669;color:#fff;font:600 14px system-ui,sans-serif;cursor:pointer">Seguir aquí</button>';
+      aviso.querySelector('button').onclick = () => marcar(true);
+      document.body.appendChild(aviso);
+    }
+    const s = Math.max(1, Math.ceil(resto / 1000));
+    aviso.querySelector('span').textContent = `Tu sesión se cerrará por inactividad en ${s} ${s === 1 ? 'segundo' : 'segundos'}.`;
+  }
+  function revisar(){
+    if (!leer('tp_token')){ quitarAviso(); return; }
+    const t = Number(leer(CLAVE));
+    if (!(t > 0)){ marcar(true); return; }   // sesión de antes de este cambio: cuenta desde ahora
+    const resto = t + limiteMs() - Date.now();
+    if (resto <= 0) cerrar('inactividad');
+    else if (resto <= AVISO_MS) mostrarAviso(resto);
+    else quitarAviso();
+  }
+  function cerrar(motivo){
+    quitarAviso();
+    try{ localStorage.removeItem(CLAVE); }catch{}
+    if (alCerrar) alCerrar(motivo);
+  }
+  function iniciar(fn){
+    alCerrar = fn;
+    ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => addEventListener(ev, () => marcar(false), { capture:true, passive:true }));
+    // Audio o video de la página (la narración, un video del curso) también es actividad.
+    document.addEventListener('timeupdate', () => marcar(false), true);
+    // Al volver a la pestaña (los temporizadores de una pestaña oculta van lentos).
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) revisar(); });
+    addEventListener('focus', revisar);
+    // Otra pestaña cerró la sesión (por inactividad o con «Cerrar sesión»).
+    addEventListener('storage', e => { if (e.key === 'tp_token' && !e.newValue) cerrar('fuera'); });
+    setInterval(revisar, 1000);
+    revisar();
+  }
+  return { iniciar, marcar };
+})();
+
+Inactividad.iniciar(motivo => {
+  if (!token) return;
+  logout();
+  const m = el('loginMsg'); m.className = 'msg err';
+  m.textContent = motivo === 'inactividad' ? 'Tu sesión se cerró por inactividad. Vuelve a iniciar sesión.' : 'Tu sesión se cerró. Vuelve a iniciar sesión.';
+});
 </script>
 
 <!-- MODAL DE PERFIL -->

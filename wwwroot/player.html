@@ -395,12 +395,16 @@ const el = id => document.getElementById(id);
 let T = null;            // { items, idx, answers, attemptId, review, score, passed, respMap }
 
 async function api(path, method='GET', body=null){
+  // Sesión cerrada (o cambiada por otra) en esta pestaña o en otra: el token que se leyó al
+  // abrir ya no se usa.
+  if (token && localStorage.getItem('tp_token') !== token) throw sesionTerminada('Tu sesión se cerró.');
   const headers = { 'Content-Type':'application/json' };
   if (token) headers['Authorization'] = 'Bearer ' + token;
   const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : null });
   const text = await res.text();
   let data = null;
   try{ data = text ? JSON.parse(text) : null; }catch{ data = text; }   // un error en texto plano también se muestra
+  if (res.status === 401) throw sesionTerminada('Tu sesión terminó.');
   if (!res.ok) throw new Error((data && (typeof data === 'string' ? data : (data.error || data.title))) || ('Error ' + res.status));
   return data;
 }
@@ -579,7 +583,14 @@ function guard(){ if(!token){ showMsg(`Inicia sesión primero en <a href="/">la 
 // Mensaje a pantalla completa (error o aviso antes de empezar). Si ya se encendió el modo
 // presentación, se vuelve a la vista clásica: si no, el mensaje quedaría oculto.
 function showMsg(html){ document.body.classList.remove('pres'); el('screen').innerHTML=`<div class="center">${html}</div>`; }
-function showError(e){ showMsg(esc(e && e.message || e)); }
+function showError(e){ if(e && e.sesion) return; showMsg(esc(e && e.message || e)); }
+// La sesión se cerró (venció, por inactividad o desde otra pestaña): se corta la narración y
+// se dice cómo volver. Devuelve un error marcado para que showError no tape el mensaje.
+function sesionTerminada(texto){
+  try{ voiceStop(); }catch{}
+  showMsg(`${esc(texto)}<br>Vuelve a entrar en <a href="/">la página principal</a> y abre el curso otra vez.`);
+  const e = new Error(texto); e.sesion = true; return e;
+}
 
 // ---------- Tiempo activo (latidos) ----------
 function fmtTime(s){
@@ -1380,6 +1391,84 @@ function presFitOverflow(s){
     if(fit.scrollHeight*k <= avail+1) break;
   }
 }
+
+// ---------- Cierre por inactividad ----------
+// La sesión se cierra en el navegador tras un rato sin actividad: 30 minutos para quien
+// administra, crea cursos o es oficial de cumplimiento (ve datos de otros) y 60 para el
+// aprendiz (una lámina narrada puede tardar sin que toque nada). Un minuto antes sale un
+// aviso con «Seguir aquí». La hora de la última actividad (tp_actividad) se comparte entre
+// pestañas por localStorage: tomar el curso en su pestaña cuenta para la app y cerrar la
+// sesión en una la cierra en todas. El tope de 8 horas del token lo sigue poniendo el
+// servidor. (El mismo bloque va en index.html y en player.html.)
+const Inactividad = (() => {
+  const CLAVE = 'tp_actividad', AVISO_MS = 60e3;
+  let escrita = 0, aviso = null, alCerrar = null;
+  const leer = k => { try{ return localStorage.getItem(k); }catch{ return null; } };
+  function limiteMs(){
+    let u = null; try{ u = JSON.parse(leer('tp_user') || 'null'); }catch{}
+    const personal = !u || u.role !== 'Learner' || u.isComplianceOfficer === true;
+    return (personal ? 30 : 60) * 60e3;
+  }
+  // Actividad: clic, tecla, rueda o toque (mover el ratón no cuenta). Se escribe como mucho
+  // cada 10 s, salvo con el aviso a la vista.
+  function marcar(forzar){
+    const ahora = Date.now();
+    if (!forzar && !aviso && ahora - escrita < 10e3) return;
+    escrita = ahora;
+    try{ localStorage.setItem(CLAVE, String(ahora)); }catch{}
+    quitarAviso();
+  }
+  function quitarAviso(){ if (aviso){ aviso.remove(); aviso = null; } }
+  function mostrarAviso(resto){
+    if (!aviso){
+      aviso = document.createElement('div');
+      aviso.setAttribute('role', 'alertdialog');
+      aviso.setAttribute('aria-live', 'assertive');
+      aviso.style.cssText = 'position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:1000;display:flex;gap:14px;align-items:center;'
+        + 'background:#0f172a;color:#fff;padding:12px 16px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);'
+        + 'font:500 14px system-ui,sans-serif;max-width:calc(100vw - 32px)';
+      aviso.innerHTML = '<span></span><button type="button" style="flex:none;border:0;border-radius:8px;padding:8px 14px;'
+        + 'background:#059669;color:#fff;font:600 14px system-ui,sans-serif;cursor:pointer">Seguir aquí</button>';
+      aviso.querySelector('button').onclick = () => marcar(true);
+      document.body.appendChild(aviso);
+    }
+    const s = Math.max(1, Math.ceil(resto / 1000));
+    aviso.querySelector('span').textContent = `Tu sesión se cerrará por inactividad en ${s} ${s === 1 ? 'segundo' : 'segundos'}.`;
+  }
+  function revisar(){
+    if (!leer('tp_token')){ quitarAviso(); return; }
+    const t = Number(leer(CLAVE));
+    if (!(t > 0)){ marcar(true); return; }   // sesión de antes de este cambio: cuenta desde ahora
+    const resto = t + limiteMs() - Date.now();
+    if (resto <= 0) cerrar('inactividad');
+    else if (resto <= AVISO_MS) mostrarAviso(resto);
+    else quitarAviso();
+  }
+  function cerrar(motivo){
+    quitarAviso();
+    try{ localStorage.removeItem(CLAVE); }catch{}
+    if (alCerrar) alCerrar(motivo);
+  }
+  function iniciar(fn){
+    alCerrar = fn;
+    ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => addEventListener(ev, () => marcar(false), { capture:true, passive:true }));
+    // Audio o video de la página (la narración, un video del curso) también es actividad.
+    document.addEventListener('timeupdate', () => marcar(false), true);
+    // Al volver a la pestaña (los temporizadores de una pestaña oculta van lentos).
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) revisar(); });
+    addEventListener('focus', revisar);
+    // Otra pestaña cerró la sesión (por inactividad o con «Cerrar sesión»).
+    addEventListener('storage', e => { if (e.key === 'tp_token' && !e.newValue) cerrar('fuera'); });
+    setInterval(revisar, 1000);
+    revisar();
+  }
+  return { iniciar, marcar };
+})();
+
+Inactividad.iniciar(motivo => {
+  try{ localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user'); }catch{}
+  sesionTerminada(motivo === 'inactividad' ? 'Tu sesión se cerró por inactividad.' : 'Tu sesión se cerró.');
+});
 
 // ---------- boot ----------
 // La carga inicial enciende la barra de carga (la pantalla ya dice «Cargando adiestramiento…»).

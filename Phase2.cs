@@ -1048,6 +1048,19 @@ public static class Phase2Endpoints
             return Results.Ok(g);
         }).RequireAuthorization();
 
+        // Cambiar el nombre: solo el nombre; miembros, plan y sets siguen igual.
+        app.MapPut("/user-groups/{id:guid}", async (Guid id, NameRequest req, ITenantContext tc, IServiceProvider sp) =>
+        {
+            var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
+            if (!CanAuthor(tc.Role)) return Results.Forbid();
+            if (string.IsNullOrWhiteSpace(req.Name)) return Results.BadRequest("Nombre requerido.");
+            var g = await db.UserGroups.FindAsync(id);
+            if (g is null) return Results.NotFound();
+            g.Name = req.Name.Trim();
+            await db.SaveChangesAsync();
+            return Results.Ok(g);
+        }).RequireAuthorization();
+
         app.MapDelete("/user-groups/{id:guid}", async (Guid id, ITenantContext tc, IServiceProvider sp) =>
         {
             var db = Db(sp, tc); if (db is null) return Results.BadRequest("No tenant context.");
